@@ -1,24 +1,19 @@
-# AIHXO Gestión — Web App Responsive v1
+# AIHXO Gestión — Supabase v2 corregida
 
-Aplicación web responsive para gestionar AIHXO.
+Aplicación web responsive de gestión AIHXO conectada a Supabase.
 
-## Módulos
-- Dashboard financiero y operativo
-- Pedidos: creación, búsqueda, estado, total, coste y beneficio
-- Productos: camisetas por talla/color y bolsos
-- Stock: entradas, stock actual, valor y alertas
-- Diseños DTF
-- Clientes
-- Gastos
-- Informes
-- Configuración
-- Copia de seguridad JSON
-- PWA/instalable en móvil
+## Corrección incluida
+La versión anterior referenciaba `styles.css` y `manifest.json`, pero esos archivos no estaban incluidos en el ZIP. Por eso GitHub Pages mostraba la aplicación con los estilos por defecto del navegador.
 
-## Datos
-La versión v1 guarda los datos en `localStorage` del navegador. Es ideal para prototipo y uso en un único dispositivo.
+Esta versión incluye:
+- `styles.css` responsive completo.
+- `manifest.json`.
+- Cache-busting `styles.css?v=2`.
+- `app.js` y `index.html` originales.
+- Conexión Supabase configurada en `app.js`.
 
-Para una versión multi-dispositivo/producción se debe conectar a una base de datos y autenticación.
+## Publicar en GitHub Pages
+Sube el contenido de `AIHXO_App_v1` al repositorio y activa GitHub Pages desde la rama principal.
 
-## Publicar
-Sube `index.html`, `styles.css`, `app.js` y `manifest.json` a GitHub Pages, Netlify o Vercel. No necesita backend para esta versión.
+Si GitHub ya tenía una versión anterior, haz un refresco forzado del navegador después de publicar:
+- iPhone/Safari: cerrar y volver a abrir la página o borrar los datos del sitio si persiste la versión antigua.
