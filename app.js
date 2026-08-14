@@ -210,3 +210,42 @@ auth();
     closeDrawerV7();
   };
 })();
+
+// ===== AIHXO USERS NAV V8 =====
+(function(){
+  function addUsersNav(){
+    const nav=document.getElementById('nav');
+    if(!nav || nav.querySelector('[data-page="usuarios"]')) return;
+    const b=document.createElement('button');
+    b.type='button'; b.dataset.page='usuarios'; b.innerHTML='👤 <span>Usuarios</span>';
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      if(typeof window.renderUsersV7==='function') window.renderUsersV7();
+      document.querySelector('.sidebar')?.classList.remove('open');
+      document.querySelector('.menu-overlay')?.classList.remove('show');
+    });
+    nav.appendChild(b);
+  }
+  document.addEventListener('DOMContentLoaded',addUsersNav);
+  setTimeout(addUsersNav,500);
+  setTimeout(addUsersNav,1500);
+})();
+
+// ===== AIHXO PRODUCT BUTTON FIX V9 =====
+(function(){
+  function openProducts(){
+    if(typeof window.renderProductsV4==='function'){ window.renderProductsV4(); return; }
+    // Fallback: click an existing Products navigation button.
+    const b=[...document.querySelectorAll('#nav button,button')].find(x=>/productos/i.test(x.textContent||''));
+    if(b) b.click();
+  }
+  window.openProductsV9=openProducts;
+  document.addEventListener('click',function(e){
+    const b=e.target.closest('button,a');
+    if(!b)return;
+    if(/gestionar productos/i.test((b.textContent||'').trim())){
+      e.preventDefault(); e.stopPropagation(); openProducts();
+    }
+  },true);
+})();

@@ -51,3 +51,11 @@ Ajuste de la interfaz móvil para que el menú lateral se superponga y se cierre
 
 ## v7 — Usuarios
 Pantalla de usuarios con administradores autorizados, estado de acceso e invitación/alta desde la interfaz.
+
+
+## v8 — Usuarios en menú lateral
+La sección Usuarios aparece como opción directa en el menú lateral y cierra el menú al seleccionarla en móvil.
+
+
+## v9 — Corrección Gestionar productos
+El botón Gestionar productos abre directamente la pantalla de Productos y su editor.
