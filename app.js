@@ -597,3 +597,57 @@ auth();
   document.addEventListener('DOMContentLoaded',()=>setTimeout(ensureHomeButton,100));
   window.addEventListener('load',()=>setTimeout(ensureHomeButton,300));
 })();
+
+
+/* ===== AIHXO V14 FINAL NAVIGATION + EXPENSES ===== */
+(function(){
+  const q=s=>document.querySelector(s);
+  function closeMenus(){q('.sidebar')?.classList.remove('open');q('#menuOverlay')?.classList.remove('open')}
+  function closeDrawerV14(){q('#drawer')?.classList.add('hidden')}
+  window.goHomeV14=function(){ closeDrawerV14(); closeMenus(); if(typeof setView==='function') setView('dashboard'); };
+
+  // One authoritative router. Customers keeps its custom CRUD screen; all other sections
+  // use the original fully implemented views (including Expenses and Reports).
+  window.navigateAIHXOV14=function(key){
+    closeDrawerV14(); closeMenus();
+    if(key==='customers' && typeof renderCustomersV13==='function'){
+      const root=q('#view');
+      if(root){ q('#title')&&(q('#title').textContent='Clientes');
+        document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view==='customers'));
+        renderCustomersV13(root);
+      }
+      return;
+    }
+    if(typeof setView==='function') setView(key);
+  };
+  // Keep legacy calls working, but force them through the corrected router.
+  window.navigateV11=window.navigateAIHXOV14;
+
+  function ensureHome(){
+    const bar=q('.topbar'); if(!bar || q('#homeTopV14')) return;
+    const b=document.createElement('button'); b.id='homeTopV14'; b.type='button'; b.className='secondary small'; b.textContent='⌂'; b.title='Ir a Inicio';
+    b.onclick=window.goHomeV14;
+    const title=q('#title'); if(title) bar.insertBefore(b,title); else bar.prepend(b);
+  }
+  function bindNav(){
+    document.querySelectorAll('#nav button[data-view]').forEach(b=>{
+      b.onclick=function(e){e.preventDefault();e.stopPropagation();window.navigateAIHXOV14(b.dataset.view)};
+    });
+    q('#hamb')?.addEventListener('click',()=>{q('.sidebar')?.classList.toggle('open');q('#menuOverlay')?.classList.toggle('open')});
+    q('#menuOverlay')?.addEventListener('click',closeMenus);
+    ensureHome();
+  }
+  // Capture all menu clicks so stale inline handlers from older versions cannot fire.
+  document.addEventListener('click',function(e){
+    const b=e.target.closest('button'); if(!b)return;
+    const view=b.dataset?.view;
+    if(view){ e.preventDefault(); e.stopImmediatePropagation(); window.navigateAIHXOV14(view); return; }
+    const txt=(b.textContent||'').trim();
+    if(/^inicio$/i.test(txt)||/←\s*inicio/i.test(txt)||txt==='⌂'){e.preventDefault();e.stopImmediatePropagation();window.goHomeV14();return;}
+    if(/nuevo gasto/i.test(txt)){e.preventDefault();e.stopImmediatePropagation(); if(typeof expenseForm==='function') expenseForm(); return;}
+  },true);
+  const mo=new MutationObserver(()=>{ensureHome(); bindNav()});
+  mo.observe(document.documentElement,{subtree:true,childList:true});
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(bindNav,100));
+  window.addEventListener('load',()=>setTimeout(bindNav,300));
+})();

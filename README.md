@@ -75,3 +75,7 @@ Alta, edición, eliminación, búsqueda y consulta de clientes con guardado dire
 
 ## v13 — Corrección definitiva de navegación y clientes
 Se fuerza la carga de app.js con versión 13 para evitar caché, se añade botón fijo de Inicio, cierre de paneles, formulario real de alta/edición de clientes y guardado mediante supabaseClient.
+
+
+## v14 — Navegación definitiva + Gastos
+Se restaura la vista real de Gastos con alta de gastos, se elimina el aviso provisional y se centraliza la navegación para todas las secciones con acceso a Inicio.
