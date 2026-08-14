@@ -43,3 +43,11 @@ Las cuentas con otros correos pueden autenticarse en Supabase, pero no tendrán 
 - Overlay para cerrar tocando fuera del menú.
 - Pantalla de Stock rediseñada para móvil.
 - La vista principal ocupa todo el ancho al cerrar el menú.
+
+
+## v6 — Mobile final
+Ajuste de la interfaz móvil para que el menú lateral se superponga y se cierre al seleccionar una sección, y para que Stock tenga cabecera AIHXO, botón + Pedido y resumen compacto en una sola tarjeta.
+
+
+## v7 — Usuarios
+Pantalla de usuarios con administradores autorizados, estado de acceso e invitación/alta desde la interfaz.

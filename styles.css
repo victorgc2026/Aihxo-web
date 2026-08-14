@@ -112,3 +112,59 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted
   .mobile-search input{flex:1}
 }
 @media(min-width:761px){.menu-overlay{display:none!important}}
+
+
+/* ===== AIHXO v6 — mobile layout matching the approved reference ===== */
+.mobile-brand{display:none}
+@media(max-width:760px){
+  .topbar{height:88px;padding:0 14px;border-bottom:1px solid var(--line);gap:10px}
+  .topbar .hamb{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;color:var(--blue);font-size:28px;line-height:1}
+  .topbar h1{font-size:0;flex:1;display:flex;align-items:center}
+  .topbar h1:before{content:'AIHXO';font-family:Georgia,serif;font-size:30px;font-weight:800;letter-spacing:1px;color:#1687ff}
+  .topbar h1:after{content:'GESTIÓN ONLINE';font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:9px;letter-spacing:2.4px;font-weight:600;color:#7b879d;margin:31px 0 0 -70px}
+  .topbar .primary.small{font-size:15px;padding:11px 15px;border-radius:12px;white-space:nowrap}
+  .page{padding:16px 14px 34px;max-width:none}
+  .page>.section:first-child{align-items:flex-start;margin-bottom:18px}
+  .page>.section:first-child h2{font-size:30px;line-height:1.05;margin-bottom:6px}
+  .page>.section:first-child .sub{font-size:16px;line-height:1.35;max-width:220px}
+  .page>.section:first-child .primary{min-width:150px;font-size:16px;padding:13px 14px;line-height:1.2}
+
+  /* Stock summary is one compact card, like the reference, rather than four tall cards. */
+  .stock-summary{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:0!important;margin-bottom:16px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;padding:0!important}
+  .stock-summary .card{display:none}
+  .stock-summary>.card{display:block}
+  .stock-summary .kpi{padding:16px 10px;min-width:0;border:0;border-radius:0;box-shadow:none}
+  .stock-summary .kpi:not(:last-child){border-right:1px solid var(--line)}
+  .stock-summary .label{font-size:10px;letter-spacing:.7px;white-space:normal}
+  .stock-summary .kvalue{font-size:22px;margin:7px 0 2px;white-space:nowrap}
+  .stock-summary .sub{font-size:10px;white-space:nowrap}
+  .stock-summary .kpi:nth-child(4){display:none}
+
+  .card{border-radius:15px;padding:14px;box-shadow:0 5px 20px rgba(7,21,47,.06)}
+  .mobile-search{display:flex;gap:8px;margin-bottom:10px}
+  .mobile-search input{min-width:0;height:46px}
+  .mobile-search .secondary{height:46px;padding:0 15px}
+  .stock-table{overflow:hidden}
+  .stock-table table{font-size:13px}
+  .stock-table th{font-size:9px;padding:10px 6px}
+  .stock-table td{padding:11px 6px}
+  .stock-table th:nth-child(1),.stock-table td:nth-child(1),.stock-table th:nth-child(5),.stock-table td:nth-child(5){display:none}
+  .stock-table td:nth-child(2){white-space:normal;min-width:145px}
+  .stock-product{font-weight:700;line-height:1.2}
+  .stock-meta{font-size:10px;color:var(--muted);margin-top:3px}
+  .stock-table td:nth-child(6){font-weight:800}
+  .stock-table .secondary{width:42px;height:42px;padding:0;border-radius:11px;font-size:20px}
+}
+@media(max-width:380px){
+  .topbar{padding:0 10px}
+  .topbar h1:before{font-size:27px}
+  .topbar h1:after{font-size:8px;margin-left:-65px}
+  .topbar .primary.small{font-size:14px;padding:10px 12px}
+  .stock-summary .kpi{padding:14px 7px}
+  .stock-summary .kvalue{font-size:19px}
+  .stock-summary .label{font-size:9px}
+}
+
+.user-card-v7{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.user-card-v7:last-child{border-bottom:0}
+.avatar-v7{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#eaf3ff;color:#087cf4;font-weight:800;flex:none}

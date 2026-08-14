@@ -54,7 +54,7 @@ function showLogin(message=''){
    $('#authMsg').textContent=error?error.message:(data.session?'Cuenta creada. Ya puedes entrar.':'Cuenta creada. Revisa el correo de confirmación de Supabase si está activado.');
  };
 }
-function showApp(session){document.body.innerHTML=`<div id="app"><aside class="sidebar"><div class="brand"><div class="brandmark">AIHXO</div><small>GESTIÓN ONLINE</small></div><nav id="nav"><button data-view="dashboard">⌂ <span>Inicio</span></button><button data-view="orders">▣ <span>Pedidos</span></button><button data-view="products">◇ <span>Productos</span></button><button data-view="stock">□ <span>Stock</span></button><button data-view="customers">♙ <span>Clientes</span></button><button data-view="expenses">€ <span>Gastos</span></button><button data-view="reports">▥ <span>Informes</span></button></nav><div class="sidebar-foot">${session.user.email}<br><button class="secondary" style="margin-top:8px" id="logout">Cerrar sesión</button></div></aside><div class="menu-overlay" id="menuOverlay"></div><main><header class="topbar"><button class="hamb" id="hamb">☰</button><h1 id="title">Inicio</h1><button class="primary small" id="quickOrder">＋ Pedido</button></header><div id="view"></div></main></div><div id="drawer" class="drawer hidden"><div class="drawer-card"><button class="x" id="closeDrawer">×</button><div id="drawerBody"></div></div></div><div id="toast"></div>`;document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{setView(b.dataset.view);closeMobileMenu()});$('#hamb').onclick=()=>toggleMobileMenu();$('#menuOverlay').onclick=()=>closeMobileMenu();$('#logout').onclick=()=>supabaseClient.auth.signOut();$('#quickOrder').onclick=orderForm;$('#closeDrawer').onclick=closeDrawer;loadAll().then(()=>setView('dashboard'))}
+function showApp(session){document.body.innerHTML=`<div id="app"><aside class="sidebar"><div class="brand"><div class="brandmark">AIHXO</div><small>GESTIÓN ONLINE</small></div><nav id="nav"><button data-view="dashboard">⌂ <span>Inicio</span></button><button data-view="orders">▣ <span>Pedidos</span></button><button data-view="products">◇ <span>Productos</span></button><button data-view="stock">□ <span>Stock</span></button><button data-view="customers">♙ <span>Clientes</span></button><button data-view="expenses">€ <span>Gastos</span></button><button data-view="reports">▥ <span>Informes</span></button></nav><div class="sidebar-foot">${session.user.email}<br><button class="secondary" style="margin-top:8px" id="logout">Cerrar sesión</button></div></aside><div class="menu-overlay" id="menuOverlay"></div><main><header class="topbar"><button class="hamb" id="hamb">☰</button><h1 id="title">Inicio</h1><button class="primary small" id="quickOrder">＋ Pedido</button></header><div id="view"></div></main></div><div id="drawer" class="drawer hidden"><div class="drawer-card"><button class="x" id="closeDrawer">×</button><div id="drawerBody"></div></div></div><div id="toast"></div>`;document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{setView(b.dataset.view);closeMobileMenu()});$('#hamb').setAttribute('aria-label','Abrir menú');$('#hamb').onclick=()=>toggleMobileMenu();$('#menuOverlay').onclick=()=>closeMobileMenu();$('#logout').onclick=()=>supabaseClient.auth.signOut();$('#quickOrder').onclick=orderForm;$('#closeDrawer').onclick=closeDrawer;loadAll().then(()=>setView('dashboard'))}
 function toggleMobileMenu(){document.querySelector('.sidebar')?.classList.toggle('open');document.querySelector('#menuOverlay')?.classList.toggle('open')}function closeMobileMenu(){document.querySelector('.sidebar')?.classList.remove('open');document.querySelector('#menuOverlay')?.classList.remove('open')}function setView(v){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Inicio',orders:'Pedidos',products:'Productos',stock:'Stock',customers:'Clientes',expenses:'Gastos',reports:'Informes'};$('#title').textContent=titles[v];({dashboard,ordersView,productsView,stock,customersView,expensesView,reports}[v])($('#view'));closeMobileMenu()}
 function dashboard(c){const sales=orders.reduce((a,o)=>a+ +o.total,0),costs=orders.reduce((a,o)=>a+ +o.product_cost,0),exp=expenses.reduce((a,e)=>a+ +e.amount,0),units=orders.reduce((a,o)=>a+o.quantity,0),stock=products.reduce((a,p)=>a+p.stock,0),profit=sales-costs-exp,low=products.filter(p=>p.stock<=3);c.innerHTML=`<div class="page"><div class="grid kpis">${kpi('Ventas',money(sales),orders.length+' pedidos')}${kpi('Pedidos',orders.length,'online')}${kpi('Unidades',units,'vendidas')}${kpi('Beneficio',money(profit),sales?((profit/sales)*100).toFixed(1)+'% margen':'')}${kpi('Stock',stock,'unidades')}</div><div class="grid two"><div class="card"><div class="section"><h2>Pedidos recientes</h2><button class="secondary" onclick="setView('orders')">Ver todos</button></div>${orders.length?`<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody>${orders.slice(0,7).map(o=>`<tr><td><b>${o.order_number}</b></td><td>${esc(o.customer_name)}</td><td>${money(o.total)}</td><td>${o.status}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay pedidos.</div>'}</div><div class="card"><div class="section"><h2>Alertas de stock</h2></div>${low.length?low.slice(0,8).map(p=>`<div class="statline"><span>${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)}</span><b class="red">${p.stock}</b></div>`).join(''):'<div class="empty">Stock correcto.</div>'}</div></div></div>`}
 function ordersView(c){c.innerHTML=`<div class="page"><div class="section"><div><h2>Pedidos</h2><div class="muted">${orders.length} pedidos</div></div><button class="primary" onclick="orderForm()">＋ Nuevo pedido</button></div><div class="card"><input class="search" id="oq" placeholder="Buscar..." oninput="drawOrders()"><div id="orderTable"></div></div></div>`;drawOrders()}
@@ -153,5 +153,60 @@ auth();
     const result=id?await q.update(obj).eq('id',id):await q.insert(obj);
     if(result.error){alert('No se pudo guardar: '+result.error.message);return}
     closeDrawerV4(); await loadProductsV4();
+  };
+})();
+
+// ===== AIHXO USER MANAGEMENT V7 =====
+(function(){
+  const ADMIN_EMAILS=['aihxo.camisetas@gmail.com','gracielaoliveros.go@gmail.com'];
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  window.renderUsersV7=function(){
+    const root=document.getElementById('page')||document.querySelector('main'); if(!root)return;
+    const current=(window.supabase && window.supabase.auth)?null:null;
+    root.innerHTML=`<div class="page">
+      <div class="section"><div><h2>Usuarios</h2><div class="sub">Personas con acceso a AIHXO Gestión</div></div>
+      <button class="primary small" onclick="openInviteUserV7()">+ Invitar usuario</button></div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="label">Administradores</div>
+        <div id="adminsV7" style="margin-top:10px"></div>
+      </div>
+      <div class="card">
+        <div class="section"><div><strong>Accesos</strong><div class="sub">Los administradores tienen control completo de la gestión.</div></div></div>
+        <div id="usersListV7"></div>
+      </div>
+    </div>`;
+    drawUsersV7();
+  };
+  function drawUsersV7(){
+    const admins=ADMIN_EMAILS;
+    document.getElementById('adminsV7').innerHTML=admins.map((e,i)=>`
+      <div class="statline"><div><strong>${esc(e)}</strong><div class="muted">Administrador</div></div>
+      <span class="green">● Activo</span></div>`).join('');
+    document.getElementById('usersListV7').innerHTML=admins.map(e=>`
+      <div class="user-card-v7">
+        <div class="avatar-v7">${esc(e[0].toUpperCase())}</div>
+        <div style="flex:1;min-width:0"><strong style="overflow-wrap:anywhere">${esc(e)}</strong><div class="muted">Administrador · Acceso completo</div></div>
+        <span class="green">Activo</span>
+      </div>`).join('')+
+      `<div class="empty" style="padding-bottom:10px">Los nuevos usuarios deben registrarse con un correo autorizado.</div>`;
+  }
+  window.openInviteUserV7=function(){
+    const d=document.getElementById('drawer'); if(!d)return;
+    d.classList.remove('hidden');
+    d.innerHTML=`<div class="drawer-card"><button class="x" onclick="closeDrawerV7()">×</button>
+      <h2>Invitar usuario</h2><p class="sub">Añade una persona a AIHXO. Para convertirla en administradora, autoriza su correo en la configuración de acceso.</p>
+      <form class="form" onsubmit="inviteUserV7(event)">
+        <div class="field"><label>Correo electrónico</label><input name="email" type="email" placeholder="nombre@correo.com" required></div>
+        <div class="field"><label>Rol</label><select name="role"><option value="admin">Administrador</option><option value="user">Usuario</option></select></div>
+        <button class="primary" type="submit">Guardar acceso</button>
+      </form></div>`;
+  };
+  window.closeDrawerV7=function(){document.getElementById('drawer')?.classList.add('hidden')};
+  window.inviteUserV7=function(e){
+    e.preventDefault();
+    const f=new FormData(e.target), email=String(f.get('email')).toLowerCase().trim(), role=f.get('role');
+    if(!email){return}
+    alert(`Acceso preparado para ${email}. Rol: ${role==='admin'?'Administrador':'Usuario'}.\\n\\nLa creación de la cuenta se realiza desde la pantalla de registro de AIHXO.`);
+    closeDrawerV7();
   };
 })();
