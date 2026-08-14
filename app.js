@@ -345,3 +345,255 @@ auth();
   // If the rebuilt app is already visible, show Inicio.
   setTimeout(()=>{if(q('#view')&&q('#nav'))navigateV11('dashboard')},1200);
 })();
+
+
+/* ===== AIHXO CLIENTS V12 ===== */
+(function(){
+  const q=s=>document.querySelector(s);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const money=v=>Number(v||0).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+  let clients=[];
+
+  async function loadClients(){
+    if(!window.supabase)return {data:[],error:null};
+    return await window.supabase.from('customers').select('*').order('name',{ascending:true});
+  }
+
+  function customerFields(c={}){
+    return `
+      <div class="formgrid">
+        <div class="field"><label>Nombre *</label><input name="name" required value="${esc(c.name||'')}"></div>
+        <div class="field"><label>Apellidos</label><input name="surname" value="${esc(c.surname||c.lastname||'')}"></div>
+        <div class="field"><label>Email</label><input name="email" type="email" value="${esc(c.email||'')}"></div>
+        <div class="field"><label>Teléfono</label><input name="phone" value="${esc(c.phone||'')}"></div>
+        <div class="field"><label>Dirección</label><input name="address" value="${esc(c.address||'')}"></div>
+        <div class="field"><label>Código postal</label><input name="postal_code" value="${esc(c.postal_code||c.zip||'')}"></div>
+        <div class="field"><label>Ciudad</label><input name="city" value="${esc(c.city||'')}"></div>
+        <div class="field" style="grid-column:1/-1"><label>Notas</label><textarea name="notes" rows="4">${esc(c.notes||'')}</textarea></div>
+      </div>`;
+  }
+
+  window.renderCustomersV12=async function(root){
+    root=root||q('#view')||q('#page');
+    if(!root)return;
+    root.innerHTML=`<div class="page">
+      <div class="section">
+        <div><h2>Clientes</h2><div class="sub">Gestiona tus clientes de AIHXO</div></div>
+        <button class="primary" onclick="openCustomerV12()">+ Nuevo cliente</button>
+      </div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="row" style="flex-wrap:wrap">
+          <input id="clientSearchV12" class="search" placeholder="Buscar nombre, email o teléfono…" oninput="filterCustomersV12()">
+        </div>
+      </div>
+      <div class="card"><div id="clientsTableV12" class="table-wrap"><div class="empty">Cargando clientes…</div></div></div>
+    </div>`;
+    await refreshCustomersV12();
+  };
+
+  async function refreshCustomersV12(){
+    const {data,error}=await loadClients();
+    const el=q('#clientsTableV12');
+    if(!el)return;
+    if(error){el.innerHTML=`<div class="empty red">Error al cargar clientes: ${esc(error.message)}</div>`;return;}
+    clients=data||[];
+    filterCustomersV12();
+  }
+
+  window.filterCustomersV12=function(){
+    const el=q('#clientsTableV12'); if(!el)return;
+    const term=(q('#clientSearchV12')?.value||'').toLowerCase().trim();
+    const list=clients.filter(c=>[c.name,c.surname,c.lastname,c.email,c.phone,c.city].join(' ').toLowerCase().includes(term));
+    if(!list.length){el.innerHTML='<div class="empty">No hay clientes que coincidan.</div>';return;}
+    el.innerHTML=`<table><thead><tr><th>Cliente</th><th>Contacto</th><th>Localidad</th><th></th></tr></thead><tbody>
+      ${list.map(c=>`<tr>
+        <td><strong>${esc([c.name,c.surname||c.lastname].filter(Boolean).join(' '))}</strong><br><span class="muted">${esc(c.address||'')}</span></td>
+        <td>${esc(c.email||'')}<br>${esc(c.phone||'')}</td>
+        <td>${esc([c.postal_code||c.zip,c.city].filter(Boolean).join(' '))}</td>
+        <td style="white-space:nowrap"><button class="secondary small" onclick='openCustomerV12(${JSON.stringify(c).replace(/'/g,"&#039;")})'>Editar</button>
+        <button class="secondary small" onclick="deleteCustomerV12('${esc(c.id)}')">Eliminar</button></td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  };
+
+  window.openCustomerV12=function(c={}){
+    const d=q('#drawer');
+    if(!d)return;
+    d.classList.remove('hidden');
+    d.innerHTML=`<div class="drawer-card">
+      <button class="x" onclick="closeCustomerDrawerV12()">×</button>
+      <h2>${c.id?'Editar cliente':'Nuevo cliente'}</h2>
+      <p class="sub">Los datos se guardan en Supabase.</p>
+      <form id="customerFormV12" class="form" onsubmit="saveCustomerV12(event,'${esc(c.id||'')}')">
+        ${customerFields(c)}
+        <button class="primary" type="submit">Guardar cliente</button>
+      </form>
+    </div>`;
+  };
+
+  window.closeCustomerDrawerV12=function(){q('#drawer')?.classList.add('hidden')};
+
+  window.saveCustomerV12=async function(e,id){
+    e.preventDefault();
+    const fd=new FormData(e.target);
+    const obj=Object.fromEntries(fd.entries());
+    Object.keys(obj).forEach(k=>obj[k]=String(obj[k]||'').trim());
+    if(!obj.name){alert('El nombre es obligatorio.');return;}
+    const result=id
+      ? await window.supabase.from('customers').update(obj).eq('id',id)
+      : await window.supabase.from('customers').insert(obj);
+    if(result.error){alert('No se pudo guardar el cliente: '+result.error.message);return;}
+    closeCustomerDrawerV12();
+    await refreshCustomersV12();
+  };
+
+  window.deleteCustomerV12=async function(id){
+    if(!confirm('¿Seguro que quieres eliminar este cliente?'))return;
+    const {error}=await window.supabase.from('customers').delete().eq('id',id);
+    if(error){alert('No se pudo eliminar: '+error.message);return;}
+    await refreshCustomersV12();
+  };
+
+  // Replace the navigation target with the full V12 client screen.
+  const oldNavigate=window.navigateV11;
+  window.navigateV11=function(key){
+    if(key==='customers'){
+      const root=q('#view');
+      if(root){
+        q('#title')&&(q('#title').textContent='Clientes');
+        document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view==='customers'));
+        document.querySelector('.sidebar')?.classList.remove('open');
+        document.querySelector('#menuOverlay')?.classList.remove('open');
+        renderCustomersV12(root);
+      }
+      return;
+    }
+    return oldNavigate ? oldNavigate(key) : undefined;
+  };
+})();
+
+
+/* ===== AIHXO V13 FINAL NAV + CLIENTS FIX ===== */
+(function(){
+  const q=s=>document.querySelector(s);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const clientDb=()=>window.supabaseClient;
+
+  function closePanels(){
+    q('#drawer')?.classList.add('hidden');
+    q('.sidebar')?.classList.remove('open');
+    q('#menuOverlay')?.classList.remove('open');
+  }
+  window.closeAIHXOV13=closePanels;
+
+  function ensureHomeButton(){
+    const bar=q('.topbar'); if(!bar || q('#homeTopV13')) return;
+    const b=document.createElement('button');
+    b.id='homeTopV13'; b.className='secondary small'; b.type='button'; b.textContent='⌂';
+    b.title='Ir a Inicio'; b.onclick=()=>window.navigateV11?.('dashboard');
+    bar.insertBefore(b,bar.querySelector('h1'));
+  }
+
+  window.openCustomerV13=function(c={}){
+    const d=q('#drawer'); if(!d)return;
+    d.classList.remove('hidden');
+    d.innerHTML=`<div class="drawer-card">
+      <button class="x" type="button" onclick="document.getElementById('drawer').classList.add('hidden')">×</button>
+      <h2>${c.id?'Editar cliente':'Nuevo cliente'}</h2>
+      <p class="sub">Completa los datos y pulsa Guardar cliente.</p>
+      <form id="customerFormV13" class="form">
+        <div class="formgrid">
+          <div class="field"><label>Nombre *</label><input name="name" required value="${esc(c.name)}"></div>
+          <div class="field"><label>Apellidos</label><input name="surname" value="${esc(c.surname||c.lastname)}"></div>
+          <div class="field"><label>Email</label><input name="email" type="email" value="${esc(c.email)}"></div>
+          <div class="field"><label>Teléfono</label><input name="phone" value="${esc(c.phone)}"></div>
+          <div class="field"><label>Dirección</label><input name="address" value="${esc(c.address)}"></div>
+          <div class="field"><label>Código postal</label><input name="postal_code" value="${esc(c.postal_code||c.zip)}"></div>
+          <div class="field"><label>Ciudad</label><input name="city" value="${esc(c.city)}"></div>
+          <div class="field" style="grid-column:1/-1"><label>Notas</label><textarea name="notes" rows="4">${esc(c.notes)}</textarea></div>
+        </div>
+        <div class="row" style="margin-top:8px;justify-content:flex-end">
+          <button type="button" class="secondary" onclick="document.getElementById('drawer').classList.add('hidden')">Cancelar</button>
+          <button type="submit" class="primary">Guardar cliente</button>
+        </div>
+        <div id="clientMsgV13" class="muted"></div>
+      </form>
+    </div>`;
+    q('#customerFormV13').onsubmit=async e=>{
+      e.preventDefault();
+      const obj=Object.fromEntries(new FormData(e.target).entries());
+      obj.name=String(obj.name||'').trim();
+      if(!obj.name){q('#clientMsgV13').textContent='El nombre es obligatorio.';return}
+      const db=clientDb();
+      if(!db){q('#clientMsgV13').textContent='No hay conexión con Supabase.';return}
+      const r=c.id?await db.from('customers').update(obj).eq('id',c.id):await db.from('customers').insert(obj);
+      if(r.error){q('#clientMsgV13').textContent='Error: '+r.error.message;return}
+      closePanels();
+      window.navigateV11?.('customers');
+    };
+  };
+
+  async function renderCustomersV13(root){
+    root.innerHTML=`<div class="page">
+      <div class="section"><div><h2>Clientes</h2><div class="sub">Gestiona tus clientes de AIHXO</div></div><button id="newClientV13" class="primary">+ Nuevo cliente</button></div>
+      <div class="card" style="margin-bottom:18px"><input id="clientSearchV13" class="search" placeholder="Buscar nombre, email o teléfono…"></div>
+      <div class="card"><div id="clientsTableV13" class="table-wrap"><div class="empty">Cargando clientes…</div></div></div>
+    </div>`;
+    q('#newClientV13').onclick=()=>openCustomerV13();
+    q('#clientSearchV13').oninput=()=>drawClientsV13();
+    await loadClientsV13();
+  }
+  let cdata=[];
+  async function loadClientsV13(){
+    const db=clientDb(), el=q('#clientsTableV13');
+    if(!db){el.innerHTML='<div class="empty red">No hay conexión con Supabase.</div>';return}
+    const r=await db.from('customers').select('*').order('name',{ascending:true});
+    if(r.error){el.innerHTML='<div class="empty red">Error al cargar clientes: '+esc(r.error.message)+'</div>';return}
+    cdata=r.data||[]; drawClientsV13();
+  }
+  function drawClientsV13(){
+    const el=q('#clientsTableV13'); if(!el)return;
+    const t=(q('#clientSearchV13')?.value||'').toLowerCase();
+    const list=cdata.filter(c=>[c.name,c.surname,c.email,c.phone,c.city].join(' ').toLowerCase().includes(t));
+    if(!list.length){el.innerHTML='<div class="empty">No hay clientes registrados.</div>';return}
+    el.innerHTML=`<table><thead><tr><th>Cliente</th><th>Contacto</th><th>Localidad</th><th>Acciones</th></tr></thead><tbody>${
+      list.map(c=>`<tr><td><strong>${esc([c.name,c.surname].filter(Boolean).join(' '))}</strong></td><td>${esc(c.email)}<br>${esc(c.phone)}</td><td>${esc([c.postal_code,c.city].filter(Boolean).join(' '))}</td><td><button class="secondary small editClientV13" data-id="${esc(c.id)}">Editar</button> <button class="secondary small deleteClientV13" data-id="${esc(c.id)}">Eliminar</button></td></tr>`).join('')
+    }</tbody></table>`;
+    el.querySelectorAll('.editClientV13').forEach(b=>b.onclick=()=>openCustomerV13(cdata.find(c=>String(c.id)===String(b.dataset.id))||{}));
+    el.querySelectorAll('.deleteClientV13').forEach(b=>b.onclick=async()=>{
+      if(!confirm('¿Eliminar este cliente?'))return;
+      const r=await clientDb().from('customers').delete().eq('id',b.dataset.id);
+      if(r.error){alert(r.error.message);return}
+      await loadClientsV13();
+    });
+  }
+
+  const previousNavigate=window.navigateV11;
+  window.navigateV11=function(key){
+    if(key==='customers'){
+      const root=q('#view'); if(root){
+        q('#title')&&(q('#title').textContent='Clientes');
+        document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view==='customers'));
+        closePanels(); renderCustomersV13(root);
+      } return;
+    }
+    const result=previousNavigate?previousNavigate(key):undefined;
+    setTimeout(ensureHomeButton,20);
+    return result;
+  };
+
+  // Capture navigation so stale inline handlers cannot trap the user in a section.
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('button');
+    if(!b)return;
+    const txt=(b.textContent||'').trim();
+    if(/nuevo cliente/i.test(txt)){e.preventDefault();e.stopImmediatePropagation();openCustomerV13();return}
+    if(/^inicio$/i.test(txt)||/←\s*inicio/i.test(txt)){e.preventDefault();e.stopImmediatePropagation();window.navigateV11?.('dashboard');return}
+    if(/clientes/i.test(txt) && b.dataset.view==='customers'){e.preventDefault();e.stopImmediatePropagation();window.navigateV11?.('customers');return}
+  },true);
+
+  const observer=new MutationObserver(()=>{ensureHomeButton()});
+  observer.observe(document.documentElement,{subtree:true,childList:true});
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(ensureHomeButton,100));
+  window.addEventListener('load',()=>setTimeout(ensureHomeButton,300));
+})();

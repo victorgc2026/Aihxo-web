@@ -67,3 +67,11 @@ Se reconstruyó la navegación después del login. Clientes, Productos, Gastos, 
 
 ## v11 — Navegación reconstruida
 Navegación única y autocontenida para Inicio, Pedidos, Productos, Stock, Clientes, Gastos, Informes y Usuarios, con retorno a Inicio y menú móvil funcional.
+
+
+## v12 — Gestión completa de clientes
+Alta, edición, eliminación, búsqueda y consulta de clientes con guardado directo en Supabase.
+
+
+## v13 — Corrección definitiva de navegación y clientes
+Se fuerza la carga de app.js con versión 13 para evitar caché, se añade botón fijo de Inicio, cierre de paneles, formulario real de alta/edición de clientes y guardado mediante supabaseClient.
