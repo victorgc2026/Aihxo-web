@@ -63,3 +63,7 @@ El botón Gestionar productos abre directamente la pantalla de Productos y su ed
 
 ## v10 — Menú completo corregido
 Se reconstruyó la navegación después del login. Clientes, Productos, Gastos, Informes y Usuarios quedan conectados a sus vistas reales. Ambos administradores autorizados pueden entrar. Usuarios aparece directamente en el menú generado por la aplicación.
+
+
+## v11 — Navegación reconstruida
+Navegación única y autocontenida para Inicio, Pedidos, Productos, Stock, Clientes, Gastos, Informes y Usuarios, con retorno a Inicio y menú móvil funcional.

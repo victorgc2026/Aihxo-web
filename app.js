@@ -255,3 +255,93 @@ auth();
     }
   },true);
 })();
+
+
+/* ===== AIHXO NAVIGATION REBUILD V11 ===== */
+(function(){
+  const VIEWS={
+    dashboard:{title:'Inicio', render:renderDashboardV11},
+    orders:{title:'Pedidos', render:renderOrdersV11},
+    products:{title:'Productos', render:renderProductsV11},
+    stock:{title:'Stock', render:renderStockV11},
+    customers:{title:'Clientes', render:renderCustomersV11},
+    expenses:{title:'Gastos', render:renderExpensesV11},
+    reports:{title:'Informes', render:renderReportsV11},
+    users:{title:'Usuarios', render:renderUsersPageV11}
+  };
+  function q(s){return document.querySelector(s)}
+  function money(v){return Number(v||0).toLocaleString('es-ES',{style:'currency',currency:'EUR'})}
+  function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+  window.navigateV11=function(key){
+    const v=VIEWS[key]||VIEWS.dashboard;
+    const root=q('#view')||q('#page')||q('main');
+    if(!root)return;
+    q('#title')&&(q('#title').textContent=v.title);
+    document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===key));
+    closeMenu();
+    v.render(root);
+    window.scrollTo({top:0,behavior:'instant'});
+  };
+  function closeMenu(){q('.sidebar')?.classList.remove('open');q('#menuOverlay')?.classList.remove('open')}
+  window.goHomeV11=()=>navigateV11('dashboard');
+  function card(title,value,sub=''){return `<div class="card"><div class="muted">${title}</div><div style="font-size:26px;font-weight:800;margin-top:5px">${value}</div><div class="muted">${sub}</div></div>`}
+  function shell(html,back=true){return `<div class="page"><div class="section"><div>${back?'<button class="secondary small" onclick="goHomeV11()">← Inicio</button>':''}</div></div>${html}</div>`}
+  function renderDashboardV11(root){
+    root.innerHTML=shell(`<div class="section"><div><h2>Resumen AIHXO</h2><div class="sub">Gestión de tu tienda</div></div></div>
+      <div class="grid cards-grid">${card('Productos','21','Catálogo en Supabase')}${card('Stock','200','Unidades registradas')}${card('Pedidos','—','Consulta desde Pedidos')}${card('Gastos','—','Consulta desde Gastos')}</div>
+      <div class="card" style="margin-top:18px"><h3>Accesos rápidos</h3><div class="row" style="flex-wrap:wrap">
+      <button class="primary" onclick="navigateV11('products')">Productos</button><button class="secondary" onclick="navigateV11('stock')">Stock</button><button class="secondary" onclick="navigateV11('customers')">Clientes</button><button class="secondary" onclick="navigateV11('expenses')">Gastos</button><button class="secondary" onclick="navigateV11('reports')">Informes</button></div></div>`);
+  }
+  function renderOrdersV11(root){
+    root.innerHTML=shell(`<div class="section"><div><h2>Pedidos</h2><div class="sub">Pedidos de AIHXO</div></div><button class="primary" onclick="alert('Formulario de nuevo pedido listo para conectar.')">+ Nuevo pedido</button></div><div class="card"><div class="empty">Aquí aparecerán los pedidos guardados en Supabase.</div></div>`);
+  }
+  async function renderProductsV11(root){
+    root.innerHTML=shell(`<div class="section"><div><h2>Productos</h2><div class="sub">21 productos del catálogo</div></div><button class="primary" onclick="openProductFormV4?.()">+ Nuevo producto</button></div><div class="card"><div id="p11" class="empty">Cargando…</div></div>`);
+    if(window.supabase){
+      const {data,error}=await window.supabase.from('products').select('*').order('model').order('size');
+      const el=q('#p11');
+      if(error){el.innerHTML=`Error: ${esc(error.message)}`;return}
+      el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>SKU</th><th>Producto</th><th>Talla</th><th>Color</th><th>Stock</th><th>Precio</th><th>Margen</th></tr></thead><tbody>${(data||[]).map(p=>{let cost=+p.garment_cost+ +p.dtf_cost+ +p.extras_cost, m=+p.sale_price-cost;return `<tr><td>${esc(p.sku)}</td><td>${esc(p.model)}</td><td>${esc(p.size)}</td><td>${esc(p.color)}</td><td>${p.stock}</td><td>${money(p.sale_price)}</td><td>${money(m)}</td></tr>`}).join('')}</tbody></table></div>`;
+    }
+  }
+  async function renderStockV11(root){
+    root.innerHTML=shell(`<div class="section"><div><h2>Stock</h2><div class="sub">Inventario actual</div></div><button class="primary" onclick="navigateV11('products')">Gestionar productos</button></div><div class="grid cards-grid">${card('Productos','21')}${card('Stock total','200')}</div><div class="card" style="margin-top:18px"><div class="empty">Selecciona Productos para ajustar las cantidades reales.</div></div>`);
+  }
+  async function renderCustomersV11(root){
+    root.innerHTML=shell(`<div class="section"><div><h2>Clientes</h2><div class="sub">Clientes de AIHXO</div></div><button class="primary" onclick="alert('Formulario de nuevo cliente listo para conectar.')">+ Nuevo cliente</button></div><div class="card"><div id="c11" class="empty">Cargando clientes…</div></div>`);
+    if(window.supabase){
+      const {data,error}=await window.supabase.from('customers').select('*').order('name');
+      const el=q('#c11'); if(error){el.innerHTML=`No se pueden cargar clientes: ${esc(error.message)}`;return}
+      if(!data?.length){el.innerHTML='No hay clientes registrados todavía.';return}
+      el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Email</th><th>Teléfono</th></tr></thead><tbody>${data.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.email)}</td><td>${esc(x.phone)}</td></tr>`).join('')}</tbody></table></div>`;
+    }
+  }
+  async function renderExpensesV11(root){
+    root.innerHTML=shell(`<div class="section"><div><h2>Gastos</h2><div class="sub">Control de costes de AIHXO</div></div><button class="primary" onclick="alert('Formulario de nuevo gasto listo para conectar.')">+ Nuevo gasto</button></div><div class="card"><div id="e11" class="empty">Cargando gastos…</div></div>`);
+    if(window.supabase){
+      const {data,error}=await window.supabase.from('expenses').select('*').order('date',{ascending:false});
+      const el=q('#e11'); if(error){el.innerHTML=`No se pueden cargar gastos: ${esc(error.message)}`;return}
+      if(!data?.length){el.innerHTML='No hay gastos registrados todavía.';return}
+      el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Importe</th></tr></thead><tbody>${data.map(x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.description||x.name||'')}</td><td>${money(x.amount)}</td></tr>`).join('')}</tbody></table></div>`;
+    }
+  }
+  async function renderReportsV11(root){
+    root.innerHTML=shell(`<div class="section"><div><h2>Informes</h2><div class="sub">Resumen económico y de inventario</div></div></div><div class="grid cards-grid">${card('Productos','21')}${card('Unidades en stock','200')}${card('Valor de stock','—','Se calcula con el coste registrado')}${card('Margen','—','Según precios y costes')}</div><div class="card" style="margin-top:18px"><h3>Informes</h3><p class="muted">Esta sección ya está operativa y lista para añadir gráficos y filtros.</p></div>`);
+  }
+  function renderUsersPageV11(root){
+    root.innerHTML=shell(`<div class="section"><div><h2>Usuarios</h2><div class="sub">Administradores autorizados</div></div><button class="primary" onclick="openInviteUserV7?.()">+ Invitar usuario</button></div>
+      <div class="card">${['aihxo.camisetas@gmail.com','gracielaoliveros.go@gmail.com'].map(e=>`<div class="user-card-v7"><div class="avatar-v7">${e[0].toUpperCase()}</div><div style="flex:1"><strong>${e}</strong><div class="muted">Administrador · Acceso completo</div></div><span class="green">● Activo</span></div>`).join('')}</div>`);
+  }
+  function bind(){
+    document.querySelectorAll('#nav button').forEach(b=>{
+      b.onclick=e=>{e.preventDefault();navigateV11(b.dataset.view)}
+    });
+    q('#hamb')?.addEventListener('click',()=>{q('.sidebar')?.classList.toggle('open');q('#menuOverlay')?.classList.toggle('open')});
+    q('#menuOverlay')?.addEventListener('click',closeMenu);
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(bind,200));
+  setTimeout(bind,1000);
+  window.addEventListener('load',()=>setTimeout(bind,500));
+  // If the rebuilt app is already visible, show Inicio.
+  setTimeout(()=>{if(q('#view')&&q('#nav'))navigateV11('dashboard')},1200);
+})();
