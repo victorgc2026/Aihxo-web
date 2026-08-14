@@ -11,8 +11,49 @@ async function loadAll(){
  if(p.error||o.error||c.error||e.error||d.error){toast('Error cargando datos');console.error(p.error||o.error||c.error||e.error||d.error);return}
  products=p.data||[];orders=o.data||[];customers=c.data||[];expenses=e.data||[];designs=d.data||[];
 }
-async function auth(){const {data:{session}}=await supabaseClient.auth.getSession(); if(session){showApp(session);return} showLogin(); supabaseClient.auth.onAuthStateChange((_e,s)=>{if(s)showApp(s);else showLogin()})}
-function showLogin(){document.body.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center;background:#07152f;padding:20px"><div class="card" style="width:min(420px,100%);padding:30px"><div style="font-size:34px;font-weight:900;color:#087cf4;margin-bottom:4px">AIHXO</div><div class="muted" style="margin-bottom:24px">Gestión de camisetas · DTF · bolsos</div><form id="loginForm" class="form"><div class="field"><label>Email</label><input id="email" type="email" required placeholder="tu@email.com"></div><div class="field"><label>Contraseña</label><input id="password" type="password" required minlength="6"></div><button class="primary">Entrar</button><button type="button" class="secondary" id="signup">Crear cuenta</button><div id="authMsg" class="muted"></div></form></div></div>`;$('#loginForm').onsubmit=async e=>{e.preventDefault();const {error}=await supabaseClient.auth.signInWithPassword({email:$('#email').value,password:$('#password').value});if(error)$('#authMsg').textContent=error.message};$('#signup').onclick=async()=>{const {data,error}=await supabaseClient.auth.signUp({email:$('#email').value,password:$('#password').value});$('#authMsg').textContent=error?error.message:'Cuenta creada. Revisa tu email si se solicita confirmación.'}}
+const ADMIN_EMAIL='aihxo.camisetas@gmail.com';
+async function auth(){
+ const {data:{session}}=await supabaseClient.auth.getSession();
+ if(session){
+   if((session.user.email||'').toLowerCase()===ADMIN_EMAIL) showApp(session);
+   else {await supabaseClient.auth.signOut(); showLogin('Esta cuenta no tiene acceso a AIHXO.');}
+   return;
+ }
+ showLogin();
+ supabaseClient.auth.onAuthStateChange(async (_e,s)=>{
+   if(s){
+     if((s.user.email||'').toLowerCase()===ADMIN_EMAIL) showApp(s);
+     else {await supabaseClient.auth.signOut(); showLogin('Esta cuenta no tiene acceso a AIHXO.');}
+   } else showLogin();
+ });
+}
+function showLogin(message=''){
+ document.body.innerHTML=`<div class="login-shell"><div class="card" style="width:min(430px,100%);padding:30px">
+ <div style="font-family:Georgia,serif;font-size:38px;font-weight:900;color:#087cf4;margin-bottom:4px">AIHXO</div>
+ <div class="muted" style="margin-bottom:24px">Panel privado de gestión · Administrador</div>
+ <form id="loginForm" class="form">
+ <div class="field"><label>Email del administrador</label><input id="email" type="email" required value="${ADMIN_EMAIL}" autocomplete="username"></div>
+ <div class="field"><label>Contraseña</label><input id="password" type="password" required minlength="6" autocomplete="current-password" placeholder="Tu contraseña"></div>
+ <button class="primary" type="submit">Entrar</button>
+ <button type="button" class="secondary" id="signup">Crear acceso de administrador</button>
+ <div id="authMsg" class="muted">${message}</div>
+ </form></div></div>`;
+ $('#loginForm').onsubmit=async e=>{
+   e.preventDefault();
+   const email=$('#email').value.trim().toLowerCase();
+   if(email!==ADMIN_EMAIL){$('#authMsg').textContent='Solo el administrador de AIHXO puede acceder.';return}
+   const {error}=await supabaseClient.auth.signInWithPassword({email,password:$('#password').value});
+   if(error)$('#authMsg').textContent=error.message;
+ };
+ $('#signup').onclick=async()=>{
+   const email=$('#email').value.trim().toLowerCase();
+   if(email!==ADMIN_EMAIL){$('#authMsg').textContent='El acceso de administrador debe utilizar '+ADMIN_EMAIL;return}
+   const password=$('#password').value;
+   if(password.length<6){$('#authMsg').textContent='La contraseña debe tener al menos 6 caracteres.';return}
+   const {data,error}=await supabaseClient.auth.signUp({email,password});
+   $('#authMsg').textContent=error?error.message:(data.session?'Cuenta creada. Ya puedes entrar.':'Cuenta creada. Revisa el correo de confirmación de Supabase si está activado.');
+ };
+}
 function showApp(session){document.body.innerHTML=`<div id="app"><aside class="sidebar"><div class="brand"><div class="brandmark">AIHXO</div><small>GESTIÓN ONLINE</small></div><nav id="nav"><button data-view="dashboard">⌂ <span>Inicio</span></button><button data-view="orders">▣ <span>Pedidos</span></button><button data-view="products">◇ <span>Productos</span></button><button data-view="stock">□ <span>Stock</span></button><button data-view="customers">♙ <span>Clientes</span></button><button data-view="expenses">€ <span>Gastos</span></button><button data-view="reports">▥ <span>Informes</span></button></nav><div class="sidebar-foot">${session.user.email}<br><button class="secondary" style="margin-top:8px" id="logout">Cerrar sesión</button></div></aside><main><header class="topbar"><button class="hamb" id="hamb">☰</button><h1 id="title">Inicio</h1><button class="primary small" id="quickOrder">＋ Pedido</button></header><div id="view"></div></main></div><div id="drawer" class="drawer hidden"><div class="drawer-card"><button class="x" id="closeDrawer">×</button><div id="drawerBody"></div></div></div><div id="toast"></div>`;document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>setView(b.dataset.view));$('#hamb').onclick=()=>document.querySelector('.sidebar').classList.toggle('open');$('#logout').onclick=()=>supabaseClient.auth.signOut();$('#quickOrder').onclick=orderForm;$('#closeDrawer').onclick=closeDrawer;loadAll().then(()=>setView('dashboard'))}
 function setView(v){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Inicio',orders:'Pedidos',products:'Productos',stock:'Stock',customers:'Clientes',expenses:'Gastos',reports:'Informes'};$('#title').textContent=titles[v];({dashboard,ordersView,productsView,stock,customersView,expensesView,reports}[v])($('#view'))}
 function dashboard(c){const sales=orders.reduce((a,o)=>a+ +o.total,0),costs=orders.reduce((a,o)=>a+ +o.product_cost,0),exp=expenses.reduce((a,e)=>a+ +e.amount,0),units=orders.reduce((a,o)=>a+o.quantity,0),stock=products.reduce((a,p)=>a+p.stock,0),profit=sales-costs-exp,low=products.filter(p=>p.stock<=3);c.innerHTML=`<div class="page"><div class="grid kpis">${kpi('Ventas',money(sales),orders.length+' pedidos')}${kpi('Pedidos',orders.length,'online')}${kpi('Unidades',units,'vendidas')}${kpi('Beneficio',money(profit),sales?((profit/sales)*100).toFixed(1)+'% margen':'')}${kpi('Stock',stock,'unidades')}</div><div class="grid two"><div class="card"><div class="section"><h2>Pedidos recientes</h2><button class="secondary" onclick="setView('orders')">Ver todos</button></div>${orders.length?`<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody>${orders.slice(0,7).map(o=>`<tr><td><b>${o.order_number}</b></td><td>${esc(o.customer_name)}</td><td>${money(o.total)}</td><td>${o.status}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay pedidos.</div>'}</div><div class="card"><div class="section"><h2>Alertas de stock</h2></div>${low.length?low.slice(0,8).map(p=>`<div class="statline"><span>${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)}</span><b class="red">${p.stock}</b></div>`).join(''):'<div class="empty">Stock correcto.</div>'}</div></div></div>`}

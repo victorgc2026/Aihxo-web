@@ -17,3 +17,13 @@ Sube el contenido de `AIHXO_App_v1` al repositorio y activa GitHub Pages desde l
 
 Si GitHub ya tenía una versión anterior, haz un refresco forzado del navegador después de publicar:
 - iPhone/Safari: cerrar y volver a abrir la página o borrar los datos del sitio si persiste la versión antigua.
+
+
+## Acceso de administrador
+El único correo autorizado por la aplicación y por las políticas RLS de Supabase es:
+
+`aihxo.camisetas@gmail.com`
+
+La primera vez, usa **Crear acceso de administrador** con ese correo y la contraseña que elijas. Si Supabase solicita confirmación por email, confirma el mensaje recibido y después entra con la misma contraseña.
+
+Las cuentas con otros correos pueden autenticarse en Supabase, pero no tendrán acceso a los datos de AIHXO y la aplicación las expulsará automáticamente.
