@@ -72,3 +72,81 @@ function expenseForm(){$('#drawer').classList.remove('hidden');$('#drawerBody').
 function reports(c){const sales=orders.reduce((a,o)=>a+ +o.total,0),costs=orders.reduce((a,o)=>a+ +o.product_cost,0),exp=expenses.reduce((a,e)=>a+ +e.amount,0);c.innerHTML=`<div class="page"><div class="grid four">${kpi('Ventas',money(sales))}${kpi('Coste productos',money(costs))}${kpi('Gastos',money(exp))}${kpi('Beneficio',money(sales-costs-exp))}</div><div class="grid two"><div class="card"><h2>Productos vendidos</h2>${Object.entries(orders.reduce((a,o)=>(a[o.product_name]=(a[o.product_name]||0)+o.quantity,a),{})).sort((a,b)=>b[1]-a[1]).map(x=>`<div class="statline"><span>${esc(x[0])}</span><b>${x[1]} uds.</b></div>`).join('')||'<div class="empty">Sin ventas.</div>'}</div><div class="card"><h2>Estados</h2>${['Pendiente','Pagado','En producción','Preparado','Enviado','Entregado','Cancelado'].map(s=>`<div class="statline"><span>${s}</span><b>${orders.filter(o=>o.status===s).length}</b></div>`).join('')}</div></div></div>`}
 function closeDrawer(){$('#drawer').classList.add('hidden')};function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 auth();
+
+
+// ===== AIHXO PRODUCT MANAGEMENT V4 =====
+(function(){
+  const money = v => Number(v||0).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+  const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  window.renderProductsV4 = async function(){
+    const root = document.getElementById('page') || document.querySelector('main');
+    if(!root) return;
+    root.innerHTML = `<div class="page">
+      <div class="section"><div><h2>Productos</h2><div class="sub">Camisetas, bolsos, tallas, colores, stock y márgenes</div></div>
+      <button class="primary small" onclick="openProductFormV4()">+ Nuevo producto</button></div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="row" style="flex-wrap:wrap">
+          <input id="productSearchV4" class="search" placeholder="Buscar por SKU, modelo, talla o color…" oninput="filterProductsV4()">
+          <select id="productCatV4" onchange="filterProductsV4()"><option value="">Todas las categorías</option><option value="Camiseta">Camisetas</option><option value="Bolso">Bolsos</option></select>
+          <select id="productStockV4" onchange="filterProductsV4()"><option value="">Todo el stock</option><option value="low">Stock bajo ≤ 3</option><option value="zero">Sin stock</option></select>
+        </div>
+      </div>
+      <div class="card"><div id="productsTableV4" class="table-wrap"><div class="empty">Cargando productos…</div></div></div>
+    </div>`;
+    await loadProductsV4();
+  };
+  let productsV4=[];
+  async function loadProductsV4(){
+    if(!window.supabase) return;
+    const {data,error}=await window.supabase.from('products').select('*').order('model').order('size');
+    if(error){document.getElementById('productsTableV4').innerHTML=`<div class="empty red">Error cargando productos: ${esc(error.message)}</div>`;return}
+    productsV4=data||[]; drawProductsV4(productsV4);
+  }
+  window.filterProductsV4=function(){
+    const q=(document.getElementById('productSearchV4')?.value||'').toLowerCase();
+    const c=document.getElementById('productCatV4')?.value||'';
+    const s=document.getElementById('productStockV4')?.value||'';
+    drawProductsV4(productsV4.filter(p=>{
+      const text=[p.sku,p.category,p.model,p.size,p.color].join(' ').toLowerCase();
+      const cat=!c || String(p.category||'').toLowerCase().includes(c.toLowerCase()) || (c==='Camiseta' && /básica|oversize/i.test(p.model||''));
+      const stock=!s || (s==='low' && p.stock<=3) || (s==='zero' && p.stock===0);
+      return text.includes(q)&&cat&&stock;
+    }));
+  };
+  function drawProductsV4(list){
+    const el=document.getElementById('productsTableV4'); if(!el)return;
+    if(!list.length){el.innerHTML='<div class="empty">No hay productos que coincidan.</div>';return}
+    el.innerHTML=`<table><thead><tr><th>SKU</th><th>Producto</th><th>Talla</th><th>Color</th><th>Stock</th><th>Coste prenda</th><th>DTF</th><th>Extras</th><th>Precio</th><th>Margen</th><th></th></tr></thead><tbody>${list.map(p=>{
+      const cost=Number(p.garment_cost||0)+Number(p.dtf_cost||0)+Number(p.extras_cost||0), margin=Number(p.sale_price||0)-cost;
+      return `<tr><td><strong>${esc(p.sku)}</strong></td><td>${esc(p.model)}<br><span class="muted">${esc(p.category||'')}</span></td><td>${esc(p.size)}</td><td>${esc(p.color)}</td><td><strong class="${p.stock<=3?'red':'green'}">${p.stock}</strong></td><td>${money(p.garment_cost)}</td><td>${money(p.dtf_cost)}</td><td>${money(p.extras_cost)}</td><td><strong>${money(p.sale_price)}</strong></td><td class="${margin<0?'red':'green'}"><strong>${money(margin)}</strong></td><td><button class="secondary" onclick='openProductFormV4(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button></td></tr>`;
+    }).join('')}</tbody></table>`;
+  }
+  window.openProductFormV4=function(p={}){
+    const d=document.getElementById('drawer'); if(!d)return;
+    d.classList.remove('hidden');
+    d.innerHTML=`<div class="drawer-card"><button class="x" onclick="closeDrawerV4()">×</button><h2>${p.id?'Editar producto':'Nuevo producto'}</h2><p class="sub">Los cambios se guardan directamente en Supabase.</p>
+      <form class="form" onsubmit="saveProductV4(event,'${p.id||''}')">
+        <div class="formgrid">
+          <div class="field"><label>SKU</label><input name="sku" required value="${esc(p.sku||'')}"></div>
+          <div class="field"><label>Categoría</label><input name="category" value="${esc(p.category||'')}"></div>
+          <div class="field"><label>Modelo</label><input name="model" required value="${esc(p.model||'')}"></div>
+          <div class="field"><label>Talla</label><input name="size" value="${esc(p.size||'')}"></div>
+          <div class="field"><label>Color</label><input name="color" value="${esc(p.color||'')}"></div>
+          <div class="field"><label>Stock</label><input name="stock" type="number" min="0" required value="${Number(p.stock||0)}"></div>
+          <div class="field"><label>Coste camiseta/bolso (€)</label><input name="garment_cost" type="number" step="0.01" min="0" value="${Number(p.garment_cost||0)}"></div>
+          <div class="field"><label>Coste DTF (€)</label><input name="dtf_cost" type="number" step="0.01" min="0" value="${Number(p.dtf_cost||0)}"></div>
+          <div class="field"><label>Extras (€)</label><input name="extras_cost" type="number" step="0.01" min="0" value="${Number(p.extras_cost||0)}"></div>
+          <div class="field"><label>Precio venta (€)</label><input name="sale_price" type="number" step="0.01" min="0" value="${Number(p.sale_price||0)}"></div>
+        </div><button class="primary" type="submit">Guardar producto</button>
+      </form></div>`;
+  };
+  window.closeDrawerV4=function(){document.getElementById('drawer')?.classList.add('hidden')};
+  window.saveProductV4=async function(e,id){
+    e.preventDefault(); const f=new FormData(e.target), obj=Object.fromEntries(f.entries());
+    ['stock','garment_cost','dtf_cost','extras_cost','sale_price'].forEach(k=>obj[k]=Number(obj[k]||0));
+    const q=window.supabase.from('products');
+    const result=id?await q.update(obj).eq('id',id):await q.insert(obj);
+    if(result.error){alert('No se pudo guardar: '+result.error.message);return}
+    closeDrawerV4(); await loadProductsV4();
+  };
+})();

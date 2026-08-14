@@ -27,3 +27,12 @@ El único correo autorizado por la aplicación y por las políticas RLS de Supab
 La primera vez, usa **Crear acceso de administrador** con ese correo y la contraseña que elijas. Si Supabase solicita confirmación por email, confirma el mensaje recibido y después entra con la misma contraseña.
 
 Las cuentas con otros correos pueden autenticarse en Supabase, pero no tendrán acceso a los datos de AIHXO y la aplicación las expulsará automáticamente.
+
+
+## v4 — Gestión de productos
+- Lista los productos directamente desde `public.products`.
+- Búsqueda por SKU, modelo, talla y color.
+- Filtros de categoría y stock.
+- Cálculo de coste total y margen.
+- Alta y edición de productos desde la interfaz.
+- Cambios guardados en Supabase.
