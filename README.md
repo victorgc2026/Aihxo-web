@@ -59,3 +59,7 @@ La sección Usuarios aparece como opción directa en el menú lateral y cierra e
 
 ## v9 — Corrección Gestionar productos
 El botón Gestionar productos abre directamente la pantalla de Productos y su editor.
+
+
+## v10 — Menú completo corregido
+Se reconstruyó la navegación después del login. Clientes, Productos, Gastos, Informes y Usuarios quedan conectados a sus vistas reales. Ambos administradores autorizados pueden entrar. Usuarios aparece directamente en el menú generado por la aplicación.

@@ -11,51 +11,85 @@ async function loadAll(){
  if(p.error||o.error||c.error||e.error||d.error){toast('Error cargando datos');console.error(p.error||o.error||c.error||e.error||d.error);return}
  products=p.data||[];orders=o.data||[];customers=c.data||[];expenses=e.data||[];designs=d.data||[];
 }
+const ADMIN_EMAILS=['aihxo.camisetas@gmail.com','gracielaoliveros.go@gmail.com'];
 const ADMIN_EMAIL='aihxo.camisetas@gmail.com';
+function isAdminEmail(email){return ADMIN_EMAILS.includes((email||'').toLowerCase())}
 async function auth(){
  const {data:{session}}=await supabaseClient.auth.getSession();
  if(session){
-   if((session.user.email||'').toLowerCase()===ADMIN_EMAIL) showApp(session);
-   else {await supabaseClient.auth.signOut(); showLogin('Esta cuenta no tiene acceso a AIHXO.');}
+   if(isAdminEmail(session.user.email)) showApp(session);
+   else {await supabaseClient.auth.signOut();showLogin('Esta cuenta no tiene acceso a AIHXO.');}
    return;
  }
  showLogin();
  supabaseClient.auth.onAuthStateChange(async (_e,s)=>{
    if(s){
-     if((s.user.email||'').toLowerCase()===ADMIN_EMAIL) showApp(s);
-     else {await supabaseClient.auth.signOut(); showLogin('Esta cuenta no tiene acceso a AIHXO.');}
+     if(isAdminEmail(s.user.email)) showApp(s);
+     else {await supabaseClient.auth.signOut();showLogin('Esta cuenta no tiene acceso a AIHXO.');}
    } else showLogin();
  });
 }
 function showLogin(message=''){
  document.body.innerHTML=`<div class="login-shell"><div class="card" style="width:min(430px,100%);padding:30px">
  <div style="font-family:Georgia,serif;font-size:38px;font-weight:900;color:#087cf4;margin-bottom:4px">AIHXO</div>
- <div class="muted" style="margin-bottom:24px">Panel privado de gestión · Administrador</div>
+ <div class="muted" style="margin-bottom:24px">Panel privado de gestión</div>
  <form id="loginForm" class="form">
- <div class="field"><label>Email del administrador</label><input id="email" type="email" required value="${ADMIN_EMAIL}" autocomplete="username"></div>
+ <div class="field"><label>Correo electrónico</label><input id="email" type="email" required value="${ADMIN_EMAIL}" autocomplete="username"></div>
  <div class="field"><label>Contraseña</label><input id="password" type="password" required minlength="6" autocomplete="current-password" placeholder="Tu contraseña"></div>
  <button class="primary" type="submit">Entrar</button>
- <button type="button" class="secondary" id="signup">Crear acceso de administrador</button>
+ <button type="button" class="secondary" id="signup">Crear acceso</button>
  <div id="authMsg" class="muted">${message}</div>
  </form></div></div>`;
  $('#loginForm').onsubmit=async e=>{
    e.preventDefault();
    const email=$('#email').value.trim().toLowerCase();
-   if(email!==ADMIN_EMAIL){$('#authMsg').textContent='Solo el administrador de AIHXO puede acceder.';return}
+   if(!isAdminEmail(email)){$('#authMsg').textContent='Este correo no está autorizado en AIHXO.';return}
    const {error}=await supabaseClient.auth.signInWithPassword({email,password:$('#password').value});
    if(error)$('#authMsg').textContent=error.message;
  };
  $('#signup').onclick=async()=>{
    const email=$('#email').value.trim().toLowerCase();
-   if(email!==ADMIN_EMAIL){$('#authMsg').textContent='El acceso de administrador debe utilizar '+ADMIN_EMAIL;return}
+   if(!isAdminEmail(email)){$('#authMsg').textContent='Este correo no está autorizado en AIHXO.';return}
    const password=$('#password').value;
    if(password.length<6){$('#authMsg').textContent='La contraseña debe tener al menos 6 caracteres.';return}
    const {data,error}=await supabaseClient.auth.signUp({email,password});
-   $('#authMsg').textContent=error?error.message:(data.session?'Cuenta creada. Ya puedes entrar.':'Cuenta creada. Revisa el correo de confirmación de Supabase si está activado.');
+   $('#authMsg').textContent=error?error.message:(data.session?'Cuenta creada. Ya puedes entrar.':'Cuenta creada. Revisa el correo de confirmación.');
  };
 }
-function showApp(session){document.body.innerHTML=`<div id="app"><aside class="sidebar"><div class="brand"><div class="brandmark">AIHXO</div><small>GESTIÓN ONLINE</small></div><nav id="nav"><button data-view="dashboard">⌂ <span>Inicio</span></button><button data-view="orders">▣ <span>Pedidos</span></button><button data-view="products">◇ <span>Productos</span></button><button data-view="stock">□ <span>Stock</span></button><button data-view="customers">♙ <span>Clientes</span></button><button data-view="expenses">€ <span>Gastos</span></button><button data-view="reports">▥ <span>Informes</span></button></nav><div class="sidebar-foot">${session.user.email}<br><button class="secondary" style="margin-top:8px" id="logout">Cerrar sesión</button></div></aside><div class="menu-overlay" id="menuOverlay"></div><main><header class="topbar"><button class="hamb" id="hamb">☰</button><h1 id="title">Inicio</h1><button class="primary small" id="quickOrder">＋ Pedido</button></header><div id="view"></div></main></div><div id="drawer" class="drawer hidden"><div class="drawer-card"><button class="x" id="closeDrawer">×</button><div id="drawerBody"></div></div></div><div id="toast"></div>`;document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{setView(b.dataset.view);closeMobileMenu()});$('#hamb').setAttribute('aria-label','Abrir menú');$('#hamb').onclick=()=>toggleMobileMenu();$('#menuOverlay').onclick=()=>closeMobileMenu();$('#logout').onclick=()=>supabaseClient.auth.signOut();$('#quickOrder').onclick=orderForm;$('#closeDrawer').onclick=closeDrawer;loadAll().then(()=>setView('dashboard'))}
-function toggleMobileMenu(){document.querySelector('.sidebar')?.classList.toggle('open');document.querySelector('#menuOverlay')?.classList.toggle('open')}function closeMobileMenu(){document.querySelector('.sidebar')?.classList.remove('open');document.querySelector('#menuOverlay')?.classList.remove('open')}function setView(v){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Inicio',orders:'Pedidos',products:'Productos',stock:'Stock',customers:'Clientes',expenses:'Gastos',reports:'Informes'};$('#title').textContent=titles[v];({dashboard,ordersView,productsView,stock,customersView,expensesView,reports}[v])($('#view'));closeMobileMenu()}
+function showApp(session){
+ document.body.innerHTML=`<div id="app">
+ <aside class="sidebar"><div class="brand"><div class="brandmark">AIHXO</div><small>GESTIÓN ONLINE</small></div>
+ <nav id="nav">
+ <button data-view="dashboard">⌂ <span>Inicio</span></button>
+ <button data-view="orders">▣ <span>Pedidos</span></button>
+ <button data-view="products">◇ <span>Productos</span></button>
+ <button data-view="stock">□ <span>Stock</span></button>
+ <button data-view="customers">♙ <span>Clientes</span></button>
+ <button data-view="expenses">€ <span>Gastos</span></button>
+ <button data-view="reports">▥ <span>Informes</span></button>
+ <button data-view="users">👤 <span>Usuarios</span></button>
+ </nav>
+ <div class="sidebar-foot">${esc(session.user.email)}<br><span class="muted">Administrador</span><br><button class="secondary" style="margin-top:8px" id="logout">Cerrar sesión</button></div></aside>
+ <div class="menu-overlay" id="menuOverlay"></div>
+ <main><header class="topbar"><button class="hamb" id="hamb">☰</button><h1 id="title">Inicio</h1><button class="primary small" id="quickOrder">＋ Pedido</button></header><div id="view"></div></main>
+ </div><div id="drawer" class="drawer hidden"><div class="drawer-card"><button class="x" id="closeDrawer">×</button><div id="drawerBody"></div></div></div><div id="toast"></div>`;
+ document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>{setView(b.dataset.view);closeMobileMenu()}));
+ $('#hamb').onclick=toggleMobileMenu; $('#menuOverlay').onclick=closeMobileMenu;
+ $('#logout').onclick=()=>supabaseClient.auth.signOut(); $('#quickOrder').onclick=orderForm; $('#closeDrawer').onclick=closeDrawer;
+ loadAll().then(()=>setView('dashboard'));
+}
+function toggleMobileMenu(){document.querySelector('.sidebar')?.classList.toggle('open');document.querySelector('#menuOverlay')?.classList.toggle('open')}
+function closeMobileMenu(){document.querySelector('.sidebar')?.classList.remove('open');document.querySelector('#menuOverlay')?.classList.remove('open')}
+function setView(v){
+ const map={dashboard:dashboard,orders:ordersView,products:productsView,stock:stock,customers:customersView,expenses:expensesView,reports:reports,users:(c)=>{if(typeof renderUsersV7==='function')renderUsersV7()}};
+ const titles={dashboard:'Inicio',orders:'Pedidos',products:'Productos',stock:'Stock',customers:'Clientes',expenses:'Gastos',reports:'Informes',users:'Usuarios'};
+ const fn=map[v];
+ if(!fn){console.error('Vista no disponible:',v);return}
+ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+ $('#title').textContent=titles[v]||'AIHXO';
+ fn($('#view'));
+ closeMobileMenu();
+}
 function dashboard(c){const sales=orders.reduce((a,o)=>a+ +o.total,0),costs=orders.reduce((a,o)=>a+ +o.product_cost,0),exp=expenses.reduce((a,e)=>a+ +e.amount,0),units=orders.reduce((a,o)=>a+o.quantity,0),stock=products.reduce((a,p)=>a+p.stock,0),profit=sales-costs-exp,low=products.filter(p=>p.stock<=3);c.innerHTML=`<div class="page"><div class="grid kpis">${kpi('Ventas',money(sales),orders.length+' pedidos')}${kpi('Pedidos',orders.length,'online')}${kpi('Unidades',units,'vendidas')}${kpi('Beneficio',money(profit),sales?((profit/sales)*100).toFixed(1)+'% margen':'')}${kpi('Stock',stock,'unidades')}</div><div class="grid two"><div class="card"><div class="section"><h2>Pedidos recientes</h2><button class="secondary" onclick="setView('orders')">Ver todos</button></div>${orders.length?`<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody>${orders.slice(0,7).map(o=>`<tr><td><b>${o.order_number}</b></td><td>${esc(o.customer_name)}</td><td>${money(o.total)}</td><td>${o.status}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay pedidos.</div>'}</div><div class="card"><div class="section"><h2>Alertas de stock</h2></div>${low.length?low.slice(0,8).map(p=>`<div class="statline"><span>${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)}</span><b class="red">${p.stock}</b></div>`).join(''):'<div class="empty">Stock correcto.</div>'}</div></div></div>`}
 function ordersView(c){c.innerHTML=`<div class="page"><div class="section"><div><h2>Pedidos</h2><div class="muted">${orders.length} pedidos</div></div><button class="primary" onclick="orderForm()">＋ Nuevo pedido</button></div><div class="card"><input class="search" id="oq" placeholder="Buscar..." oninput="drawOrders()"><div id="orderTable"></div></div></div>`;drawOrders()}
 function drawOrders(){const q=($('#oq')?.value||'').toLowerCase();const a=orders.filter(o=>(o.order_number+' '+o.customer_name+' '+o.product_name).toLowerCase().includes(q));$('#orderTable').innerHTML=`<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Total</th><th>Estado</th></tr></thead><tbody>${a.map(o=>`<tr><td>${o.order_number}</td><td>${o.order_date}</td><td>${esc(o.customer_name)}</td><td>${esc(o.product_name)}<div class="muted">${esc(o.size||'')} · ${esc(o.color||'')}</div></td><td>${o.quantity}</td><td>${money(o.total)}</td><td><select onchange="status('${o.id}',this.value)">${['Pendiente','Pagado','En producción','Preparado','Enviado','Entregado','Cancelado'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>`}
@@ -211,41 +245,13 @@ auth();
   };
 })();
 
-// ===== AIHXO USERS NAV V8 =====
+// ===== AIHXO PRODUCT BUTTON FIX V10 =====
 (function(){
-  function addUsersNav(){
-    const nav=document.getElementById('nav');
-    if(!nav || nav.querySelector('[data-page="usuarios"]')) return;
-    const b=document.createElement('button');
-    b.type='button'; b.dataset.page='usuarios'; b.innerHTML='👤 <span>Usuarios</span>';
-    b.addEventListener('click',function(){
-      document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      if(typeof window.renderUsersV7==='function') window.renderUsersV7();
-      document.querySelector('.sidebar')?.classList.remove('open');
-      document.querySelector('.menu-overlay')?.classList.remove('show');
-    });
-    nav.appendChild(b);
-  }
-  document.addEventListener('DOMContentLoaded',addUsersNav);
-  setTimeout(addUsersNav,500);
-  setTimeout(addUsersNav,1500);
-})();
-
-// ===== AIHXO PRODUCT BUTTON FIX V9 =====
-(function(){
-  function openProducts(){
-    if(typeof window.renderProductsV4==='function'){ window.renderProductsV4(); return; }
-    // Fallback: click an existing Products navigation button.
-    const b=[...document.querySelectorAll('#nav button,button')].find(x=>/productos/i.test(x.textContent||''));
-    if(b) b.click();
-  }
-  window.openProductsV9=openProducts;
   document.addEventListener('click',function(e){
-    const b=e.target.closest('button,a');
-    if(!b)return;
+    const b=e.target.closest('button,a'); if(!b)return;
     if(/gestionar productos/i.test((b.textContent||'').trim())){
-      e.preventDefault(); e.stopPropagation(); openProducts();
+      e.preventDefault(); e.stopPropagation();
+      if(typeof setView==='function')setView('products');
     }
   },true);
 })();
