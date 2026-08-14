@@ -36,3 +36,10 @@ Las cuentas con otros correos pueden autenticarse en Supabase, pero no tendrán 
 - Cálculo de coste total y margen.
 - Alta y edición de productos desde la interfaz.
 - Cambios guardados en Supabase.
+
+
+## v5 — Responsive móvil
+- Menú lateral móvil se cierra al seleccionar una sección.
+- Overlay para cerrar tocando fuera del menú.
+- Pantalla de Stock rediseñada para móvil.
+- La vista principal ocupa todo el ancho al cerrar el menú.
