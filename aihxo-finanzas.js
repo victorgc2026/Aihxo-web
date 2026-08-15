@@ -1,9 +1,6 @@
 (function(){
-  const sb = window.supabase || window.supabaseClient || window.sb;
-if (!sb) {
-  console.error('AIHXO: Supabase no está disponible');
-  return;
-}
+  let sb = window.supabase || window.supabaseClient || window.sb;
+
   
 
   let financeData = {
