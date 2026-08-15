@@ -170,5 +170,5 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted
 .avatar-v7{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#eaf3ff;color:#087cf4;font-weight:800;flex:none}
 
 /* V13 navigation/client drawer */
-#homeTopV13{flex:none;min-width:42px}.drawer{z-index:100}.drawer-card{z-index:101}.menu-overlay{z-index:90}
+#homeTopV13{flex:none;min-width:42px}.drawer{z-index:100}.drawer-card{z-index:101}.menu-overlay{z-index:25}
 @media(max-width:760px){.drawer-card{width:100%;max-width:100%;padding:20px 16px}.drawer-card h2{margin-top:8px}.drawer-card .formgrid{grid-template-columns:1fr}.topbar{gap:8px}}
