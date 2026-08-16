@@ -75,6 +75,9 @@ async function productsView(c){
             <button class="primary" onclick="aihxoPhotoInput('${p.id}')">
               📷 Foto
             </button>
+            <button class="secondary" onclick="productGallery('${p.id}')">
+              🖼️ Galería
+            </button>  
 
             <button class="secondary" onclick="productForm('${p.id}')">
               Editar
@@ -105,6 +108,126 @@ async function productsView(c){
   }
 }
 function productForm(id){const p=id?products.find(x=>x.id===id):{sku:'',category:'Camiseta',model:'',size:'M',color:'Blanco',garment_cost:4,dtf_cost:3,extras_cost:.68,sale_price:16.9,stock:0};openDrawer(`<h2>${id?'Editar':'Nuevo'} producto</h2><form class="form" id="pf"><div class="formgrid"><div class="field"><label>SKU *</label><input name="sku" value="${esc(p.sku)}" required ${id?'readonly':''}></div><div class="field"><label>Categoría</label><select name="category"><option ${p.category==='Camiseta'?'selected':''}>Camiseta</option><option ${p.category==='Bolso'?'selected':''}>Bolso</option></select></div></div><div class="field"><label>Modelo *</label><input name="model" value="${esc(p.model)}" required></div><div class="formgrid"><div class="field"><label>Talla</label><input name="size" value="${esc(p.size||'')}"></div><div class="field"><label>Color</label><input name="color" value="${esc(p.color||'')}"></div></div><div class="formgrid"><div class="field"><label>Coste prenda</label><input name="garment_cost" type="number" min="0" step=".01" value="${p.garment_cost}"></div><div class="field"><label>Coste DTF</label><input name="dtf_cost" type="number" min="0" step=".01" value="${p.dtf_cost}"></div></div><div class="formgrid"><div class="field"><label>Extras</label><input name="extras_cost" type="number" min="0" step=".01" value="${p.extras_cost}"></div><div class="field"><label>Precio venta</label><input name="sale_price" type="number" min="0" step=".01" value="${p.sale_price}"></div></div><div class="field"><label>Stock</label><input name="stock" type="number" min="0" value="${p.stock}"></div><button class="primary">Guardar</button></form>`);$('#pf').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),o={sku:f.get('sku').trim(),category:f.get('category'),model:f.get('model').trim(),size:f.get('size').trim()||null,color:f.get('color').trim()||null,garment_cost:+f.get('garment_cost'),dtf_cost:+f.get('dtf_cost'),extras_cost:+f.get('extras_cost'),sale_price:+f.get('sale_price'),stock:Math.floor(+f.get('stock'))};const r=id?await supabaseClient.from('products').update(o).eq('id',id):await supabaseClient.from('products').insert(o);if(r.error)toast(r.error.message);else{closeDrawer();await loadAll();setView('products');toast('Producto guardado')}}}window.productForm=productForm;
+async function productGallery(id){
+  const p=products.find(x=>x.id===id);
+  if(!p)return;
+
+  const images=await aihxoGetProductImages(id);
+
+  openDrawer(`
+    <h2>Fotos · ${esc(p.model)}</h2>
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <button class="primary" onclick="aihxoPhotoInput('${id}');setTimeout(()=>productGallery('${id}'),1500)">
+        📷 Añadir foto
+      </button>
+    </div>
+
+    ${
+      images.length
+      ?
+      `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+        ${images.map(img=>`
+          <div class="card" style="padding:8px">
+
+            <img
+              src="${esc(img.public_url)}"
+              style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px"
+            >
+
+            <div style="margin-top:8px">
+              ${
+                img.is_primary
+                ?
+                `<span class="green">⭐ Principal</span>`
+                :
+                `<button
+                  class="secondary"
+                  onclick="setPrimaryProductImage('${img.id}','${id}')">
+                  ⭐ Hacer principal
+                </button>`
+              }
+            </div>
+
+            <button
+              class="secondary"
+              style="margin-top:8px;width:100%"
+              onclick="deleteProductImage('${img.id}','${id}')">
+              🗑️ Eliminar
+            </button>
+
+          </div>
+        `).join('')}
+      </div>`
+      :
+      `<div class="empty">Este producto todavía no tiene fotografías.</div>`
+    }
+  `);
+}
+
+async function setPrimaryProductImage(imageId,productId){
+  const images=await aihxoGetProductImages(productId);
+
+  for(const img of images){
+    const r=await supabaseClient
+      .from('product_images')
+      .update({is_primary:img.id===imageId})
+      .eq('id',img.id);
+
+    if(r.error){
+      toast(r.error.message);
+      return;
+    }
+  }
+
+  toast('Foto principal actualizada');
+  await loadAll();
+  await productGallery(productId);
+  setView('products');
+}
+
+async function deleteProductImage(imageId,productId){
+  if(!confirm('¿Eliminar esta fotografía?'))return;
+
+  const {data:img,error}=await supabaseClient
+    .from('product_images')
+    .select('*')
+    .eq('id',imageId)
+    .single();
+
+  if(error){
+    toast(error.message);
+    return;
+  }
+
+  const storage=await supabaseClient.storage
+    .from('product-images')
+    .remove([img.storage_path]);
+
+  if(storage.error){
+    toast(storage.error.message);
+    return;
+  }
+
+  const result=await supabaseClient
+    .from('product_images')
+    .delete()
+    .eq('id',imageId);
+
+  if(result.error){
+    toast(result.error.message);
+    return;
+  }
+
+  toast('Fotografía eliminada');
+  await loadAll();
+  await productGallery(productId);
+  setView('products');
+}
+
+window.productGallery=productGallery;
+window.setPrimaryProductImage=setPrimaryProductImage;
+window.deleteProductImage=deleteProductImage;
 async function addStock(id){const p=products.find(x=>x.id===id),n=prompt('Unidades a añadir','5');if(!p||n===null)return;const x=Math.floor(+n);if(!x||x<1)return toast('Cantidad no válida');const r=await supabaseClient.from('products').update({stock:p.stock+x}).eq('id',id);if(r.error)toast(r.error.message);else{await loadAll();setView('stock');toast('Stock actualizado')}}window.addStock=addStock;
 function stockView(c){const total=products.reduce((a,p)=>a+p.stock,0),value=products.reduce((a,p)=>a+p.stock*cost(p),0),low=products.filter(p=>p.stock<=3);c.innerHTML=`<div class="page"><div class="section"><div><h2>Stock</h2><div class="muted">Control de inventario</div></div><button class="primary" onclick="setView('products')">Gestionar productos</button></div><div class="grid four stock-summary">${kpi('Productos',products.length)}${kpi('Stock total',total)}${kpi('Valor stock',money(value))}${kpi('Stock bajo',low.length)}</div><div class="card"><input class="search" id="sq" placeholder="Buscar producto…"><div id="st" class="table-wrap" style="margin-top:14px"></div></div></div>`;$('#sq').oninput=drawStock;drawStock()}
 function drawStock(){const q=($('#sq')?.value||'').toLowerCase(),a=products.filter(p=>[p.sku,p.model,p.size,p.color].join(' ').toLowerCase().includes(q));$('#st').innerHTML=a.length?`<table><thead><tr><th>SKU</th><th>Producto</th><th>Talla</th><th>Color</th><th>Coste</th><th>Stock</th><th></th></tr></thead><tbody>${a.map(p=>`<tr><td>${esc(p.sku)}</td><td>${esc(p.model)}</td><td>${esc(p.size||'—')}</td><td>${esc(p.color||'—')}</td><td>${money(cost(p))}</td><td><b class="${p.stock<=3?'red':'green'}">${p.stock}</b></td><td><button class="secondary" onclick="addStock('${p.id}')">＋</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">No hay coincidencias.</div>'}
