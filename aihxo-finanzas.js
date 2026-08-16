@@ -1,455 +1,291 @@
-(function(){
-  let sb = window.supabase || window.supabaseClient || window.sb;
+(function () {
+  'use strict';
 
-  
-
-  let financeData = {
+  const state = {
     orders: [],
     expenses: [],
-    purchases: []
+    purchases: [],
+    section: 'resumen'
   };
 
-  const money = n => new Intl.NumberFormat('es-ES',{
-    style:'currency',
-    currency:'EUR'
-  }).format(Number(n)||0);
+  const money = value =>
+    new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(Number(value) || 0);
 
-  const esc = s => String(s ?? '').replace(/[&<>"']/g,m=>({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#039;'
-  }[m]));
+  const esc = value =>
+    String(value ?? '').replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[char]));
 
-  const toast = t => window.toast ? window.toast(t) : alert(t);
+  function getSupabase() {
+    return window.supabase ||
+           window.supabaseClient ||
+           window.sb ||
+           null;
+  }
 
-  async function loadFinance(){
+  async function loadData() {
+    const sb = getSupabase();
 
-    const [o,e,p] = await Promise.all([
-      sb.from('orders')
-        .select('*')
-        .order('order_date',{ascending:false}),
-
-      sb.from('expenses')
-        .select('*')
-        .order('expense_date',{ascending:false}),
-
-      sb.from('purchases')
-        .select('*')
-        .order('purchase_date',{ascending:false})
-    ]);
-
-    if(o.error || e.error || p.error){
-      console.error(o.error || e.error || p.error);
-      toast('Error cargando Finanzas');
+    if (!sb) {
+      console.warn('AIHXO Finanzas: Supabase todavía no está disponible.');
       return;
     }
 
-    financeData.orders = o.data || [];
-    financeData.expenses = e.data || [];
-    financeData.purchases = p.data || [];
+    const [orders, expenses, purchases] = await Promise.all([
+      sb.from('orders').select('*'),
+      sb.from('expenses').select('*'),
+      sb.from('purchases').select('*')
+    ]);
+
+    state.orders = orders.data || [];
+    state.expenses = expenses.data || [];
+    state.purchases = purchases.data || [];
   }
 
-  function addFinanceButton(){
+  function totals() {
+    const sales = state.orders.reduce(
+      (sum, item) => sum + Number(item.total || 0),
+      0
+    );
 
-    const nav = document.querySelector('#nav');
+    const costs = state.orders.reduce(
+      (sum, item) => sum + Number(item.product_cost || 0),
+      0
+    );
 
-    if(!nav) return;
+    const expenses = state.expenses.reduce(
+      (sum, item) => sum + Number(item.amount || 0),
+      0
+    );
 
-    if(nav.querySelector('[data-view="finance"]')) return;
+    const purchases = state.purchases.reduce(
+      (sum, item) => sum + Number(item.amount || 0),
+      0
+    );
 
-    nav.insertAdjacentHTML('beforeend',`
-      <button data-view="finance">
-        € <span>Finanzas</span>
-      </button>
-    `);
-
-    nav.querySelector('[data-view="finance"]').onclick =
-      () => window.setView('finance');
+    return {
+      sales,
+      costs,
+      expenses,
+      purchases,
+      gross: sales - costs,
+      result: sales - costs - expenses
+    };
   }
 
-  function financeView(c){
+  function render() {
+    const container =
+      document.querySelector('#view') ||
+      document.querySelector('main');
 
-    const orders = financeData.orders;
-    const expenses = financeData.expenses;
-    const purchases = financeData.purchases;
+    if (!container) return;
 
-    const sales = orders.reduce(
-      (a,o)=>a+Number(o.total||0),0
-    );
+    const t = totals();
 
-    const productCosts = orders.reduce(
-      (a,o)=>a+Number(o.product_cost||0),0
-    );
-
-    const expenseTotal = expenses.reduce(
-      (a,e)=>a+Number(e.amount||0),0
-    );
-
-    const purchaseTotal = purchases.reduce(
-      (a,p)=>a+Number(p.amount||0),0
-    );
-
-    const grossProfit = sales - productCosts;
-
-    const result = sales - productCosts - expenseTotal;
-
-    const margin = sales
-      ? (grossProfit / sales) * 100
-      : 0;
-
-    const pending = orders
-      .filter(o => ['Pendiente','En producción','Preparado']
-      .includes(o.status))
-      .reduce((a,o)=>a+Number(o.total||0),0);
-
-    const months = [];
-
-    for(let i=5;i>=0;i--){
-
-      const d = new Date();
-
-      d.setMonth(d.getMonth()-i);
-
-      const y = d.getFullYear();
-      const m = d.getMonth();
-
-      const label = d.toLocaleDateString(
-        'es-ES',
-        {month:'short'}
-      );
-
-      const monthOrders = orders.filter(o=>{
-        const od = new Date(o.order_date);
-        return od.getFullYear()===y &&
-               od.getMonth()===m;
-      });
-
-      const monthExpenses = expenses.filter(e=>{
-        const ed = new Date(e.expense_date);
-        return ed.getFullYear()===y &&
-               ed.getMonth()===m;
-      });
-
-      const monthPurchases = purchases.filter(p=>{
-        const pd = new Date(p.purchase_date);
-        return pd.getFullYear()===y &&
-               pd.getMonth()===m;
-      });
-
-      const s = monthOrders.reduce(
-        (a,o)=>a+Number(o.total||0),0
-      );
-
-      const c = monthOrders.reduce(
-        (a,o)=>a+Number(o.product_cost||0),0
-      );
-
-      const ex = monthExpenses.reduce(
-        (a,e)=>a+Number(e.amount||0),0
-      );
-
-      const pu = monthPurchases.reduce(
-        (a,p)=>a+Number(p.amount||0),0
-      );
-
-      months.push({
-        label,
-        sales:s,
-        costs:c,
-        expenses:ex,
-        purchases:pu,
-        result:s-c-ex
-      });
-    }
-
-    c.innerHTML = `
+    container.innerHTML = `
       <div class="page">
 
         <div class="section">
           <div>
-            <h2>Finanzas</h2>
+            <h2>💶 Finanzas</h2>
             <div class="muted">
-              Resumen económico de AIHXO
+              Gestión económica de AIHXO
             </div>
           </div>
 
-          <button class="secondary" id="refreshFinance">
+          <button id="financeRefresh" class="secondary">
             ↻ Actualizar
           </button>
         </div>
 
-        <div class="grid kpis">
+        <div class="grid three finance-menu">
 
-          <div class="card">
-            <div class="label">Ventas</div>
-            <div class="kvalue">${money(sales)}</div>
-            <div class="sub">
-              ${orders.length} pedidos
-            </div>
-          </div>
+          <button class="card finance-nav" data-section="resumen">
+            📊<br>
+            <b>Resumen</b>
+            <small>Visión general</small>
+          </button>
 
-          <div class="card">
-            <div class="label">Coste productos</div>
-            <div class="kvalue">${money(productCosts)}</div>
-            <div class="sub">
-              Coste de lo vendido
-            </div>
-          </div>
+          <button class="card finance-nav" data-section="ventas">
+            💰<br>
+            <b>Ventas</b>
+            <small>Facturación</small>
+          </button>
 
-          <div class="card">
-            <div class="label">Gastos</div>
-            <div class="kvalue">${money(expenseTotal)}</div>
-            <div class="sub">
-              Gastos registrados
-            </div>
-          </div>
+          <button class="card finance-nav" data-section="gastos">
+            💸<br>
+            <b>Gastos</b>
+            <small>Costes</small>
+          </button>
 
-          <div class="card">
-            <div class="label">Resultado</div>
-            <div class="kvalue ${
-              result >= 0 ? 'green' : 'red'
-            }">
-              ${money(result)}
-            </div>
-            <div class="sub">
-              Resultado estimado
-            </div>
-          </div>
+          <button class="card finance-nav" data-section="compras">
+            🛒<br>
+            <b>Compras</b>
+            <small>Proveedores</small>
+          </button>
 
-          <div class="card">
-            <div class="label">Margen bruto</div>
-            <div class="kvalue">
-              ${margin.toFixed(1)}%
-            </div>
-            <div class="sub">
-              Antes de gastos
-            </div>
-          </div>
+          <button class="card finance-nav" data-section="beneficio">
+            💵<br>
+            <b>Beneficio</b>
+            <small>Rentabilidad</small>
+          </button>
 
-          <div class="card">
-            <div class="label">Compras</div>
-            <div class="kvalue">
-              ${money(purchaseTotal)}
-            </div>
-            <div class="sub">
-              A proveedores
-            </div>
-          </div>
+          <button class="card finance-nav" data-section="informes">
+            📈<br>
+            <b>Informes</b>
+            <small>Evolución</small>
+          </button>
 
         </div>
 
-        <div class="grid two">
-
-          <div class="card">
-
-            <div class="section">
-              <h2>Últimos 6 meses</h2>
-            </div>
-
-            <div class="table-wrap">
-
-              <table>
-
-                <thead>
-                  <tr>
-                    <th>Mes</th>
-                    <th>Ventas</th>
-                    <th>Costes</th>
-                    <th>Gastos</th>
-                    <th>Resultado</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-
-                  ${months.map(x=>`
-
-                    <tr>
-
-                      <td>
-                        <b>${esc(x.label)}</b>
-                      </td>
-
-                      <td>
-                        ${money(x.sales)}
-                      </td>
-
-                      <td>
-                        ${money(x.costs)}
-                      </td>
-
-                      <td>
-                        ${money(x.expenses)}
-                      </td>
-
-                      <td class="${
-                        x.result >= 0
-                          ? 'green'
-                          : 'red'
-                      }">
-                        <b>${money(x.result)}</b>
-                      </td>
-
-                    </tr>
-
-                  `).join('')}
-
-                </tbody>
-
-              </table>
-
-            </div>
-
-          </div>
-
-          <div class="card">
-
-            <div class="section">
-              <h2>Situación actual</h2>
-            </div>
-
-            <div class="statline">
-              <span>Ventas</span>
-              <b>${money(sales)}</b>
-            </div>
-
-            <div class="statline">
-              <span>Coste de producto</span>
-              <b>${money(productCosts)}</b>
-            </div>
-
-            <div class="statline">
-              <span>Gastos</span>
-              <b>${money(expenseTotal)}</b>
-            </div>
-
-            <div class="statline">
-              <span>Compras</span>
-              <b>${money(purchaseTotal)}</b>
-            </div>
-
-            <div class="statline">
-              <span>Pendiente / en proceso</span>
-              <b>${money(pending)}</b>
-            </div>
-
-            <hr style="margin:18px 0">
-
-            <div class="statline">
-              <span>
-                <b>Resultado estimado</b>
-              </span>
-
-              <b class="${
-                result >= 0 ? 'green' : 'red'
-              }">
-                ${money(result)}
-              </b>
-            </div>
-
-          </div>
-
-        </div>
-
-        <div class="card">
-
-          <div class="section">
-            <div>
-              <h2>Interpretación</h2>
-              <div class="muted">
-                Indicadores principales del negocio
-              </div>
-            </div>
-          </div>
-
-          <div class="grid three">
-
-            <div class="statline">
-              <span>Margen bruto</span>
-              <b>${margin.toFixed(1)}%</b>
-            </div>
-
-            <div class="statline">
-              <span>Pedidos</span>
-              <b>${orders.length}</b>
-            </div>
-
-            <div class="statline">
-              <span>Ticket medio</span>
-              <b>
-                ${money(
-                  orders.length
-                    ? sales/orders.length
-                    : 0
-                )}
-              </b>
-            </div>
-
-          </div>
-
-        </div>
+        <div id="financeContent"></div>
 
       </div>
     `;
 
-    document.querySelector('#refreshFinance').onclick =
-      async()=>{
-        await loadFinance();
-        window.setView('finance');
-      };
-  }
-
-  const previousSetView = window.setView;
-
-  window.setView = function(v){
-
-    if(v !== 'finance'){
-      return previousSetView(v);
-    }
-
-    document.querySelector('#title').textContent =
-      'Finanzas';
-
-    document.querySelectorAll('#nav button')
-      .forEach(b=>{
-        b.classList.toggle(
-          'active',
-          b.dataset.view === 'finance'
-        );
+    document
+      .querySelectorAll('.finance-nav')
+      .forEach(button => {
+        button.addEventListener('click', () => {
+          state.section = button.dataset.section;
+          renderSection();
+        });
       });
 
-    document.querySelector('.sidebar')
-      ?.classList.remove('open');
+    document
+      .querySelector('#financeRefresh')
+      ?.addEventListener('click', async () => {
+        await loadData();
+        render();
+      });
 
-    document.querySelector('#menuOverlay')
-      ?.classList.remove('open');
+    renderSection();
+  }
 
-    financeView(document.querySelector('#view'));
+  function renderSection() {
+    const content = document.querySelector('#financeContent');
 
-    window.scrollTo(0,0);
+    if (!content) return;
+
+    const t = totals();
+
+    if (state.section === 'ventas') {
+      content.innerHTML = `
+        <div class="card">
+          <h2>💰 Ventas</h2>
+          <div class="kvalue">${money(t.sales)}</div>
+          <p>${state.orders.length} pedidos registrados.</p>
+        </div>
+      `;
+      return;
+    }
+
+    if (state.section === 'gastos') {
+      content.innerHTML = `
+        <div class="card">
+          <h2>💸 Gastos</h2>
+          <div class="kvalue">${money(t.expenses)}</div>
+          <p>Gastos registrados en AIHXO.</p>
+        </div>
+      `;
+      return;
+    }
+
+    if (state.section === 'compras') {
+      content.innerHTML = `
+        <div class="card">
+          <h2>🛒 Compras</h2>
+          <div class="kvalue">${money(t.purchases)}</div>
+          <p>Compras registradas a proveedores.</p>
+        </div>
+      `;
+      return;
+    }
+
+    if (state.section === 'beneficio') {
+      content.innerHTML = `
+        <div class="card">
+          <h2>💵 Beneficio</h2>
+
+          <div class="statline">
+            <span>Ventas</span>
+            <b>${money(t.sales)}</b>
+          </div>
+
+          <div class="statline">
+            <span>Coste productos</span>
+            <b>${money(t.costs)}</b>
+          </div>
+
+          <div class="statline">
+            <span>Gastos</span>
+            <b>${money(t.expenses)}</b>
+          </div>
+
+          <hr>
+
+          <div class="statline">
+            <b>Resultado</b>
+            <b>${money(t.result)}</b>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    if (state.section === 'informes') {
+      content.innerHTML = `
+        <div class="card">
+          <h2>📈 Informes</h2>
+          <p>
+            Próximamente podremos consultar la evolución
+            mensual y anual de AIHXO.
+          </p>
+        </div>
+      `;
+      return;
+    }
+
+    content.innerHTML = `
+      <div class="grid three">
+
+        <div class="card">
+          <div class="label">Ventas</div>
+          <div class="kvalue">${money(t.sales)}</div>
+        </div>
+
+        <div class="card">
+          <div class="label">Gastos</div>
+          <div class="kvalue">${money(t.expenses)}</div>
+        </div>
+
+        <div class="card">
+          <div class="label">Resultado</div>
+          <div class="kvalue">${money(t.result)}</div>
+        </div>
+
+      </div>
+    `;
+  }
+
+  async function start() {
+    await loadData();
+    render();
+  }
+
+  window.AIHXO_FINANZAS = {
+    start,
+    render,
+    loadData
   };
 
-  const boot = setInterval(()=>{
-
-    if(document.querySelector('#nav')){
-
-      clearInterval(boot);
-
-      addFinanceButton();
-
-      loadFinance();
-    }
-
-  },500);
-
-  setInterval(()=>{
-
-    if(document.querySelector('#nav')){
-      addFinanceButton();
-    }
-
-  },1000);
+  window.AIHXO_FINANZAS.start();
 
 })();
