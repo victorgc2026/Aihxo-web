@@ -289,3 +289,59 @@
   window.AIHXO_FINANZAS.start();
 
 })();
+(function () {
+  const bootFinanzas = setInterval(() => {
+
+    if (
+      !document.querySelector('#nav') ||
+      !window.setView ||
+      !window.AIHXO_FINANZAS
+    ) {
+      return;
+    }
+
+    clearInterval(bootFinanzas);
+
+    const nav = document.querySelector('#nav');
+
+    if (!nav.querySelector('[data-view="finanzas"]')) {
+
+      nav.insertAdjacentHTML(
+        'beforeend',
+        '<button data-view="finanzas">💶 <span>Finanzas</span></button>'
+      );
+
+      nav.querySelector('[data-view="finanzas"]').onclick = () => {
+        window.setView('finanzas');
+      };
+    }
+
+    const baseSetView = window.setView;
+
+    window.setView = function (view) {
+
+      if (view !== 'finanzas') {
+        return baseSetView(view);
+      }
+
+      document.querySelector('#title').textContent = 'Finanzas';
+
+      document
+        .querySelectorAll('#nav button')
+        .forEach(button => {
+          button.classList.toggle(
+            'active',
+            button.dataset.view === 'finanzas'
+          );
+        });
+
+      document.querySelector('.sidebar')?.classList.remove('open');
+      document.querySelector('#menuOverlay')?.classList.remove('open');
+
+      window.AIHXO_FINANZAS.render();
+
+      window.scrollTo(0, 0);
+    };
+
+  }, 300);
+})();
