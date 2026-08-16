@@ -345,3 +345,141 @@
 
   }, 300);
 })();
+document.addEventListener('click', function(e) {
+
+  const boton = e.target.closest('.finance-nav');
+
+  if (!boton) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const seccion = boton.dataset.section;
+  const contenido = document.querySelector('#financeContent');
+
+  if (!contenido) return;
+
+  const sb = window.supabaseClient;
+
+  if (seccion === 'ventas') {
+    contenido.innerHTML = `
+      <div class="card">
+        <h2>💰 Ventas</h2>
+        <p>Cargando ventas...</p>
+      </div>
+    `;
+
+    sb.from('orders')
+      .select('*')
+      .then(({data, error}) => {
+
+        if (error) {
+          contenido.innerHTML = `
+            <div class="card">
+              <h2>💰 Ventas</h2>
+              <p>Error cargando las ventas.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const total = (data || []).reduce(
+          (s, x) => s + Number(x.total || 0), 0
+        );
+
+        contenido.innerHTML = `
+          <div class="card">
+            <h2>💰 Ventas</h2>
+            <div class="kvalue">
+              ${money(total)}
+            </div>
+            <p>${(data || []).length} pedidos registrados.</p>
+          </div>
+        `;
+      });
+
+    return;
+  }
+
+  if (seccion === 'gastos') {
+    contenido.innerHTML = `
+      <div class="card">
+        <h2>💸 Gastos</h2>
+        <p>Cargando gastos...</p>
+      </div>
+    `;
+
+    sb.from('expenses')
+      .select('*')
+      .then(({data}) => {
+
+        const total = (data || []).reduce(
+          (s, x) => s + Number(x.amount || 0), 0
+        );
+
+        contenido.innerHTML = `
+          <div class="card">
+            <h2>💸 Gastos</h2>
+            <div class="kvalue">
+              ${money(total)}
+            </div>
+            <p>${(data || []).length} gastos registrados.</p>
+          </div>
+        `;
+      });
+
+    return;
+  }
+
+  if (seccion === 'beneficio') {
+
+    Promise.all([
+      sb.from('orders').select('*'),
+      sb.from('expenses').select('*')
+    ]).then(([ventas, gastos]) => {
+
+      const ventasTotal = (ventas.data || [])
+        .reduce((s,x) => s + Number(x.total || 0), 0);
+
+      const costes = (ventas.data || [])
+        .reduce((s,x) => s + Number(x.product_cost || 0), 0);
+
+      const gastosTotal = (gastos.data || [])
+        .reduce((s,x) => s + Number(x.amount || 0), 0);
+
+      const beneficio =
+        ventasTotal - costes - gastosTotal;
+
+      contenido.innerHTML = `
+        <div class="card">
+          <h2>💵 Beneficio</h2>
+
+          <div class="statline">
+            <span>Ventas</span>
+            <b>${money(ventasTotal)}</b>
+          </div>
+
+          <div class="statline">
+            <span>Coste productos</span>
+            <b>${money(costes)}</b>
+          </div>
+
+          <div class="statline">
+            <span>Gastos</span>
+            <b>${money(gastosTotal)}</b>
+          </div>
+
+          <hr>
+
+          <div class="statline">
+            <b>Beneficio</b>
+            <b>${money(beneficio)}</b>
+          </div>
+        </div>
+      `;
+    });
+
+    return;
+  }
+
+});
