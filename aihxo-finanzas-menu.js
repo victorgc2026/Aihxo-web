@@ -20,13 +20,24 @@
       boton = nav.querySelector('[data-view="finanzas"]');
     }
 
-    boton.onclick = function(){
+    const baseSetView = window.setView;
+
+    window.setView = function(view){
+
+      if(view !== 'finanzas'){
+        return baseSetView(view);
+      }
 
       document.querySelector('#title').textContent = 'Finanzas';
 
-      nav.querySelectorAll('button').forEach(b =>
-        b.classList.toggle('active', b === boton)
-      );
+      document
+        .querySelectorAll('#nav button')
+        .forEach(b =>
+          b.classList.toggle(
+            'active',
+            b.dataset.view === 'finanzas'
+          )
+        );
 
       document.querySelector('.sidebar')?.classList.remove('open');
 
@@ -35,6 +46,14 @@
       window.AIHXO_FINANZAS.render();
 
       window.scrollTo(0,0);
+    };
+
+    boton.onclick = function(e){
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      window.setView('finanzas');
     };
 
     return true;
