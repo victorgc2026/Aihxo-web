@@ -124,15 +124,12 @@ function ordersView(c){c.innerHTML=`<div class="page"><div class="section"><div>
   });
 }
 async function updateStatus(id,status){const r=await supabaseClient.from('orders').update({status}).eq('id',id);if(r.error)toast(r.error.message);else{await loadAll();drawOrders();toast('Estado actualizado')}}window.updateStatus=updateStatus;
-async function orderDetail(id){
-  const o=orders.find(x=>x.id===id);
+function orderDetail(id){
+  const o=orders.find(x=>String(x.id)===String(id));
 
   if(!o){
     return toast('Pedido no encontrado');
   }
-
-  const images=await aihxoGetProductImages(o.product_id);
-  const img=images.find(x=>x.is_primary)||images[0];
 
   const total=Number(o.total||0);
   const productCost=Number(o.product_cost||0);
@@ -148,15 +145,9 @@ async function orderDetail(id){
       <span class="badge">${esc(o.status||'')}</span>
     </div>
 
-    <div style="text-align:center;margin:20px 0">
-      ${
-        img
-        ? `<img
-            src="${img.public_url}"
-            style="width:220px;height:220px;object-fit:cover;border-radius:16px"
-          >`
-        : `<div class="empty">Sin fotografía</div>`
-      }
+    <div id="order-detail-photo"
+         style="text-align:center;margin:20px 0">
+      <div class="empty">Cargando fotografía...</div>
     </div>
 
     <div class="grid two">
@@ -201,7 +192,32 @@ async function orderDetail(id){
       : ''
     }
   `);
+
+  aihxoGetProductImages(o.product_id)
+    .then(images=>{
+      const img=images.find(x=>x.is_primary)||images[0];
+      const box=document.querySelector('#order-detail-photo');
+
+      if(!box)return;
+
+      if(img){
+        box.innerHTML=`
+          <img
+            src="${img.public_url}"
+            style="width:220px;height:220px;object-fit:cover;border-radius:16px"
+          >
+        `;
+      }else{
+        box.innerHTML='<div class="empty">Sin fotografía</div>';
+      }
+    })
+    .catch(()=>{
+      const box=document.querySelector('#order-detail-photo');
+      if(box)box.innerHTML='<div class="empty">Sin fotografía</div>';
+    });
 }
+
+window.orderDetail=orderDetail;
 
 window.orderDetail=orderDetail;
 function orderForm(){const a=products.filter(p=>Number(p.stock)>0);if(!a.length)return toast('No hay productos con stock');openDrawer(`<h2>Nuevo pedido</h2><form class="form" id="of"><div class="formgrid"><div class="field"><label>Cliente *</label><input name="customer" required></div><div class="field"><label>Contacto</label><input name="contact"></div></div><div class="field"><label>Producto *</label><select name="product_id" id="op">${a.map(p=>`<option value="${p.id}">${esc(p.model)} · ${esc(p.size||'')} · ${esc(p.color||'')} — ${money(p.sale_price)} · stock ${p.stock}</option>`).join('')}</select></div><div class="formgrid"><div class="field"><label>Diseño</label><input name="design"></div><div class="field"><label>Cantidad *</label><input name="quantity" id="oqty" type="number" min="1" value="1" required></div></div><div class="formgrid"><div class="field"><label>Precio unitario</label><input name="unit_price" id="oprice" type="number" min="0" step="0.01" required></div><div class="field"><label>Envío</label><input name="shipping" type="number" min="0" step="0.01" value="0"></div></div><button class="primary">Guardar pedido</button></form>`);const set=()=>{const p=products.find(x=>x.id===$('#op').value);$('#oprice').value=p?.sale_price||0;$('#oqty').max=p?.stock||1};$('#op').onchange=set;set();$('#of').onsubmit=createOrder}
