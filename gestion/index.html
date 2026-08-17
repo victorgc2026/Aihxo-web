@@ -1,1 +1,36 @@
-
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07152f"><meta name="apple-mobile-web-app-capable" content="yes">
+<title>AIHXO · Gestión</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="styles.css?v=7">
+</head>
+<body>
+<div id="app">
+<aside class="sidebar">
+  <div class="brand"><div class="brandmark">AIHXO</div><small>GESTIÓN</small></div>
+  <nav id="nav">
+    <button data-view="dashboard">⌂ <span>Inicio</span></button>
+    <button data-view="orders">▣ <span>Pedidos</span></button>
+    <button data-view="products">◇ <span>Productos</span></button>
+    <button data-view="stock">□ <span>Stock</span></button>
+    <button data-view="designs">✦ <span>Diseños</span></button>
+    <button data-view="customers">♙ <span>Clientes</span></button>
+    <button data-view="expenses">€ <span>Gastos</span></button>
+    <button data-view="reports">▥ <span>Informes</span></button>
+    <button data-view="settings">⚙ <span>Configuración</span></button>
+  </nav>
+  <div class="sidebar-foot">AIHXO<br><small>Camisetas · DTF · Bolsos</small></div>
+</aside>
+<main>
+<header class="topbar">
+ <button class="hamb" id="hamb">☰</button><h1 id="title">Inicio</h1>
+ <button class="primary small" id="quickOrder">＋ Pedido</button>
+</header>
+<div id="view"></div>
+</main>
+</div>
+<div id="drawer" class="drawer hidden"><div class="drawer-card"><button class="x" id="closeDrawer">×</button><div id="drawerBody"></div></div></div>
+<div id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script>
+</body></html>
