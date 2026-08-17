@@ -124,6 +124,86 @@ function ordersView(c){c.innerHTML=`<div class="page"><div class="section"><div>
   });
 }
 async function updateStatus(id,status){const r=await supabaseClient.from('orders').update({status}).eq('id',id);if(r.error)toast(r.error.message);else{await loadAll();drawOrders();toast('Estado actualizado')}}window.updateStatus=updateStatus;
+async function orderDetail(id){
+  const o=orders.find(x=>x.id===id);
+
+  if(!o){
+    return toast('Pedido no encontrado');
+  }
+
+  const images=await aihxoGetProductImages(o.product_id);
+  const img=images.find(x=>x.is_primary)||images[0];
+
+  const total=Number(o.total||0);
+  const productCost=Number(o.product_cost||0);
+  const profit=total-productCost;
+
+  openDrawer(`
+    <div class="section">
+      <div>
+        <h2>Pedido ${esc(o.order_number)}</h2>
+        <div class="muted">${esc(o.order_date||'')}</div>
+      </div>
+
+      <span class="badge">${esc(o.status||'')}</span>
+    </div>
+
+    <div style="text-align:center;margin:20px 0">
+      ${
+        img
+        ? `<img
+            src="${img.public_url}"
+            style="width:220px;height:220px;object-fit:cover;border-radius:16px"
+          >`
+        : `<div class="empty">Sin fotografía</div>`
+      }
+    </div>
+
+    <div class="grid two">
+
+      <div class="card">
+        <h3>👤 Cliente</h3>
+        <p><b>${esc(o.customer_name||'')}</b></p>
+        <p class="muted">${esc(o.contact||'Sin contacto')}</p>
+      </div>
+
+      <div class="card">
+        <h3>👕 Producto</h3>
+        <p><b>${esc(o.product_name||'')}</b></p>
+        <p class="muted">
+          Talla: ${esc(o.size||'—')} ·
+          Color: ${esc(o.color||'—')}
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>📦 Pedido</h3>
+        <p>Cantidad: <b>${o.quantity}</b></p>
+        <p>Precio unidad: <b>${money(o.unit_price)}</b></p>
+        <p>Envío: <b>${money(o.shipping)}</b></p>
+      </div>
+
+      <div class="card">
+        <h3>💰 Resultado</h3>
+        <p>Total: <b>${money(total)}</b></p>
+        <p>Coste: <b>${money(productCost)}</b></p>
+        <p>Beneficio: <b>${money(profit)}</b></p>
+      </div>
+
+    </div>
+
+    ${
+      o.design
+      ? `<div class="card" style="margin-top:14px">
+          <h3>🎨 Diseño</h3>
+          <p>${esc(o.design)}</p>
+        </div>`
+      : ''
+    }
+  `);
+}
+
+window.orderDetail=orderDetail;
 function orderForm(){const a=products.filter(p=>Number(p.stock)>0);if(!a.length)return toast('No hay productos con stock');openDrawer(`<h2>Nuevo pedido</h2><form class="form" id="of"><div class="formgrid"><div class="field"><label>Cliente *</label><input name="customer" required></div><div class="field"><label>Contacto</label><input name="contact"></div></div><div class="field"><label>Producto *</label><select name="product_id" id="op">${a.map(p=>`<option value="${p.id}">${esc(p.model)} · ${esc(p.size||'')} · ${esc(p.color||'')} — ${money(p.sale_price)} · stock ${p.stock}</option>`).join('')}</select></div><div class="formgrid"><div class="field"><label>Diseño</label><input name="design"></div><div class="field"><label>Cantidad *</label><input name="quantity" id="oqty" type="number" min="1" value="1" required></div></div><div class="formgrid"><div class="field"><label>Precio unitario</label><input name="unit_price" id="oprice" type="number" min="0" step="0.01" required></div><div class="field"><label>Envío</label><input name="shipping" type="number" min="0" step="0.01" value="0"></div></div><button class="primary">Guardar pedido</button></form>`);const set=()=>{const p=products.find(x=>x.id===$('#op').value);$('#oprice').value=p?.sale_price||0;$('#oqty').max=p?.stock||1};$('#op').onchange=set;set();$('#of').onsubmit=createOrder}
 async function createOrder(e){e.preventDefault();const f=new FormData(e.target),p=products.find(x=>x.id===f.get('product_id')),qty=Math.floor(Number(f.get('quantity'))),price=Number(f.get('unit_price')),shipping=Number(f.get('shipping')||0),name=String(f.get('customer')||'').trim();if(!p||qty<1||qty>Number(p.stock))return toast('Stock insuficiente');let c=customers.find(x=>String(x.name||'').trim().toLowerCase()===name.toLowerCase());if(!c){const r=await supabaseClient.from('customers').insert({name,contact:String(f.get('contact')||'').trim()}).select().single();if(r.error)return toast(r.error.message);c=r.data}const d=new Date(),num=`AIHXO-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getTime()).slice(-5)}`;const o={order_number:num,customer_id:c.id,customer_name:c.name,contact:String(f.get('contact')||c.contact||''),product_id:p.id,product_name:p.model,size:p.size||null,color:p.color||null,design:String(f.get('design')||'').trim()||null,quantity:qty,unit_price:price,shipping,total:qty*price+shipping,product_cost:qty*cost(p),status:'Pendiente',order_date:today()};const r=await supabaseClient.from('orders').insert(o);if(r.error)return toast(r.error.message);const s=await supabaseClient.from('products').update({stock:Number(p.stock)-qty}).eq('id',p.id);if(s.error)toast('Pedido guardado; revisa el stock');else toast('Pedido guardado');closeDrawer();await loadAll();setView('orders')}window.orderForm=orderForm;
 async function productsView(c){
