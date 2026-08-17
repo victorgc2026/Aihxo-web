@@ -237,7 +237,7 @@ function drawStock(){const q=($('#sq')?.value||'').toLowerCase(),a=products.filt
     src=""
     style="width:45px;height:45px;object-fit:cover;border-radius:8px;display:none"
   >
-</td><td>${esc(p.sku)}</td><td>${esc(p.model)}</td><td>${esc(p.size||'—')}</td><td>${esc(p.color||'—')}</td><td>${money(cost(p))}</td><td><b class="${p.stock<=3?'red':'green'}">${p.stock}</b></td><td><button class="secondary" onclick="addStock('${p.id}')">＋</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">No hay coincidencias.</div>'a.forEach(async p=>{
+</td><td>${esc(p.sku)}</td><td>${esc(p.model)}</td><td>${esc(p.size||'—')}</td><td>${esc(p.color||'—')}</td><td>${money(cost(p))}</td><td><b class="${p.stock<=3?'red':'green'}">${p.stock}</b></td><td><button class="secondary" onclick="addStock('${p.id}')">＋</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">No hay coincidencias.</div>';a.forEach(async p=>{
   const images=await aihxoGetProductImages(p.id);
   const img=images.find(x=>x.is_primary)||images[0];
 
