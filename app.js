@@ -230,28 +230,79 @@ window.setPrimaryProductImage=setPrimaryProductImage;
 window.deleteProductImage=deleteProductImage;
 async function addStock(id){const p=products.find(x=>x.id===id),n=prompt('Unidades a añadir','5');if(!p||n===null)return;const x=Math.floor(+n);if(!x||x<1)return toast('Cantidad no válida');const r=await supabaseClient.from('products').update({stock:p.stock+x}).eq('id',id);if(r.error)toast(r.error.message);else{await loadAll();setView('stock');toast('Stock actualizado')}}window.addStock=addStock;
 function stockView(c){const total=products.reduce((a,p)=>a+p.stock,0),value=products.reduce((a,p)=>a+p.stock*cost(p),0),low=products.filter(p=>p.stock<=3);c.innerHTML=`<div class="page"><div class="section"><div><h2>Stock</h2><div class="muted">Control de inventario</div></div><button class="primary" onclick="setView('products')">Gestionar productos</button></div><div class="grid four stock-summary">${kpi('Productos',products.length)}${kpi('Stock total',total)}${kpi('Valor stock',money(value))}${kpi('Stock bajo',low.length)}</div><div class="card"><input class="search" id="sq" placeholder="Buscar producto…"><div id="st" class="table-wrap" style="margin-top:14px"></div></div></div>`;$('#sq').oninput=drawStock;drawStock()}
-function drawStock(){const q=($('#sq')?.value||'').toLowerCase(),a=products.filter(p=>[p.sku,p.model,p.size,p.color].join(' ').toLowerCase().includes(q));$('#st').innerHTML=a.length?`<table><thead><th>Foto</th><th>SKU</th><th>Producto</th><th>Talla</th><th>Color</th><th>Coste</th><th>Stock</th><th></th></tr></thead><tbody>${a.map(p=>`<tr><td>
-  <img
-    class="stock-product-photo"
-    data-product-id="${p.id}"
-    src=""
-    style="width:45px;height:45px;object-fit:cover;border-radius:8px;display:none"
-  >
-</td><td>${esc(p.sku)}</td><td>${esc(p.model)}</td><td>${esc(p.size||'—')}</td><td>${esc(p.color||'—')}</td><td>${money(cost(p))}</td><td><b class="${p.stock<=3?'red':'green'}">${p.stock}</b></td><td><button class="secondary" onclick="addStock('${p.id}')">＋</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">No hay coincidencias.</div>';a.forEach(async p=>{
-  const images=await aihxoGetProductImages(p.id);
-  const img=images.find(x=>x.is_primary)||images[0];
+function drawStock(){
+  const q=($('#sq')?.value||'').toLowerCase();
+  const a=products.filter(p=>
+    [p.sku,p.model,p.size,p.color]
+    .join(' ')
+    .toLowerCase()
+    .includes(q)
+  );
 
-  if(img){
-    const el=document.querySelector(
-      `.stock-product-photo[data-product-id="${p.id}"]`
-    );
+  $('#st').innerHTML=a.length
+    ? `<table>
+        <thead>
+          <tr>
+            <th>Foto</th>
+            <th>SKU</th>
+            <th>Producto</th>
+            <th>Talla</th>
+            <th>Color</th>
+            <th>Coste</th>
+            <th>Stock</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${a.map(p=>`
+            <tr>
+              <td>
+                <img
+                  class="stock-product-photo"
+                  data-product-id="${p.id}"
+                  src=""
+                  style="width:45px;height:45px;object-fit:cover;border-radius:8px;display:none"
+                >
+              </td>
+              <td>${esc(p.sku)}</td>
+              <td>${esc(p.model)}</td>
+              <td>${esc(p.size||'—')}</td>
+              <td>${esc(p.color||'—')}</td>
+              <td>${money(cost(p))}</td>
+              <td>
+                <b class="${p.stock<=3?'red':'green'}">
+                  ${p.stock}
+                </b>
+              </td>
+              <td>
+                <button
+                  class="secondary"
+                  onclick="addStock('${p.id}')">
+                  ＋
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`
+    : '<div class="empty">No hay coincidencias.</div>';
 
-    if(el){
-      el.src=img.public_url;
-      el.style.display='block';
+  a.forEach(async p=>{
+    const images=await aihxoGetProductImages(p.id);
+    const img=images.find(x=>x.is_primary)||images[0];
+
+    if(img){
+      const el=document.querySelector(
+        `.stock-product-photo[data-product-id="${p.id}"]`
+      );
+
+      if(el){
+        el.src=img.public_url;
+        el.style.display='block';
+      }
     }
-  }
-});}
+  });
+}
 function customersView(c){c.innerHTML=`<div class="page"><div class="section"><div><h2>Clientes</h2><div class="muted">${customers.length} clientes</div></div><button class="primary" onclick="customerForm()">＋ Cliente</button></div><div class="card"><input class="search" id="cq" placeholder="Buscar cliente…"><div id="ct" class="table-wrap" style="margin-top:14px"></div></div></div>`;$('#cq').oninput=drawCustomers;drawCustomers()}
 function drawCustomers(){const q=($('#cq')?.value||'').toLowerCase(),a=customers.filter(x=>[x.name,x.surname,x.email,x.phone,x.city].join(' ').toLowerCase().includes(q));$('#ct').innerHTML=a.length?`<table><thead><tr><th>Cliente</th><th>Contacto</th><th>Ciudad</th><th>Pedidos</th><th>Facturación</th><th></th></tr></thead><tbody>${a.map(x=>{const os=orders.filter(o=>o.customer_id===x.id);return `<tr><td><b>${esc(x.name)} ${esc(x.surname||'')}</b><div class="muted">${esc(x.email||'')}</div></td><td>${esc(x.phone||x.contact||'—')}</td><td>${esc(x.city||'—')}</td><td>${os.length}</td><td>${money(os.reduce((s,o)=>s+Number(o.total||0),0))}</td><td><button class="secondary" onclick="customerForm('${x.id}')">Editar</button></td></tr>`}).join('')}</tbody></table>`:'<div class="empty">No hay clientes.</div>'}
 function customerForm(id){const c=id?customers.find(x=>x.id===id):{};openDrawer(`<h2>${id?'Editar':'Nuevo'} cliente</h2><form class="form" id="cf"><div class="formgrid"><div class="field"><label>Nombre *</label><input name="name" required value="${esc(c.name||'')}"></div><div class="field"><label>Apellidos</label><input name="surname" value="${esc(c.surname||'')}"></div><div class="field"><label>Email</label><input name="email" type="email" value="${esc(c.email||'')}"></div><div class="field"><label>Teléfono</label><input name="phone" value="${esc(c.phone||'')}"></div><div class="field"><label>Dirección</label><input name="address" value="${esc(c.address||'')}"></div><div class="field"><label>Código postal</label><input name="postal_code" value="${esc(c.postal_code||'')}"></div><div class="field"><label>Ciudad</label><input name="city" value="${esc(c.city||'')}"></div><div class="field" style="grid-column:1/-1"><label>Notas</label><textarea name="notes" rows="4">${esc(c.notes||'')}</textarea></div></div><button class="primary">Guardar cliente</button></form>`);$('#cf').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),o={name:f.get('name').trim(),surname:f.get('surname').trim()||null,email:f.get('email').trim()||null,phone:f.get('phone').trim()||null,address:f.get('address').trim()||null,postal_code:f.get('postal_code').trim()||null,city:f.get('city').trim()||null,notes:f.get('notes').trim()||null,contact:f.get('phone').trim()||null};const r=id?await supabaseClient.from('customers').update(o).eq('id',id):await supabaseClient.from('customers').insert(o);if(r.error)toast(r.error.message);else{closeDrawer();await loadAll();setView('customers');toast('Cliente guardado')}}}window.customerForm=customerForm;
