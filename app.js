@@ -93,6 +93,20 @@ function ordersView(c){c.innerHTML=`<div class="page"><div class="section"><div>
                     ).join('')}
                   </select>
                 </td>
+                <td>
+  <button
+    class="secondary"
+    onclick="orderDetail('${o.id}')">
+    👁️ Ver
+  </button>
+</td>
+                <td>
+  <button
+    class="secondary"
+    onclick="orderDetail('${o.id}')">
+    👁️ Ver
+  </button>
+</td>
               </tr>
             `).join('')}
           </tbody>
