@@ -67,21 +67,37 @@
 
   window.aihxoUploadProductImage = uploadProductImage;
   window.aihxoGetProductImages = getProductImages;
+window.aihxoCameraInput = function (productId) {
+  const input = document.createElement('input');
 
-  window.aihxoPhotoInput = function (productId) {
-    const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment';
 
-    input.type = 'file';
-    input.accept = 'image/*';
-    
-
-    input.onchange = async function () {
-      const file = input.files && input.files[0];
-      if (file) {
-        await uploadProductImage(productId, file);
-      }
-    };
-
-    input.click();
+  input.onchange = async function () {
+    const file = input.files && input.files[0];
+    if (file) {
+      await uploadProductImage(productId, file);
+    }
   };
+
+  input.click();
+};
+
+window.aihxoLibraryInput = function (productId) {
+  const input = document.createElement('input');
+
+  input.type = 'file';
+  input.accept = 'image/*';
+
+  input.onchange = async function () {
+    const file = input.files && input.files[0];
+    if (file) {
+      await uploadProductImage(productId, file);
+    }
+  };
+
+  input.click();
+};
+  
 })();
