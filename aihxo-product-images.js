@@ -73,7 +73,7 @@
 
     input.type = 'file';
     input.accept = 'image/*';
-    input.capture = 'environment';
+    
 
     input.onchange = async function () {
       const file = input.files && input.files[0];
