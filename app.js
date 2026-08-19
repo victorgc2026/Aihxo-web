@@ -289,7 +289,7 @@ async function productsView(c){
         <img
           src="${esc(images[0].public_url)}"
           alt="${esc(p.model)}"
-          style="width:100%;height:220px;object-fit:contain;border-radius:12px;display:block;background:#f7f9fc"
+          style="width:100%;height:220px;object-fit:contain;border-radius:12px;display:block;background:#f7f9fc;padding:18px;box-sizing:border-box"
         >
       `;
     }
