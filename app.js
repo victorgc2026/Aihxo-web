@@ -256,8 +256,12 @@ async function productsView(c){
           </div>
 
           <div class="actions" style="margin-top:10px">
-            <button class="primary" onclick="aihxoPhotoInput('${p.id}')">
-              📷 Foto
+            <button class="primary" onclick="aihxoCameraInput('${p.id}')">
+             📷 Cámara
+            </button>
+
+            <button class="secondary" onclick="aihxoLibraryInput('${p.id}')">
+             🖼️ Biblioteca
             </button>
             <button class="secondary" onclick="productGallery('${p.id}')">
               🖼️ Galería
