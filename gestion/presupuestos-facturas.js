@@ -453,7 +453,410 @@ async function generateQuotePDF(id){
 }
 
 function invoicesView(c){
- c.innerHTML=`<div class="page"><div class="section"><div><h2>Facturas</h2><div class="muted">${invoices.length} facturas</div></div></div><div class="card"><div class="table-wrap"><table><thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody>${invoices.map(i=>`<tr><td><b>${esc(i.invoice_number)}</b></td><td>${i.invoice_date||''}</td><td>${esc(i.customer_name)}</td><td>${money(i.total)}</td><td><select onchange="invoiceStatus('${i.id}',this.value)">${['Pendiente','Pagada','Anulada'].map(s=>`<option ${i.status===s?'selected':''}>${s}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>${invoices.length?'':'<div class="empty">Todavía no hay facturas.</div>'}</div></div>`;
+ c.innerHTML=`
+ <div class="page">
+   <div class="section">
+     <div>
+       <h2>Facturas</h2>
+       <div class="muted">${invoices.length} facturas</div>
+     </div>
+   </div>
+
+   <div class="card">
+     <div class="table-wrap">
+       <table>
+         <thead>
+           <tr>
+             <th>Número</th>
+             <th>Fecha</th>
+             <th>Cliente</th>
+             <th>Total</th>
+             <th>Estado</th>
+             <th>Acciones</th>
+           </tr>
+         </thead>
+
+         <tbody>
+           ${invoices.map(i=>`
+             <tr>
+               <td><b>${esc(i.invoice_number)}</b></td>
+               <td>${i.invoice_date||''}</td>
+               <td>${esc(i.customer_name)}</td>
+               <td>${money(i.total)}</td>
+
+               <td>
+                 <select onchange="invoiceStatus('${i.id}',this.value)">
+                   ${['Pendiente','Pagada','Anulada'].map(s=>`
+                     <option ${i.status===s?'selected':''}>${s}</option>
+                   `).join('')}
+                 </select>
+               </td>
+
+               <td>
+                 <button
+                   class="secondary"
+                   onclick="viewInvoice('${i.id}')">
+                   Ver
+                 </button>
+               </td>
+             </tr>
+           `).join('')}
+         </tbody>
+       </table>
+     </div>
+
+     ${invoices.length?'':'<div class="empty">Todavía no hay facturas.</div>'}
+   </div>
+ </div>`;
+}
+async function viewInvoice(id){
+ const i=invoices.find(x=>x.id===id);
+
+ const r=await supabaseClient
+   .from('invoice_lines')
+   .select('*')
+   .eq('invoice_id',id)
+   .order('sort_order');
+
+ if(r.error)return toast(r.error.message);
+
+ document.querySelector('#drawer').classList.remove('hidden');
+
+ document.querySelector('#drawerBody').innerHTML=`
+   <h2>${esc(i.invoice_number)}</h2>
+
+   <p>
+     <b>${esc(i.customer_name)}</b><br>
+     ${i.invoice_date}
+   </p>
+
+   ${r.data.map(l=>`
+     <div class="statline">
+       <span>${esc(l.description)} · ${l.quantity} × ${money(l.unit_price)}</span>
+       <b>${money(l.line_subtotal)}</b>
+     </div>
+   `).join('')}
+
+   <hr>
+
+   <div class="statline">
+     <span>Base</span>
+     <b>${money(i.subtotal)}</b>
+   </div>
+
+   <div class="statline">
+     <span>IVA ${i.tax_rate}%</span>
+     <b>${money(i.tax_total)}</b>
+   </div>
+
+   <div class="statline">
+     <span>Portes</span>
+     <b>${money(i.shipping)}</b>
+   </div>
+
+   <div class="statline">
+     <span>Total</span>
+     <b>${money(i.total)}</b>
+   </div>
+
+   <div class="statline">
+     <span>Estado</span>
+     <b>${esc(i.status)}</b>
+   </div>
+
+   ${i.notes?`<p>${esc(i.notes)}</p>`:''}
+
+   <button
+     class="primary"
+     style="width:100%;margin-top:20px"
+     onclick="generateInvoicePDF('${i.id}')">
+     📄 Generar PDF
+   </button>
+ `;
+}
+
+async function generateInvoicePDF(id){
+ const i=invoices.find(x=>x.id===id);
+ if(!i)return toast('Factura no encontrada');
+
+ const linesResult=await supabaseClient
+   .from('invoice_lines')
+   .select('*')
+   .eq('invoice_id',id)
+   .order('sort_order');
+
+ if(linesResult.error)return toast(linesResult.error.message);
+
+ const customer=customers.find(c=>c.id===i.customer_id)||{};
+
+ const lines=linesResult.data.map(l=>`
+   <tr>
+     <td>${esc(l.description)}</td>
+     <td style="text-align:center">${l.quantity}</td>
+     <td style="text-align:right">${money(l.unit_price)}</td>
+     <td style="text-align:right">${l.discount_pct||0}%</td>
+     <td style="text-align:right">${money(l.line_total)}</td>
+   </tr>
+ `).join('');
+
+ const w=window.open('','_blank');
+
+ if(!w){
+   toast('Permite las ventanas emergentes para generar el PDF');
+   return;
+ }
+
+ w.document.write(`
+ <!doctype html>
+ <html lang="es">
+ <head>
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width,initial-scale=1">
+   <title>${esc(i.invoice_number)}</title>
+
+   <style>
+     .no-print{
+       display:block;
+     }
+
+     @media print{
+       .no-print{
+         display:none !important;
+       }
+     }
+
+     *{box-sizing:border-box}
+
+     body{
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+       color:#172033;
+       margin:0;
+       padding:32px;
+       background:white;
+     }
+
+     .header{
+       display:flex;
+       justify-content:space-between;
+       align-items:flex-start;
+       border-bottom:3px solid #087cf4;
+       padding-bottom:20px;
+       margin-bottom:28px;
+     }
+
+     .logo{
+       width:150px;
+       max-height:80px;
+       object-fit:contain;
+     }
+
+     h1{
+       margin:0;
+       font-size:28px;
+       color:#087cf4;
+     }
+
+     .number{
+       font-size:16px;
+       margin-top:6px;
+       font-weight:700;
+     }
+
+     .grid{
+       display:grid;
+       grid-template-columns:1fr 1fr;
+       gap:30px;
+       margin-bottom:28px;
+     }
+
+     .box{
+       border:1px solid #d8dee9;
+       border-radius:10px;
+       padding:16px;
+     }
+
+     .box h3{
+       margin:0 0 10px;
+       font-size:13px;
+       text-transform:uppercase;
+       color:#64748b;
+     }
+
+     table{
+       width:100%;
+       border-collapse:collapse;
+       margin-top:20px;
+     }
+
+     th{
+       background:#f1f5f9;
+       text-align:left;
+       padding:10px;
+       font-size:12px;
+     }
+
+     td{
+       padding:10px;
+       border-bottom:1px solid #e2e8f0;
+       font-size:13px;
+     }
+
+     .totals{
+       width:330px;
+       margin-left:auto;
+       margin-top:25px;
+     }
+
+     .total-row{
+       display:flex;
+       justify-content:space-between;
+       padding:7px 0;
+     }
+
+     .grand{
+       font-size:20px;
+       font-weight:800;
+       border-top:2px solid #087cf4;
+       margin-top:8px;
+       padding-top:12px;
+     }
+
+     .notes{
+       margin-top:30px;
+       padding:15px;
+       background:#f8fafc;
+       border-radius:8px;
+     }
+
+     .footer{
+       margin-top:45px;
+       padding-top:15px;
+       border-top:1px solid #e2e8f0;
+       font-size:11px;
+       color:#64748b;
+       text-align:center;
+     }
+
+     @media print{
+       body{padding:10mm}
+       @page{size:A4;margin:10mm}
+     }
+   </style>
+ </head>
+
+ <body>
+
+   <div class="no-print" style="margin-bottom:20px">
+     <button
+       onclick="window.close()"
+       style="border:0;border-radius:10px;padding:10px 16px;font-size:16px;font-weight:700;cursor:pointer;">
+       ← Volver a AIHXO Gestión
+     </button>
+   </div>
+
+   <div class="header">
+
+     <div>
+       <img class="logo" src="../logo-aihxo.png">
+     </div>
+
+     <div style="text-align:right">
+       <h1>FACTURA</h1>
+       <div class="number">${esc(i.invoice_number)}</div>
+       <div>${esc(i.invoice_date||'')}</div>
+     </div>
+
+   </div>
+
+   <div class="grid">
+
+     <div class="box">
+       <h3>Emisor</h3>
+       <b>Víctor Miguel Galán Cendán / AIHXO KIDS WEAR</b><br>
+       NIF: 53161258R<br>
+       Pezoca 31 · 15173 Oleiros<br>
+       A Coruña<br>
+       692 943 013<br>
+       AIHXO.camisetas@gmail.com
+     </div>
+
+     <div class="box">
+       <h3>Cliente</h3>
+       <b>${esc(i.customer_name)}</b><br>
+       ${customer.tax_id?`NIF/CIF: ${esc(customer.tax_id)}<br>`:''}
+       ${customer.address?esc(customer.address)+'<br>':''}
+       ${customer.postal_code?esc(customer.postal_code)+' ':''}
+       ${customer.city?esc(customer.city)+'<br>':''}
+       ${customer.phone?esc(customer.phone)+'<br>':''}
+       ${customer.email?esc(customer.email):''}
+     </div>
+
+   </div>
+
+   <table>
+     <thead>
+       <tr>
+         <th>Descripción</th>
+         <th style="text-align:center">Cant.</th>
+         <th style="text-align:right">Precio</th>
+         <th style="text-align:right">Dto.</th>
+         <th style="text-align:right">Total</th>
+       </tr>
+     </thead>
+
+     <tbody>
+       ${lines}
+     </tbody>
+   </table>
+
+   <div class="totals">
+
+     <div class="total-row">
+       <span>Base imponible</span>
+       <b>${money(i.subtotal)}</b>
+     </div>
+
+     <div class="total-row">
+       <span>IVA ${i.tax_rate}%</span>
+       <b>${money(i.tax_total)}</b>
+     </div>
+
+     <div class="total-row">
+       <span>Portes</span>
+       <b>${money(i.shipping)}</b>
+     </div>
+
+     <div class="total-row grand">
+       <span>TOTAL</span>
+       <span>${money(i.total)}</span>
+     </div>
+
+   </div>
+
+   ${i.notes?`
+     <div class="notes">
+       <b>Notas</b><br>
+       ${esc(i.notes)}
+     </div>
+   `:''}
+
+   <div class="footer">
+     AIHXO KIDS WEAR · NIF 53161258R · Oleiros (A Coruña)
+   </div>
+
+   <script>
+     window.onload=function(){
+       setTimeout(function(){
+         window.print();
+       },500);
+     }
+   <\/script>
+
+ </body>
+ </html>
+ `);
+
+ w.document.close();
 }
 async function invoiceStatus(id,status){
  const patch={status,updated_at:new Date().toISOString()}; if(status==='Pagada')patch.paid_at=new Date().toISOString();
