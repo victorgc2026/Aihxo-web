@@ -36,12 +36,55 @@ function nextDocNumber(prefix, docs, field){
 }
 
 function quotesView(c){
- c.innerHTML=`<div class="page"><div class="section"><div><h2>Presupuestos</h2><div class="muted">${quotes.length} presupuestos</div></div><button class="primary" onclick="quoteForm()">＋ Nuevo presupuesto</button></div>
- <div class="card"><div class="table-wrap"><table><thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead>
- <tbody>${quotes.map(q=>`<tr><td><b>${esc(q.quote_number)}</b></td><td>${q.quote_date||''}</td><td>${esc(q.customer_name)}</td><td>${money(q.total)}</td>
- <td><select onchange="quoteStatus('${q.id}',this.value)">${['Borrador','Enviado','Aceptado','Rechazado','Facturado'].map(s=>`<option ${q.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
- <td><button class="secondary" onclick="viewQuote('${q.id}')">Ver</button> ${q.status==='Aceptado'?`<button class="primary small" onclick="quoteToInvoice('${q.id}')">Facturar</button>`:''}</td></tr>`).join('')}</tbody></table></div>
- ${quotes.length?'':'<div class="empty">Todavía no hay presupuestos.</div>'}</div></div>`;
+  c.innerHTML=`
+  <div class="page">
+    <div class="section">
+      <div>
+        <h2>Presupuestos</h2>
+        <div class="muted">${quotes.length} presupuestos</div>
+      </div>
+      <button class="primary" onclick="quoteForm()">+ Nuevo presupuesto</button>
+    </div>
+
+    <div class="mobile-doc-list">
+      ${quotes.map(q=>`
+        <div class="mobile-doc-card">
+          <div class="mobile-doc-top">
+            <div>
+              <strong>${esc(q.quote_number)}</strong>
+              <div class="muted">${q.quote_date||''}</div>
+            </div>
+            <strong>${money(q.total)}</strong>
+          </div>
+
+          <div class="mobile-doc-client">
+            ${esc(q.customer_name||'Sin cliente')}
+          </div>
+
+          <div class="mobile-doc-actions">
+  <select onchange="quoteStatus('${q.id}',this.value)">
+    ${['Borrador','Enviado','Aceptado','Rechazado','Facturado'].map(s=>
+      `<option ${q.status===s?'selected':''}>${s}</option>`
+    ).join('')}
+  </select>
+
+  <div style="display:flex;gap:8px">
+    <button class="secondary" onclick="viewQuote('${q.id}')">
+      Ver
+    </button>
+
+    ${q.status==='Aceptado'
+      ? `<button class="primary small" onclick="quoteToInvoice('${q.id}')">Facturar</button>`
+      : ''
+    }
+  </div>
+</div>
+        </div>
+      `).join('')}
+
+      ${quotes.length?'':'<div class="empty">Todavía no hay presupuestos.</div>'}
+    </div>
+  </div>`;
 }
 
 async function quoteStatus(id,status){
@@ -453,61 +496,47 @@ async function generateQuotePDF(id){
 }
 
 function invoicesView(c){
- c.innerHTML=`
- <div class="page">
-   <div class="section">
-     <div>
-       <h2>Facturas</h2>
-       <div class="muted">${invoices.length} facturas</div>
-     </div>
-   </div>
+  c.innerHTML=`
+  <div class="page">
+    <div class="section">
+      <div>
+        <h2>Facturas</h2>
+        <div class="muted">${invoices.length} facturas</div>
+      </div>
+    </div>
 
-   <div class="card">
-     <div class="table-wrap">
-       <table>
-         <thead>
-           <tr>
-             <th>Número</th>
-             <th>Fecha</th>
-             <th>Cliente</th>
-             <th>Total</th>
-             <th>Estado</th>
-             <th>Acciones</th>
-           </tr>
-         </thead>
+    <div class="mobile-doc-list">
+      ${invoices.map(i=>`
+        <div class="mobile-doc-card">
+          <div class="mobile-doc-top">
+            <div>
+              <strong>${esc(i.invoice_number)}</strong>
+              <div class="muted">${i.invoice_date||''}</div>
+            </div>
+            <strong>${money(i.total)}</strong>
+          </div>
 
-         <tbody>
-           ${invoices.map(i=>`
-             <tr>
-               <td><b>${esc(i.invoice_number)}</b></td>
-               <td>${i.invoice_date||''}</td>
-               <td>${esc(i.customer_name)}</td>
-               <td>${money(i.total)}</td>
+          <div class="mobile-doc-client">
+            ${esc(i.customer_name||'Sin cliente')}
+          </div>
 
-               <td>
-                 <select onchange="invoiceStatus('${i.id}',this.value)">
-                   ${['Pendiente','Pagada','Anulada'].map(s=>`
-                     <option ${i.status===s?'selected':''}>${s}</option>
-                   `).join('')}
-                 </select>
-               </td>
+          <div class="mobile-doc-actions">
+            <select onchange="invoiceStatus('${i.id}',this.value)">
+              ${['Pendiente','Pagada','Anulada'].map(s=>
+                `<option ${i.status===s?'selected':''}>${s}</option>`
+              ).join('')}
+            </select>
 
-               <td>
-                 <button
-                   class="secondary"
-                   onclick="viewInvoice('${i.id}')">
-                   Ver
-                 </button>
-               </td>
-             </tr>
-           `).join('')}
-         </tbody>
-       </table>
-     </div>
+            <button class="secondary" onclick="viewInvoice('${i.id}')">
+              Ver
+            </button>
+          </div>
+        </div>
+      `).join('')}
 
-     ${invoices.length?'':'<div class="empty">Todavía no hay facturas.</div>'}
-   </div>
- </div>`;
+      ${invoices.length?'':'<div class="empty">Todavía no hay facturas.</div>'}
+    </div>
+  </div>`;
 }
 async function viewInvoice(id){
  const i=invoices.find(x=>x.id===id);
