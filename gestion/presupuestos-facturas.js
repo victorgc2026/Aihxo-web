@@ -209,6 +209,15 @@ async function generateQuotePDF(id){
    <title>${esc(q.quote_number)}</title>
 
    <style>
+   .no-print{
+  display:block;
+}
+
+@media print{
+  .no-print{
+    display:none !important;
+  }
+}
      *{box-sizing:border-box}
      body{
        font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
@@ -328,7 +337,20 @@ async function generateQuotePDF(id){
  </head>
 
  <body>
-
+<div class="no-print" style="margin-bottom:20px">
+  <button
+    onclick="window.close()"
+    style="
+      border:0;
+      border-radius:10px;
+      padding:10px 16px;
+      font-size:16px;
+      font-weight:700;
+      cursor:pointer;
+    ">
+    ← Volver a AIHXO Gestión
+  </button>
+</div>
    <div class="header">
      <div>
        <img class="logo" src="../logo-aihxo.png">
