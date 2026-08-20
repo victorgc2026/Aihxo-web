@@ -120,7 +120,22 @@ async function quoteToInvoice(id){
 }
 
 async function initBilling(){
- let tries=0; while(!document.querySelector('#nav') && tries++<50) await new Promise(r=>setTimeout(r,100));
- billingNav(); await loadBilling();
+  let tries=0;
+  while(!document.querySelector('#nav') && tries++<50) await new Promise(r=>setTimeout(r,100));
+  if(!document.querySelector('#nav')) return;
+  billingNav();
+  await loadBilling();
 }
+
+// Asegura que Presupuestos y Facturas se inicialicen también
+// cuando el usuario inicia sesión después de abrir la aplicación.
+if (typeof showApp === 'function') {
+  const _aihxoOriginalShowApp = showApp;
+  showApp = function(session){
+    _aihxoOriginalShowApp(session);
+    setTimeout(() => initBilling(), 0);
+  };
+}
+
+// Si ya había una sesión activa al cargar la página, también inicializa.
 initBilling();
