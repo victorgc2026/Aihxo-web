@@ -111,8 +111,323 @@ async function saveQuote(e){
  closeDrawer(); await loadBilling(); billingSetView('quotes'); toast('Presupuesto guardado');
 }
 async function viewQuote(id){
- const q=quotes.find(x=>x.id===id), r=await supabaseClient.from('quote_lines').select('*').eq('quote_id',id).order('sort_order'); if(r.error)return toast(r.error.message);
- document.querySelector('#drawer').classList.remove('hidden'); document.querySelector('#drawerBody').innerHTML=`<h2>${esc(q.quote_number)}</h2><p><b>${esc(q.customer_name)}</b><br>${q.quote_date}</p>${r.data.map(l=>`<div class="statline"><span>${esc(l.description)} · ${l.quantity} × ${money(l.unit_price)}</span><b>${money(l.line_subtotal)}</b></div>`).join('')}<hr><div class="statline"><span>Base</span><b>${money(q.subtotal)}</b></div><div class="statline"><span>IVA ${q.tax_rate}%</span><b>${money(q.tax_total)}</b></div><div class="statline"><span>Portes</span><b>${money(q.shipping)}</b></div><div class="statline"><span>Total</span><b>${money(q.total)}</b></div>${q.notes?`<p>${esc(q.notes)}</p>`:''}`;
+ const q=quotes.find(x=>x.id===id);
+ const r=await supabaseClient.from('quote_lines')
+   .select('*')
+   .eq('quote_id',id)
+   .order('sort_order');
+
+ if(r.error)return toast(r.error.message);
+
+ document.querySelector('#drawer').classList.remove('hidden');
+
+ document.querySelector('#drawerBody').innerHTML=`
+   <h2>${esc(q.quote_number)}</h2>
+
+   <p>
+     <b>${esc(q.customer_name)}</b><br>
+     ${q.quote_date}
+   </p>
+
+   ${r.data.map(l=>`
+     <div class="statline">
+       <span>${esc(l.description)} · ${l.quantity} × ${money(l.unit_price)}</span>
+       <b>${money(l.line_subtotal)}</b>
+     </div>
+   `).join('')}
+
+   <hr>
+
+   <div class="statline">
+     <span>Base</span>
+     <b>${money(q.subtotal)}</b>
+   </div>
+
+   <div class="statline">
+     <span>IVA ${q.tax_rate}%</span>
+     <b>${money(q.tax_total)}</b>
+   </div>
+
+   <div class="statline">
+     <span>Portes</span>
+     <b>${money(q.shipping)}</b>
+   </div>
+
+   <div class="statline">
+     <span>Total</span>
+     <b>${money(q.total)}</b>
+   </div>
+
+   ${q.notes?`<p>${esc(q.notes)}</p>`:''}
+
+   <button
+     class="primary"
+     style="width:100%;margin-top:20px"
+     onclick="generateQuotePDF('${q.id}')">
+     📄 Generar PDF
+   </button>
+ `;
+}
+
+async function generateQuotePDF(id){
+ const q=quotes.find(x=>x.id===id);
+ if(!q)return toast('Presupuesto no encontrado');
+
+ const linesResult=await supabaseClient
+   .from('quote_lines')
+   .select('*')
+   .eq('quote_id',id)
+   .order('sort_order');
+
+ if(linesResult.error)return toast(linesResult.error.message);
+
+ const customer=customers.find(c=>c.id===q.customer_id)||{};
+
+ const lines=linesResult.data.map(l=>`
+   <tr>
+     <td>${esc(l.description)}</td>
+     <td style="text-align:center">${l.quantity}</td>
+     <td style="text-align:right">${money(l.unit_price)}</td>
+     <td style="text-align:right">${l.discount_pct||0}%</td>
+     <td style="text-align:right">${money(l.line_total)}</td>
+   </tr>
+ `).join('');
+
+ const w=window.open('','_blank');
+
+ if(!w){
+   toast('Permite las ventanas emergentes para generar el PDF');
+   return;
+ }
+
+ w.document.write(`
+ <!doctype html>
+ <html lang="es">
+ <head>
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width,initial-scale=1">
+   <title>${esc(q.quote_number)}</title>
+
+   <style>
+     *{box-sizing:border-box}
+     body{
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+       color:#172033;
+       margin:0;
+       padding:32px;
+       background:white;
+     }
+
+     .header{
+       display:flex;
+       justify-content:space-between;
+       align-items:flex-start;
+       border-bottom:3px solid #087cf4;
+       padding-bottom:20px;
+       margin-bottom:28px;
+     }
+
+     .logo{
+       width:150px;
+       max-height:80px;
+       object-fit:contain;
+     }
+
+     h1{
+       margin:0;
+       font-size:28px;
+       color:#087cf4;
+     }
+
+     .number{
+       font-size:16px;
+       margin-top:6px;
+       font-weight:700;
+     }
+
+     .grid{
+       display:grid;
+       grid-template-columns:1fr 1fr;
+       gap:30px;
+       margin-bottom:28px;
+     }
+
+     .box{
+       border:1px solid #d8dee9;
+       border-radius:10px;
+       padding:16px;
+     }
+
+     .box h3{
+       margin:0 0 10px;
+       font-size:13px;
+       text-transform:uppercase;
+       color:#64748b;
+     }
+
+     table{
+       width:100%;
+       border-collapse:collapse;
+       margin-top:20px;
+     }
+
+     th{
+       background:#f1f5f9;
+       text-align:left;
+       padding:10px;
+       font-size:12px;
+     }
+
+     td{
+       padding:10px;
+       border-bottom:1px solid #e2e8f0;
+       font-size:13px;
+     }
+
+     .totals{
+       width:330px;
+       margin-left:auto;
+       margin-top:25px;
+     }
+
+     .total-row{
+       display:flex;
+       justify-content:space-between;
+       padding:7px 0;
+     }
+
+     .grand{
+       font-size:20px;
+       font-weight:800;
+       border-top:2px solid #087cf4;
+       margin-top:8px;
+       padding-top:12px;
+     }
+
+     .notes{
+       margin-top:30px;
+       padding:15px;
+       background:#f8fafc;
+       border-radius:8px;
+     }
+
+     .footer{
+       margin-top:45px;
+       padding-top:15px;
+       border-top:1px solid #e2e8f0;
+       font-size:11px;
+       color:#64748b;
+       text-align:center;
+     }
+
+     @media print{
+       body{padding:10mm}
+       @page{size:A4;margin:10mm}
+     }
+   </style>
+ </head>
+
+ <body>
+
+   <div class="header">
+     <div>
+       <img class="logo" src="../logo-aihxo.png">
+     </div>
+
+     <div style="text-align:right">
+       <h1>PRESUPUESTO</h1>
+       <div class="number">${esc(q.quote_number)}</div>
+       <div>${esc(q.quote_date||'')}</div>
+     </div>
+   </div>
+
+   <div class="grid">
+
+     <div class="box">
+       <h3>AIHXO</h3>
+       <b>AIHXO KIDS WEAR</b><br>
+       Pezoca 31 · 15173 Oleiros<br>
+       A Coruña<br>
+       692 943 013<br>
+       AIHXO.camisetas@gmail.com
+     </div>
+
+     <div class="box">
+       <h3>Cliente</h3>
+       <b>${esc(q.customer_name)}</b><br>
+       ${customer.address?esc(customer.address)+'<br>':''}
+       ${customer.postal_code?esc(customer.postal_code)+' ':''}
+       ${customer.city?esc(customer.city)+'<br>':''}
+       ${customer.phone?esc(customer.phone)+'<br>':''}
+       ${customer.email?esc(customer.email):''}
+     </div>
+
+   </div>
+
+   <table>
+     <thead>
+       <tr>
+         <th>Descripción</th>
+         <th style="text-align:center">Cant.</th>
+         <th style="text-align:right">Precio</th>
+         <th style="text-align:right">Dto.</th>
+         <th style="text-align:right">Total</th>
+       </tr>
+     </thead>
+
+     <tbody>
+       ${lines}
+     </tbody>
+   </table>
+
+   <div class="totals">
+
+     <div class="total-row">
+       <span>Base imponible</span>
+       <b>${money(q.subtotal)}</b>
+     </div>
+
+     <div class="total-row">
+       <span>IVA ${q.tax_rate}%</span>
+       <b>${money(q.tax_total)}</b>
+     </div>
+
+     <div class="total-row">
+       <span>Portes</span>
+       <b>${money(q.shipping)}</b>
+     </div>
+
+     <div class="total-row grand">
+       <span>TOTAL</span>
+       <span>${money(q.total)}</span>
+     </div>
+
+   </div>
+
+   ${q.notes?`
+     <div class="notes">
+       <b>Notas</b><br>
+       ${esc(q.notes)}
+     </div>
+   `:''}
+
+   <div class="footer">
+     AIHXO · Camisetas personalizadas · DTF · Oleiros (A Coruña)
+   </div>
+
+   <script>
+     window.onload=function(){
+       setTimeout(function(){
+         window.print();
+       },500);
+     }
+   <\/script>
+
+ </body>
+ </html>
+ `);
+
+ w.document.close();
 }
 
 function invoicesView(c){
