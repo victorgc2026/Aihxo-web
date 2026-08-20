@@ -75,10 +75,21 @@ function addQuoteLine(){
 }
 function removeQuoteLine(n){window._quoteLines.splice(n,1);drawQuoteLines()}
 function quoteCalc(){
- const tax=+document.querySelector('#quoteTax')?.value||21, shipping=+document.querySelector('#quoteShipping')?.value||0;
- let gross=0, subtotal=0;
- (window._quoteLines||[]).forEach(l=>{const g=l.quantity*l.unit_price;gross+=g;subtotal+=g*(1-l.discount_pct/100)});
- const discount=gross-subtotal, taxTotal=subtotal*tax/100, total=subtotal+taxTotal+shipping;
+ const tax=+document.querySelector('#quoteTax')?.value||21,
+       shipping=+document.querySelector('#quoteShipping')?.value||0;
+ let gross=0, finalProducts=0;
+
+ (window._quoteLines||[]).forEach(l=>{
+   const g=l.quantity*l.unit_price;
+   gross+=g;
+   finalProducts+=g*(1-l.discount_pct/100);
+ });
+
+ const discount=gross-finalProducts;
+ const subtotal=finalProducts/(1+tax/100);
+ const taxTotal=finalProducts-subtotal;
+ const total=finalProducts+shipping;
+
  return {gross,subtotal,discount,tax,taxTotal,shipping,total};
 }
 function drawQuoteLines(){
@@ -91,7 +102,11 @@ async function saveQuote(e){
  const f=new FormData(e.target), customer=customers.find(c=>c.id===f.get('customer_id')); if(!customer)return toast('Selecciona un cliente');
  const x=quoteCalc(), quote={quote_number:nextDocNumber('PRE',quotes,'quote_number'),customer_id:customer.id,customer_name:customer.name,quote_date:new Date().toISOString().slice(0,10),status:'Borrador',subtotal:x.subtotal,discount_total:x.discount,tax_rate:x.tax,tax_total:x.taxTotal,shipping:x.shipping,total:x.total,notes:f.get('notes')||''};
  const r=await supabaseClient.from('quotes').insert(quote).select().single(); if(r.error)return toast(r.error.message);
- const lines=window._quoteLines.map((l,n)=>({...l,quote_id:r.data.id,tax_rate:x.tax,line_subtotal:l.quantity*l.unit_price*(1-l.discount_pct/100),line_total:l.quantity*l.unit_price*(1-l.discount_pct/100)*(1+x.tax/100),sort_order:n}));
+ const lines=window._quoteLines.map((l,n)=>{
+ const lineTotal=l.quantity*l.unit_price*(1-l.discount_pct/100);
+ const lineSubtotal=lineTotal/(1+x.tax/100);
+ return {...l,quote_id:r.data.id,tax_rate:x.tax,line_subtotal:lineSubtotal,line_total:lineTotal,sort_order:n};
+});
  const lr=await supabaseClient.from('quote_lines').insert(lines); if(lr.error){await supabaseClient.from('quotes').delete().eq('id',r.data.id);return toast(lr.error.message)}
  closeDrawer(); await loadBilling(); billingSetView('quotes'); toast('Presupuesto guardado');
 }
