@@ -530,7 +530,7 @@ function invoicesView(c){
             <button class="secondary" onclick="viewInvoice('${i.id}')">
               Ver
             </button>
-       te   </div>
+          </div>
         </div>
       `).join('')}
 
