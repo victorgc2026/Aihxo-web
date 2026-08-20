@@ -496,61 +496,47 @@ async function generateQuotePDF(id){
 }
 
 function invoicesView(c){
- c.innerHTML=`
- <div class="page">
-   <div class="section">
-     <div>
-       <h2>Facturas</h2>
-       <div class="muted">${invoices.length} facturas</div>
-     </div>
-   </div>
+  c.innerHTML=`
+  <div class="page">
+    <div class="section">
+      <div>
+        <h2>Facturas</h2>
+        <div class="muted">${invoices.length} facturas</div>
+      </div>
+    </div>
 
-   <div class="card">
-     <div class="table-wrap">
-       <table>
-         <thead>
-           <tr>
-             <th>Número</th>
-             <th>Fecha</th>
-             <th>Cliente</th>
-             <th>Total</th>
-             <th>Estado</th>
-             <th>Acciones</th>
-           </tr>
-         </thead>
+    <div class="mobile-doc-list">
+      ${invoices.map(i=>`
+        <div class="mobile-doc-card">
+          <div class="mobile-doc-top">
+            <div>
+              <strong>${esc(i.invoice_number)}</strong>
+              <div class="muted">${i.invoice_date||''}</div>
+            </div>
+            <strong>${money(i.total)}</strong>
+          </div>
 
-         <tbody>
-           ${invoices.map(i=>`
-             <tr>
-               <td><b>${esc(i.invoice_number)}</b></td>
-               <td>${i.invoice_date||''}</td>
-               <td>${esc(i.customer_name)}</td>
-               <td>${money(i.total)}</td>
+          <div class="mobile-doc-client">
+            ${esc(i.customer_name||'Sin cliente')}
+          </div>
 
-               <td>
-                 <select onchange="invoiceStatus('${i.id}',this.value)">
-                   ${['Pendiente','Pagada','Anulada'].map(s=>`
-                     <option ${i.status===s?'selected':''}>${s}</option>
-                   `).join('')}
-                 </select>
-               </td>
+          <div class="mobile-doc-actions">
+            <select onchange="invoiceStatus('${i.id}',this.value)">
+              ${['Pendiente','Pagada','Anulada'].map(s=>
+                `<option ${i.status===s?'selected':''}>${s}</option>`
+              ).join('')}
+            </select>
 
-               <td>
-                 <button
-                   class="secondary"
-                   onclick="viewInvoice('${i.id}')">
-                   Ver
-                 </button>
-               </td>
-             </tr>
-           `).join('')}
-         </tbody>
-       </table>
-     </div>
+            <button class="secondary" onclick="viewInvoice('${i.id}')">
+              Ver
+            </button>
+       te   </div>
+        </div>
+      `).join('')}
 
-     ${invoices.length?'':'<div class="empty">Todavía no hay facturas.</div>'}
-   </div>
- </div>`;
+      ${invoices.length?'':'<div class="empty">Todavía no hay facturas.</div>'}
+    </div>
+  </div>`;
 }
 async function viewInvoice(id){
  const i=invoices.find(x=>x.id===id);
