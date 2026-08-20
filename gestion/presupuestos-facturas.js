@@ -36,12 +36,48 @@ function nextDocNumber(prefix, docs, field){
 }
 
 function quotesView(c){
- c.innerHTML=`<div class="page"><div class="section"><div><h2>Presupuestos</h2><div class="muted">${quotes.length} presupuestos</div></div><button class="primary" onclick="quoteForm()">＋ Nuevo presupuesto</button></div>
- <div class="card"><div class="table-wrap"><table><thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead>
- <tbody>${quotes.map(q=>`<tr><td><b>${esc(q.quote_number)}</b></td><td>${q.quote_date||''}</td><td>${esc(q.customer_name)}</td><td>${money(q.total)}</td>
- <td><select onchange="quoteStatus('${q.id}',this.value)">${['Borrador','Enviado','Aceptado','Rechazado','Facturado'].map(s=>`<option ${q.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
- <td><button class="secondary" onclick="viewQuote('${q.id}')">Ver</button> ${q.status==='Aceptado'?`<button class="primary small" onclick="quoteToInvoice('${q.id}')">Facturar</button>`:''}</td></tr>`).join('')}</tbody></table></div>
- ${quotes.length?'':'<div class="empty">Todavía no hay presupuestos.</div>'}</div></div>`;
+  c.innerHTML=`
+  <div class="page">
+    <div class="section">
+      <div>
+        <h2>Presupuestos</h2>
+        <div class="muted">${quotes.length} presupuestos</div>
+      </div>
+      <button class="primary" onclick="quoteForm()">+ Nuevo presupuesto</button>
+    </div>
+
+    <div class="mobile-doc-list">
+      ${quotes.map(q=>`
+        <div class="mobile-doc-card">
+          <div class="mobile-doc-top">
+            <div>
+              <strong>${esc(q.quote_number)}</strong>
+              <div class="muted">${q.quote_date||''}</div>
+            </div>
+            <strong>${money(q.total)}</strong>
+          </div>
+
+          <div class="mobile-doc-client">
+            ${esc(q.customer_name||'Sin cliente')}
+          </div>
+
+          <div class="mobile-doc-actions">
+            <select onchange="quoteStatus('${q.id}',this.value)">
+              ${['Borrador','Enviado','Aceptado','Rechazado'].map(s=>
+                `<option ${q.status===s?'selected':''}>${s}</option>`
+              ).join('')}
+            </select>
+
+            <button class="secondary" onclick="viewQuote('${q.id}')">
+              Ver
+            </button>
+          </div>
+        </div>
+      `).join('')}
+
+      ${quotes.length?'':'<div class="empty">Todavía no hay presupuestos.</div>'}
+    </div>
+  </div>`;
 }
 
 async function quoteStatus(id,status){
