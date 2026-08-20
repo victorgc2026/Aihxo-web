@@ -62,16 +62,23 @@ function quotesView(c){
           </div>
 
           <div class="mobile-doc-actions">
-            <select onchange="quoteStatus('${q.id}',this.value)">
-              ${['Borrador','Enviado','Aceptado','Rechazado'].map(s=>
-                `<option ${q.status===s?'selected':''}>${s}</option>`
-              ).join('')}
-            </select>
+  <select onchange="quoteStatus('${q.id}',this.value)">
+    ${['Borrador','Enviado','Aceptado','Rechazado','Facturado'].map(s=>
+      `<option ${q.status===s?'selected':''}>${s}</option>`
+    ).join('')}
+  </select>
 
-            <button class="secondary" onclick="viewQuote('${q.id}')">
-              Ver
-            </button>
-          </div>
+  <div style="display:flex;gap:8px">
+    <button class="secondary" onclick="viewQuote('${q.id}')">
+      Ver
+    </button>
+
+    ${q.status==='Aceptado'
+      ? `<button class="primary small" onclick="quoteToInvoice('${q.id}')">Facturar</button>`
+      : ''
+    }
+  </div>
+</div>
         </div>
       `).join('')}
 
