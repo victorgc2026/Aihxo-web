@@ -168,3 +168,52 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted
 .user-card-v7{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
 .user-card-v7:last-child{border-bottom:0}
 .avatar-v7{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#eaf3ff;color:#087cf4;font-weight:800;flex:none}
+
+/* ===== Presupuestos y Facturas - vista móvil ===== */
+
+.mobile-doc-list{
+  display:grid;
+  gap:12px;
+}
+
+.mobile-doc-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px;
+  box-shadow:0 5px 18px rgba(7,21,47,.05);
+}
+
+.mobile-doc-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.mobile-doc-top strong{
+  font-size:16px;
+}
+
+.mobile-doc-client{
+  font-size:14px;
+  font-weight:700;
+  margin-bottom:12px;
+  color:var(--text);
+}
+
+.mobile-doc-actions{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  align-items:center;
+}
+
+.mobile-doc-actions select{
+  min-width:0;
+}
+
+.mobile-doc-actions .secondary{
+  white-space:nowrap;
+}
