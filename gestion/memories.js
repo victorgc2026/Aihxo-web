@@ -132,38 +132,68 @@
       return;
     }
 
-    target.innerHTML = `
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Memory</th>
-              <th>Cliente</th>
-              <th>Recuerdo</th>
-              <th>Producto</th>
-              <th>Diseño</th>
-              <th>Pago</th>
-              <th>Producción</th>
-              <th>Precio</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            ${list.map(m=>`
-              <tr>
-                <td><b>${esc(m.memory_number)}</b><div class="muted">${formatDate(m.created_at)}</div></td>
-                <td>${esc(m.customer_name)}<div class="muted">${esc(m.contact||'')}</div></td>
-                <td>${esc(m.memory_type)}<div class="muted">${esc(m.title||'')}</div></td>
-                <td>${esc(m.product||'—')}<div class="muted">${esc(m.size||'')} ${m.color?'· '+esc(m.color):''}</div></td>
-                <td>${stateBadge(m.design_status||'Nuevo')}</td>
-                <td>${stateBadge(m.payment_status||'Pendiente')}</td>
-                <td>${stateBadge(m.production_status||'Pendiente')}</td>
-                <td>${money(m.price)}</td>
-                <td><button class="secondary" onclick="window.editMemoryAIHXO('${m.id}')">Abrir</button></td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
+target.innerHTML = `
+  <div class="memories-mobile-list">
+    ${list.map(m=>`
+      <article class="memory-mobile-card">
+
+        <div class="memory-mobile-head">
+          <div>
+            <b class="memory-code">${esc(m.memory_number)}</b>
+            <div class="muted">${formatDate(m.created_at)}</div>
+          </div>
+
+          <div class="memory-price">
+            ${money(m.price)}
+          </div>
+        </div>
+
+        <div class="memory-main">
+          <div class="memory-client">
+            ${esc(m.customer_name)}
+          </div>
+
+          ${m.contact ? `<div class="muted">${esc(m.contact)}</div>` : ''}
+
+          <div class="memory-title">
+            ${esc(m.title || m.memory_type || 'Memory')}
+          </div>
+
+          <div class="muted">
+            ${esc(m.memory_type)} · ${esc(m.product || 'Sin producto')}
+            ${m.size ? ' · '+esc(m.size) : ''}
+            ${m.color ? ' · '+esc(m.color) : ''}
+          </div>
+        </div>
+
+        <div class="memory-status-grid">
+
+          <div>
+            <span class="memory-status-label">Diseño</span>
+            ${stateBadge(m.design_status || 'Nuevo')}
+          </div>
+
+          <div>
+            <span class="memory-status-label">Pago</span>
+            ${stateBadge(m.payment_status || 'Pendiente')}
+          </div>
+
+          <div>
+            <span class="memory-status-label">Producción</span>
+            ${stateBadge(m.production_status || 'Pendiente')}
+          </div>
+
+        </div>
+
+        <button
+          class="primary memory-open-btn"
+          onclick="window.editMemoryAIHXO('${m.id}')">
+          Abrir Memory
+        </button>
+
+      </article>
+    `).join('')}
+  </div>`;
   }
 
   function formatDate(v){
@@ -295,4 +325,93 @@
 
   // Por si la sesión cambia o la interfaz se vuelve a dibujar.
   setInterval(injectNav,1500);
+  function injectMemoryStyles(){
+  if(document.getElementById('aihxoMemoriesResponsiveStyles')) return;
+
+  const style = document.createElement('style');
+  style.id = 'aihxoMemoriesResponsiveStyles';
+
+  style.textContent = `
+    .memories-mobile-list{
+      display:block;
+    }
+
+    .memory-mobile-card{
+      background:#fff;
+      border:1px solid #dfe5ef;
+      border-radius:22px;
+      padding:18px;
+      margin-bottom:14px;
+      box-shadow:0 8px 24px rgba(15,30,60,.06);
+    }
+
+    .memory-mobile-head{
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      align-items:flex-start;
+    }
+
+    .memory-code{
+      font-size:20px;
+      letter-spacing:.3px;
+    }
+
+    .memory-price{
+      font-size:18px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .memory-main{
+      padding:16px 0;
+      border-bottom:1px solid #edf0f5;
+    }
+
+    .memory-client{
+      font-size:18px;
+      font-weight:850;
+    }
+
+    .memory-title{
+      font-size:15px;
+      font-weight:750;
+      margin-top:10px;
+      margin-bottom:4px;
+    }
+
+    .memory-status-grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+      padding:16px 0;
+    }
+
+    .memory-status-grid > div{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding:4px 0;
+    }
+
+    .memory-status-label{
+      display:block;
+      font-size:10px;
+      letter-spacing:.7px;
+      text-transform:uppercase;
+      color:#7b879f;
+      font-weight:850;
+      margin:0;
+    }
+
+    .memory-open-btn{
+      width:100%;
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+injectMemoryStyles();
 })();
