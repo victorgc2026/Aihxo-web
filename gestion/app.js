@@ -113,7 +113,7 @@ function productForm(id){
     <label>Color</label>
     <input name="color" value="${esc(p.color||'')}">
    </div>
-  </div>
+  
   <div class="field">
   <label>Foto principal</label>
   <input id="productImage" type="file" accept="image/*">
