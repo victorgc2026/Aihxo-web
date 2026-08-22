@@ -63,7 +63,223 @@ async function status(id,s){const {error}=await supabaseClient.from('orders').up
 function orderForm(){$('#drawer').classList.remove('hidden');$('#drawerBody').innerHTML=`<h2>Nuevo pedido</h2><form class="form" id="of"><div class="formgrid"><div class="field"><label>Cliente</label><input name="customer" required></div><div class="field"><label>Contacto</label><input name="contact"></div></div><div class="field"><label>Producto</label><select name="sku" id="osku">${products.map(p=>`<option value="${p.id}">${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)} — ${money(p.sale_price)}</option>`).join('')}</select></div><div class="formgrid"><div class="field"><label>Diseño</label><input name="design" placeholder="Nombre del diseño"></div><div class="field"><label>Cantidad</label><input name="qty" type="number" min="1" value="1"></div></div><div class="formgrid"><div class="field"><label>Precio unitario</label><input name="price" id="oprice" type="number" step=".01"></div><div class="field"><label>Envío cobrado</label><input name="shipping" type="number" step=".01" value="0"></div></div><button class="primary">Guardar pedido</button></form>`;$('#oprice').value=products[0]?.sale_price||0;$('#osku').onchange=e=>$('#oprice').value=products.find(p=>p.id===e.target.value)?.sale_price||0;$('#of').onsubmit=createOrder}
 async function createOrder(e){e.preventDefault();const f=new FormData(e.target),p=products.find(x=>x.id===f.get('sku')),qty=+f.get('qty');if(!p||p.stock<qty){toast('Stock insuficiente');return}const price=+f.get('price'),shipping=+f.get('shipping')||0;let customer=customers.find(x=>x.name===f.get('customer'));if(!customer){const r=await supabaseClient.from('customers').insert({name:f.get('customer'),contact:f.get('contact')}).select().single();if(r.error){toast(r.error.message);return}customer=r.data}const order={order_number:'AIHXO-'+String(orders.length+1).padStart(4,'0'),customer_id:customer.id,customer_name:customer.name,contact:f.get('contact'),product_id:p.id,product_name:p.model,size:p.size,color:p.color,design:f.get('design'),quantity:qty,unit_price:price,shipping,total:qty*price+shipping,product_cost:qty*cost(p),status:'Pendiente'};const r=await supabaseClient.from('orders').insert(order);if(r.error){toast(r.error.message);return}await supabaseClient.from('products').update({stock:p.stock-qty}).eq('id',p.id);closeDrawer();await loadAll();setView('orders');toast('Pedido guardado en Supabase')}
 function productsView(c){c.innerHTML=`<div class="page"><div class="section"><div><h2>Productos</h2><div class="muted">${products.length} referencias</div></div><button class="primary" onclick="productForm()">＋ Producto</button></div><div class="grid three">${products.map(p=>`<div class="card"><div class="thumb">${p.category==='Bolso'?'👜':'👕'}</div><b>${esc(p.model)}</b><div class="muted">${esc(p.size||'')} · ${esc(p.color||'')} · ${p.sku}</div><div class="row" style="margin-top:12px"><span>Coste <b>${money(cost(p))}</b></span><span>Venta <b>${money(p.sale_price)}</b></span></div><div class="row" style="margin-top:8px"><span>Stock</span><b class="${p.stock<=3?'red':'green'}">${p.stock}</b></div><div class="actions" style="margin-top:10px"><button class="secondary" onclick="productForm('${p.id}')">Editar</button><button class="secondary" onclick="addStock('${p.id}')">＋ Stock</button></div></div>`).join('')}</div></div>`}
-function productForm(id){const p=id?products.find(x=>x.id===id):{sku:'',category:'Camiseta',model:'',size:'M',color:'Blanco',garment_cost:4,dtf_cost:3,extras_cost:.68,sale_price:16.9,stock:0};$('#drawer').classList.remove('hidden');$('#drawerBody').innerHTML=`<h2>${id?'Editar':'Nuevo'} producto</h2><form class="form" id="pf"><div class="formgrid"><div class="field"><label>SKU</label><input name="sku" value="${esc(p.sku)}" required autocomplete="off"></div><div class="field"><label>Categoría</label><select name="category"><option ${p.category==='Camiseta'?'selected':''}>Camiseta</option><option ${p.category==='Bolso'?'selected':''}>Bolso</option></select></div></div><div class="field"><label>Modelo</label><input name="model" value="${esc(p.model)}" required></div><div class="formgrid"><div class="field"><label>Talla</label><input name="size" value="${esc(p.size||'')}"></div><div class="field"><label>Color</label><input name="color" value="${esc(p.color||'')}"></div></div><div class="formgrid"><div class="field"><label>Coste prenda</label><input name="garment_cost" type="number" step=".01" value="${p.garment_cost}"></div><div class="field"><label>Coste DTF</label><input name="dtf_cost" type="number" step=".01" value="${p.dtf_cost}"></div></div><div class="formgrid"><div class="field"><label>Extras</label><input name="extras_cost" type="number" step=".01" value="${p.extras_cost}"></div><div class="field"><label>Precio venta</label><input name="sale_price" type="number" step=".01" value="${p.sale_price}"></div></div><div class="field"><label>Stock</label><input name="stock" type="number" value="${p.stock}"></div><button class="primary">Guardar</button></form>`;$('#pf').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),o={sku:String(f.get('sku')||'').trim(),category:f.get('category'),model:f.get('model'),size:f.get('size'),color:f.get('color'),garment_cost:+f.get('garment_cost'),dtf_cost:+f.get('dtf_cost'),extras_cost:+f.get('extras_cost'),sale_price:+f.get('sale_price'),stock:+f.get('stock')};const duplicate=products.find(x=>String(x.sku||'').trim().toLowerCase()===o.sku.toLowerCase()&&String(x.id)!==String(id||''));if(duplicate){toast('Ese SKU ya está asignado a otro producto');return}const r=id?await supabaseClient.from('products').update(o).eq('id',id):await supabaseClient.from('products').insert(o);if(r.error)toast(r.error.message);else{closeDrawer();await loadAll();setView('products');toast('Producto guardado')}}}
+function productForm(id){
+ const p=id?products.find(x=>x.id===id):{
+  sku:'',category:'Camiseta',model:'',size:'M',color:'Blanco',
+  garment_cost:4,dtf_cost:3,extras_cost:.68,sale_price:16.9,stock:0,
+  material:'',grammage:'',fabric:'',fit:'',care:'',features:'',
+  measurements:{}
+ };
+
+ const measurements=p.measurements||{};
+ const medidasTexto=Object.entries(measurements).map(([talla,m])=>{
+  return `${talla}|${m.width||''}|${m.length||''}`;
+ }).join('\n');
+
+ $('#drawer').classList.remove('hidden');
+
+ $('#drawerBody').innerHTML=`
+ <h2>${id?'Editar':'Nuevo'} producto</h2>
+
+ <form class="form" id="pf">
+
+  <div class="formgrid">
+   <div class="field">
+    <label>SKU</label>
+    <input name="sku" value="${esc(p.sku||'')}" required autocomplete="off">
+   </div>
+
+   <div class="field">
+    <label>Categoría</label>
+    <select name="category">
+     <option ${p.category==='Camiseta'?'selected':''}>Camiseta</option>
+     <option ${p.category==='Bolso'?'selected':''}>Bolso</option>
+    </select>
+   </div>
+  </div>
+
+  <div class="field">
+   <label>Modelo</label>
+   <input name="model" value="${esc(p.model||'')}" required>
+  </div>
+
+  <div class="formgrid">
+   <div class="field">
+    <label>Talla</label>
+    <input name="size" value="${esc(p.size||'')}">
+   </div>
+
+   <div class="field">
+    <label>Color</label>
+    <input name="color" value="${esc(p.color||'')}">
+   </div>
+  </div>
+
+  <h3 style="margin-top:22px">Características principales</h3>
+
+  <div class="formgrid">
+   <div class="field">
+    <label>Material / composición</label>
+    <input name="material"
+     placeholder="Ej. 100% algodón"
+     value="${esc(p.material||'')}">
+   </div>
+
+   <div class="field">
+    <label>Gramaje</label>
+    <input name="grammage"
+     placeholder="Ej. 200 g/m²"
+     value="${esc(p.grammage||'')}">
+   </div>
+  </div>
+
+  <div class="formgrid">
+   <div class="field">
+    <label>Tipo de tejido</label>
+    <input name="fabric"
+     placeholder="Ej. algodón premium"
+     value="${esc(p.fabric||'')}">
+   </div>
+
+   <div class="field">
+    <label>Corte / ajuste</label>
+    <input name="fit"
+     placeholder="Ej. corte regular"
+     value="${esc(p.fit||'')}">
+   </div>
+  </div>
+
+  <div class="field">
+   <label>Características destacadas</label>
+   <textarea name="features" rows="3"
+    placeholder="Ej. tejido suave, resistente y apto para DTF">${esc(p.features||'')}</textarea>
+  </div>
+
+  <div class="field">
+   <label>Cuidados</label>
+   <textarea name="care" rows="3"
+    placeholder="Ej. lavar a 30 °C, no usar secadora">${esc(p.care||'')}</textarea>
+  </div>
+
+  <h3 style="margin-top:22px">Guía de medidas</h3>
+
+  <div class="muted" style="margin-bottom:8px">
+   Una talla por línea: Talla | Ancho | Largo
+  </div>
+
+  <div class="field">
+   <label>Medidas en centímetros</label>
+   <textarea name="measurements" rows="6"
+    placeholder="7/8|38|52
+9/11|41|58
+12/13|44|62">${esc(medidasTexto)}</textarea>
+  </div>
+
+  <div class="formgrid">
+   <div class="field">
+    <label>Coste prenda</label>
+    <input name="garment_cost" type="number" step=".01"
+     value="${p.garment_cost||0}">
+   </div>
+
+   <div class="field">
+    <label>Coste DTF</label>
+    <input name="dtf_cost" type="number" step=".01"
+     value="${p.dtf_cost||0}">
+   </div>
+  </div>
+
+  <div class="formgrid">
+   <div class="field">
+    <label>Extras</label>
+    <input name="extras_cost" type="number" step=".01"
+     value="${p.extras_cost||0}">
+   </div>
+
+   <div class="field">
+    <label>Precio venta</label>
+    <input name="sale_price" type="number" step=".01"
+     value="${p.sale_price||0}">
+   </div>
+  </div>
+
+  <div class="field">
+   <label>Stock</label>
+   <input name="stock" type="number" value="${p.stock||0}">
+  </div>
+
+  <button class="primary">Guardar producto</button>
+
+ </form>`;
+
+ $('#pf').onsubmit=async e=>{
+  e.preventDefault();
+
+  const f=new FormData(e.target);
+
+  const measurements={};
+
+  String(f.get('measurements')||'')
+   .split('\n')
+   .map(x=>x.trim())
+   .filter(Boolean)
+   .forEach(line=>{
+    const [talla,width,length]=line.split('|').map(x=>x.trim());
+
+    if(talla){
+     measurements[talla]={
+      width:width||'',
+      length:length||''
+     };
+    }
+   });
+
+  const o={
+   sku:String(f.get('sku')||'').trim(),
+   category:f.get('category'),
+   model:f.get('model'),
+   size:f.get('size'),
+   color:f.get('color'),
+
+   material:f.get('material'),
+   grammage:f.get('grammage'),
+   fabric:f.get('fabric'),
+   fit:f.get('fit'),
+   features:f.get('features'),
+   care:f.get('care'),
+   measurements:measurements,
+
+   garment_cost:+f.get('garment_cost'),
+   dtf_cost:+f.get('dtf_cost'),
+   extras_cost:+f.get('extras_cost'),
+   sale_price:+f.get('sale_price'),
+   stock:+f.get('stock')
+  };
+
+  const duplicate=products.find(x=>
+   String(x.sku||'').trim().toLowerCase()===o.sku.toLowerCase()
+   && String(x.id)!==String(id||'')
+  );
+
+  if(duplicate){
+   toast('Ese SKU ya está asignado a otro producto');
+   return;
+  }
+
+  const r=id
+   ?await supabaseClient.from('products').update(o).eq('id',id)
+   :await supabaseClient.from('products').insert(o);
+
+  if(r.error){
+   toast(r.error.message);
+  }else{
+   closeDrawer();
+   await loadAll();
+   setView('products');
+   toast('Producto guardado');
+  }
+ };
+}
 async function addStock(id){const p=products.find(x=>x.id===id),n=Number(prompt('Unidades a añadir','5')||0);if(!n)return;const r=await supabaseClient.from('products').update({stock:p.stock+n}).eq('id',id);if(r.error)toast(r.error.message);else{await loadAll();setView('stock');toast('Stock actualizado')}}
 function stock(c){
  const total=products.reduce((a,p)=>a+p.stock,0),value=products.reduce((a,p)=>a+p.stock*cost(p),0),low=products.filter(p=>p.stock<=3);
