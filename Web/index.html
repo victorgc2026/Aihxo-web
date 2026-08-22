@@ -36,7 +36,7 @@ async function loadCatalog(){
 
   const {data, error} = await catalogSB
     .from('products')
-    .select('id,sku,category,model,size,color,sale_price,material,grammage,fabric,fit,care,features,measurements')
+    .select('id,sku,category,model,size,color,sale_price,material,grammage,fabric,fit,care,features,measurements,image_url')
     .order('model');
 
   if(error){
@@ -147,10 +147,20 @@ const tallas = [...p.tallas].sort((a,b)=>{
   return `
     <article class="product" data-cat="${categoria}">
 
-      <div class="ph dark">
-        <b>AIHXO</b>
-        <small>${escCatalog(p.model || p.sku || 'PRODUCTO')}</small>
-      </div>
+      ${p.image_url ? `
+  <div class="ph" style="padding:0;overflow:hidden">
+    <img
+      src="${escCatalog(p.image_url)}"
+      alt="${escCatalog(p.model || 'Producto AIHXO')}"
+      style="width:100%;height:100%;display:block;object-fit:cover"
+    >
+  </div>
+` : `
+  <div class="ph dark">
+    <b>AIHXO</b>
+    <small>${escCatalog(p.model || p.sku || 'PRODUCTO')}</small>
+  </div>
+`}
 
       <div class="info">
 
