@@ -21,7 +21,7 @@ async function loadAll(){
   supabaseClient.from('designs').select('*').order('name')
  ]);
  const err=[p,o,c,e,d].find(r=>r.error);if(err){toast('Error cargando datos');console.error(err.error);return false}
- products=p.data||[];orders=o.data||[];customers=c.data||[];expenses=e.data||[];designs=d.data||[];return true;
+ products=p.data||[];orders=o.data||[];customers=c.data||[];expenses=e.data||[];designs=d.data||[];window.products = products;return true;
 }
 function showLogin(msg=''){
  document.body.innerHTML=`<div class="login-shell"><div class="card" style="width:min(430px,100%);padding:30px"><div style="font-family:Georgia,serif;font-size:38px;font-weight:900;color:#087cf4">AIHXO</div><div class="muted" style="margin:6px 0 24px">Panel privado de gestión</div><form id="loginForm" class="form"><div class="field"><label>Correo electrónico</label><input id="email" type="email" required value="${esc(ADMINS[0])}"></div><div class="field"><label>Contraseña</label><input id="password" type="password" required minlength="6"></div><button class="primary">Entrar</button><button type="button" class="secondary" id="signup">Crear acceso</button><div id="authMsg" class="muted">${esc(msg)}</div></form></div></div>`;
