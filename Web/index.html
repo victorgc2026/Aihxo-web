@@ -1,19 +1,162 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#07152f"><title>AIHXO · Diseños propios</title><link rel="stylesheet" href="styles.css?v=360"></head><body class="aihxo-v33">
-<header class="hero"><div class="hero-inner"><div class="logo-box"><img src="../logo-aihxo.png" alt="AIHXO Kids Wear"></div><div class="mini">AIHXO · DISEÑOS PROPIOS</div><h1>Tu estilo.<br><span>Tu camiseta.</span></h1><p>Prendas con diseños propios y personalizaciones hechas para ti.</p><div class="buttons"><a class="btn primary" href="#catalogo">Ver catálogo</a><a class="btn light" href="https://wa.me/34692943013?text=Hola%20AIHXO%2C%20quiero%20hacer%20un%20pedido." target="_blank">Pedir por WhatsApp</a></div><a class="memories-jump" href="#x-memories">X by AIHXO Memories · Próximamente ↓</a></div></header>
-<main>
-<section id="x-memories" class="memories-teaser" aria-label="X by AIHXO Memories próximamente"><div class="memories-inner">
-<div class="memories-logo-wrap"><img class="memories-logo" src="x-aihxo-memories-white.png" alt="X by AIHXO Memories"></div>
-<div class="memories-copy"><span class="memories-kicker">PRÓXIMAMENTE · 2026</span><h2>Hay recuerdos que no deberían quedarse en una galería.</h2><p>Una nueva forma de convertir personas, momentos e historias en algo que puedas llevar contigo.</p><div class="memories-tags"><span>FOTOS</span><span>FIRMAS</span><span>FECHAS</span><span>MENSAJES</span><span>RECUERDOS</span></div><a class="memories-coming" href="x/">DESCUBRIR X →</a></div>
-</div></section>
-<section id="catalogo" class="section"><div class="heading"><span>CATÁLOGO</span><h2>Elige tu próximo diseño</h2><p>Estamos preparando las fotografías. Muy pronto podrás ver los productos reales aquí.</p></div><div class="filters"><button class="active" data-filter="all">Todo</button><button data-filter="camiseta">Camisetas</button><button data-filter="tote">Tote Bags</button><button data-filter="diseno">Diseños</button></div><div class="products" id="productsGrid">
-<article class="product" data-cat="camiseta"><div class="ph dark"><b>AIHXO</b><small>FOTO PRÓXIMAMENTE</small></div><div class="info"><em>CAMISETAS</em><h3>Diseños AIHXO</h3><p>Diseños propios para darle un toque diferente a tu camiseta.</p><a href="https://wa.me/34692943013?text=Hola%20AIHXO%2C%20me%20interesan%20las%20camisetas." target="_blank">Consultar por WhatsApp →</a></div></article>
-<article class="product" data-cat="camiseta"><div class="ph pale"><b>+</b><small>TU IDEA AQUÍ</small></div><div class="info"><em>PERSONALIZADAS</em><h3>Tu camiseta personalizada</h3><p>Cuéntanos tu idea y preparamos una prenda personalizada.</p><a href="https://wa.me/34692943013?text=Hola%20AIHXO%2C%20quiero%20personalizar%20una%20camiseta." target="_blank">Quiero personalizar →</a></div></article>
-<article class="product" data-cat="tote"><div class="ph sand"><b>AIHXO</b><small>TOTE BAG · FOTO PRÓXIMAMENTE</small></div><div class="info"><em>TOTE BAGS</em><h3>Tote Bags AIHXO</h3><p>Bolsas personalizadas y diseños propios.</p><a href="https://wa.me/34692943013?text=Hola%20AIHXO%2C%20me%20interesan%20las%20Tote%20Bags." target="_blank">Consultar Tote Bags →</a></div></article>
-<article class="product" data-cat="diseno"><div class="ph dark"><b>✦</b><small>NUEVOS DISEÑOS</small></div><div class="info"><em>DISEÑOS</em><h3>Novedades AIHXO</h3><p>Nuevos diseños en preparación.</p><a href="https://www.instagram.com/aihxo.camisetas/" target="_blank">Ver Instagram →</a></div></article></div></section>
-<section id="personaliza" class="custom"><div><span>PERSONALIZACIÓN</span><h2>¿Tienes una idea?</h2><p>Nombre, número, frase, dibujo o un diseño especial. Cuéntanos qué tienes en mente.</p><a class="btn primary" href="https://wa.me/34692943013?text=Hola%20AIHXO%2C%20tengo%20una%20idea%20para%20personalizar%20una%20prenda." target="_blank">Cuéntanos tu idea →</a></div></section>
-<section id="contacto" class="section"><div class="heading"><span>CONTACTO</span><h2>Hablemos</h2></div><div class="contacts"><a href="https://wa.me/34692943013" target="_blank"><b>💬 WhatsApp</b><small>692 943 013</small></a><a href="tel:+34692943013"><b>☎ Teléfono</b><small>692 943 013</small></a><a href="mailto:AIHXO.camisetas@gmail.com"><b>✉ Correo</b><small>AIHXO.camisetas@gmail.com</small></a><a href="https://www.instagram.com/aihxo.camisetas/" target="_blank"><b>◎ Instagram</b><small>@aihxo.camisetas</small></a><a href="https://www.tiktok.com/@aihxo.camisetas" target="_blank"><b>♪ TikTok</b><small>@aihxo.camisetas</small></a></div></section></main>
-<footer><p>AIHXO · Diseños propios · Personalizaciones</p><small>© <span id="year"></span> AIHXO</small></footer><script>document.getElementById("year").textContent=new Date().getFullYear();document.querySelectorAll(".filters button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".filters button").forEach(x=>x.classList.remove("active"));b.classList.add("active");const f=b.dataset.filter;document.querySelectorAll(".product").forEach(p=>p.hidden=!(f==="all"||p.dataset.cat===f))});</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07152f">
+<title>AIHXO · Colección y personalización</title>
+<link rel="stylesheet" href="styles.css?v=361">
+</head>
+<body class="aihxo-v33">
+<header class="hero">
+  <div class="hero-inner">
+    <div class="logo-box"><img src="../logo-aihxo.png" alt="AIHXO Kids Wear"></div>
+    <div class="mini">AIHXO · DISEÑOS PROPIOS</div>
+    <h1>Tu estilo.<br><span>Tu camiseta.</span></h1>
+    <p>Descubre la colección propia de AIHXO o crea una prenda totalmente personalizada.</p>
+    <div class="buttons">
+      <a class="btn primary" href="#coleccion">Colección AIHXO</a>
+      <a class="btn light" href="#personaliza">Personaliza tu prenda</a>
+    </div>
+    <a class="memories-jump" href="#x-memories">X by AIHXO Memories · Próximamente ↓</a>
+  </div>
+</header>
 
+<main>
+<section id="coleccion" class="section">
+  <div class="heading">
+    <span>COLECCIÓN AIHXO</span>
+    <h2>Diseños de nuestra marca</h2>
+    <p>Este espacio está reservado exclusivamente para prendas y diseños creados por AIHXO. Aquí iremos publicando cada lanzamiento de nuestra colección propia.</p>
+  </div>
+  <div class="filters">
+    <button class="active" data-collection-filter="all">Todo</button>
+    <button data-collection-filter="camiseta">Camisetas</button>
+    <button data-collection-filter="sudadera">Sudaderas</button>
+    <button data-collection-filter="infantil">Infantil</button>
+    <button data-collection-filter="adulto">Adulto</button>
+    <button data-collection-filter="tote">Tote Bags</button>
+    <button data-collection-filter="novedad">Novedades</button>
+  </div>
+  <div class="products" id="collectionGrid">
+    <article class="product" data-collection-cat="novedad">
+      <div class="ph dark"><b>AIHXO</b><small>COLECCIÓN PROPIA</small></div>
+      <div class="info">
+        <em>AIHXO ORIGINAL</em>
+        <h3>Primeros diseños AIHXO</h3>
+        <p>Estamos preparando las fotografías y fichas de los primeros diseños de la colección.</p>
+        <a href="https://wa.me/34692943013?text=Hola%20AIHXO%2C%20quiero%20informacion%20sobre%20la%20Coleccion%20AIHXO." target="_blank">Consultar colección →</a>
+      </div>
+    </article>
+    <article class="product" data-collection-cat="camiseta infantil">
+      <div class="ph pale"><b>✦</b><small>DISEÑOS AIHXO</small></div>
+      <div class="info">
+        <em>COLECCIÓN</em>
+        <h3>Diseños infantiles</h3>
+        <p>Próximamente añadiremos aquí las camisetas infantiles con diseños propios AIHXO.</p>
+      </div>
+    </article>
+    <article class="product" data-collection-cat="camiseta adulto">
+      <div class="ph sand"><b>AIHXO</b><small>ADULTO</small></div>
+      <div class="info">
+        <em>COLECCIÓN</em>
+        <h3>Diseños para adulto</h3>
+        <p>Próximamente añadiremos aquí los diseños propios AIHXO para adulto.</p>
+      </div>
+    </article>
+    <article class="product" data-collection-cat="tote">
+      <div class="ph dark"><b>+</b><small>TOTE BAGS AIHXO</small></div>
+      <div class="info">
+        <em>COLECCIÓN</em>
+        <h3>Tote Bags AIHXO</h3>
+        <p>Este espacio mostrará únicamente Tote Bags pertenecientes a la colección propia.</p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section id="personaliza" class="custom">
+  <div>
+    <span>PERSONALIZACIÓN</span>
+    <h2>¿Tienes una idea?</h2>
+    <p>Nombre, número, frase, dibujo, foto o un diseño especial. Este servicio queda separado de nuestra colección propia.</p>
+    <a class="btn primary" href="#catalogo">Ver prendas para personalizar ↓</a>
+  </div>
+</section>
+
+<section id="catalogo" class="section">
+  <div class="heading">
+    <span>PRENDAS PARA PERSONALIZAR</span>
+    <h2>Elige la prenda</h2>
+    <p>Estas son las prendas base disponibles para realizar personalizaciones. Se cargan automáticamente desde AIHXO Gestión.</p>
+  </div>
+  <div class="filters personal-filters">
+    <button class="active" data-personal-filter="all">Todo</button>
+    <button data-personal-filter="camiseta">Camisetas</button>
+    <button data-personal-filter="tote">Tote Bags</button>
+  </div>
+  <div class="products" id="productsGrid">
+    <article class="product" data-cat="camiseta">
+      <div class="ph pale"><b>+</b><small>TU IDEA AQUÍ</small></div>
+      <div class="info"><em>PERSONALIZACIÓN</em><h3>Tu camiseta personalizada</h3><p>Cuéntanos tu idea y la preparamos para ti.</p></div>
+    </article>
+  </div>
+</section>
+
+<section id="x-memories" class="memories-teaser" aria-label="X by AIHXO Memories próximamente">
+  <div class="memories-inner">
+    <div class="memories-logo-wrap"><img class="memories-logo" src="x-aihxo-memories-white.png" alt="X by AIHXO Memories"></div>
+    <div class="memories-copy">
+      <span class="memories-kicker">PRÓXIMAMENTE · 2026</span>
+      <h2>Hay recuerdos que no deberían quedarse en una galería.</h2>
+      <p>Una nueva forma de convertir personas, momentos e historias en algo que puedas llevar contigo.</p>
+      <div class="memories-tags"><span>FOTOS</span><span>FIRMAS</span><span>FECHAS</span><span>MENSAJES</span><span>RECUERDOS</span></div>
+      <a class="memories-coming" href="x/">DESCUBRIR X →</a>
+    </div>
+  </div>
+</section>
+
+<section id="contacto" class="section">
+  <div class="heading"><span>CONTACTO</span><h2>Hablemos</h2></div>
+  <div class="contacts">
+    <a href="https://wa.me/34692943013" target="_blank"><b>💬 WhatsApp</b><small>692 943 013</small></a>
+    <a href="tel:+34692943013"><b>☎ Teléfono</b><small>692 943 013</small></a>
+    <a href="mailto:AIHXO.camisetas@gmail.com"><b>✉ Correo</b><small>AIHXO.camisetas@gmail.com</small></a>
+    <a href="https://www.instagram.com/aihxo.camisetas/" target="_blank"><b>◎ Instagram</b><small>@aihxo.camisetas</small></a>
+    <a href="https://www.tiktok.com/@aihxo.camisetas" target="_blank"><b>♪ TikTok</b><small>@aihxo.camisetas</small></a>
+  </div>
+</section>
+</main>
+
+<footer><p>AIHXO · Colección propia · Personalizaciones</p><small>© <span id="year"></span> AIHXO</small></footer>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+document.querySelectorAll('[data-collection-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-collection-filter]').forEach(x => x.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.collectionFilter;
+    document.querySelectorAll('#collectionGrid .product').forEach(card => {
+      const cats = (card.dataset.collectionCat || '').split(' ');
+      card.hidden = !(filter === 'all' || cats.includes(filter));
+    });
+  });
+});
+
+document.querySelectorAll('[data-personal-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-personal-filter]').forEach(x => x.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.personalFilter;
+    document.querySelectorAll('#productsGrid .product').forEach(card => {
+      card.hidden = !(filter === 'all' || card.dataset.cat === filter);
+    });
+  });
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const catalogSB = supabase.createClient(
   'https://zoiesxtchnesrilpuqek.supabase.co',
@@ -21,13 +164,7 @@ const catalogSB = supabase.createClient(
 );
 
 function escCatalog(v){
-  return String(v ?? '').replace(/[&<>"']/g, m => ({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#039;'
-  }[m]));
+  return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 }
 
 async function loadCatalog(){
@@ -39,197 +176,71 @@ async function loadCatalog(){
     .select('id,sku,category,model,size,color,sale_price,material,grammage,fabric,fit,care,features,measurements,image_url')
     .order('model');
 
-  if(error){
-    console.error(error);
-    return;
-  }
-
+  if(error){ console.error(error); return; }
   if(!data || !data.length) return;
-const grupos = {};
 
-data.forEach(p => {
-  const clave = `${String(p.category || '').toLowerCase()}|${String(p.model || '').toLowerCase()}`;
+  const groups = {};
+  data.forEach(p => {
+    const key = `${String(p.category || '').toLowerCase()}|${String(p.model || '').toLowerCase()}`;
+    if(!groups[key]) groups[key] = {...p, variants:[], sizes:new Set(), colors:new Set(), measures:{}};
+    const g = groups[key];
+    g.variants.push(p);
+    if(p.size) g.sizes.add(p.size);
+    if(p.color) g.colors.add(p.color);
+    if(p.measurements && typeof p.measurements === 'object') Object.assign(g.measures, p.measurements);
+    ['material','grammage','fabric','fit','features','care','image_url'].forEach(k => { if(!g[k] && p[k]) g[k] = p[k]; });
+  });
 
-  if(!grupos[clave]){
-    grupos[clave] = {
-      ...p,
-      variantes: [],
-      tallas: new Set(),
-      colores: new Set(),
-      medidas: {}
-    };
-  }
+  const sizeOrder = ['2-3','3-4','4-5','5-6','6-7','7-8','8-9','9-10','9-11','10-11','11-12','12-13','13-14','XXS','XS','S','M','L','XL','XXL','3XL','4XL'];
 
-  const g = grupos[clave];
-
-  g.variantes.push(p);
-
-  if(p.size) g.tallas.add(p.size);
-  if(p.color) g.colores.add(p.color);
-
-  if(p.measurements && typeof p.measurements === 'object'){
-    Object.entries(p.measurements).forEach(([talla,m]) => {
-      g.medidas[talla] = m;
+  grid.innerHTML = Object.values(groups).map(p => {
+    const sizes = [...p.sizes].sort((a,b) => {
+      const A = String(a).trim().toUpperCase(), B = String(b).trim().toUpperCase();
+      const ia = sizeOrder.findIndex(x => x.toUpperCase() === A), ib = sizeOrder.findIndex(x => x.toUpperCase() === B);
+      if(ia === -1 && ib === -1) return A.localeCompare(B,'es',{numeric:true});
+      if(ia === -1) return 1;
+      if(ib === -1) return -1;
+      return ia - ib;
     });
-  }
 
-  if(!g.material && p.material) g.material = p.material;
-  if(!g.grammage && p.grammage) g.grammage = p.grammage;
-  if(!g.fabric && p.fabric) g.fabric = p.fabric;
-  if(!g.fit && p.fit) g.fit = p.fit;
-  if(!g.features && p.features) g.features = p.features;
-  if(!g.care && p.care) g.care = p.care;
-});
+    const colors = [...p.colors];
+    const prices = p.variants.map(v => Number(v.sale_price || 0)).filter(v => v > 0);
+    const min = prices.length ? Math.min(...prices) : 0;
+    const max = prices.length ? Math.max(...prices) : 0;
+    const price = min ? (min === max
+      ? min.toLocaleString('es-ES',{style:'currency',currency:'EUR'})
+      : `Desde ${min.toLocaleString('es-ES',{style:'currency',currency:'EUR'})}`) : '';
 
-grid.innerHTML = Object.values(grupos).map(p => {
+    const category = String(p.category || '').toLowerCase().includes('bolso') ? 'tote' : 'camiseta';
+    const rows = Object.entries(p.measures || {}).map(([size,m]) =>
+      `<tr><td>${escCatalog(size)}</td><td>${escCatalog(m.width || '—')} cm</td><td>${escCatalog(m.length || '—')} cm</td></tr>`
+    ).join('');
+    const message = encodeURIComponent(`Hola AIHXO, quiero personalizar ${p.model || p.sku || 'esta prenda'}.`);
 
-  const ordenTallas = [
-  '2-3','3-4','4-5','5-6','6-7','7-8','8-9','9-10','9-11','10-11','11-12','12-13','13-14',
-  'XXS','XS','S','M','L','XL','XXL','3XL','4XL'
-];
-
-const tallas = [...p.tallas].sort((a,b)=>{
-  const A = String(a).trim().toUpperCase();
-  const B = String(b).trim().toUpperCase();
-
-  const ia = ordenTallas.findIndex(x=>x.toUpperCase()===A);
-  const ib = ordenTallas.findIndex(x=>x.toUpperCase()===B);
-
-  if(ia === -1 && ib === -1) return A.localeCompare(B,'es',{numeric:true});
-  if(ia === -1) return 1;
-  if(ib === -1) return -1;
-
-  return ia - ib;
-});
-
-  const colores = [...p.colores];
-
-  const filas = Object.entries(p.medidas || {}).map(([talla,m]) => `
-    <tr>
-      <td>${escCatalog(talla)}</td>
-      <td>${escCatalog(m.width || '—')} cm</td>
-      <td>${escCatalog(m.length || '—')} cm</td>
-    </tr>
-  `).join('');
-
-  const categoria =
-    String(p.category || '').toLowerCase().includes('bolso')
-    ? 'tote'
-    : 'camiseta';
-
-  const precios = p.variantes
-    .map(v => Number(v.sale_price || 0))
-    .filter(v => v > 0);
-
-  const precioMin = precios.length ? Math.min(...precios) : 0;
-  const precioMax = precios.length ? Math.max(...precios) : 0;
-
-  let precio = '';
-
-  if(precioMin){
-    if(precioMin === precioMax){
-      precio = precioMin.toLocaleString(
-        'es-ES',
-        {style:'currency',currency:'EUR'}
-      );
-    }else{
-      precio = `Desde ${precioMin.toLocaleString(
-        'es-ES',
-        {style:'currency',currency:'EUR'}
-      )}`;
-    }
-  }
-
-  const mensaje = encodeURIComponent(
-    `Hola AIHXO, me interesa ${p.model || p.sku || 'este producto'}.`
-  );
-
-  return `
-    <article class="product" data-cat="${categoria}">
-
-      ${p.image_url ? `
-  <div class="ph" style="padding:0;overflow:hidden">
-    <img
-      src="${escCatalog(p.image_url)}"
-      alt="${escCatalog(p.model || 'Producto AIHXO')}"
-      style="width:100%;height:100%;display:block;object-fit:cover"
-    >
-  </div>
-` : `
-  <div class="ph dark">
-    <b>AIHXO</b>
-    <small>${escCatalog(p.model || p.sku || 'PRODUCTO')}</small>
-  </div>
-`}
-
+    return `<article class="product" data-cat="${category}">
+      ${p.image_url
+        ? `<div class="ph" style="padding:0;overflow:hidden"><img src="${escCatalog(p.image_url)}" alt="${escCatalog(p.model || 'Producto AIHXO')}" style="width:100%;height:100%;display:block;object-fit:cover"></div>`
+        : `<div class="ph dark"><b>AIHXO</b><small>${escCatalog(p.model || p.sku || 'PRODUCTO')}</small></div>`}
       <div class="info">
-
-        <em>${escCatalog(p.category || 'AIHXO')}</em>
-
+        <em>PARA PERSONALIZAR · ${escCatalog(p.category || 'AIHXO')}</em>
         <h3>${escCatalog(p.model || p.sku || 'Producto AIHXO')}</h3>
-
-        ${precio ? `<p><strong>${precio}</strong></p>` : ''}
-
-        ${tallas.length ? `
-          <p>
-            <b>Tallas disponibles:</b><br>
-            ${tallas.map(t => `<span style="display:inline-block;border:1px solid #d7deea;border-radius:20px;padding:5px 10px;margin:4px 4px 0 0">${escCatalog(t)}</span>`).join('')}
-          </p>
-        ` : ''}
-
-        ${colores.length ? `
-          <p><b>Colores:</b> ${colores.map(escCatalog).join(' · ')}</p>
-        ` : ''}
-
-        <div class="product-features">
-
-          ${p.material ? `<p><b>Composición:</b> ${escCatalog(p.material)}</p>` : ''}
-
-          ${p.grammage ? `<p><b>Gramaje:</b> ${escCatalog(p.grammage)}</p>` : ''}
-
-          ${p.fabric ? `<p><b>Tejido:</b> ${escCatalog(p.fabric)}</p>` : ''}
-
-          ${p.fit ? `<p><b>Corte:</b> ${escCatalog(p.fit)}</p>` : ''}
-
-          ${p.features ? `<p>${escCatalog(p.features)}</p>` : ''}
-
-          ${p.care ? `<p><b>Cuidados:</b> ${escCatalog(p.care)}</p>` : ''}
-
-        </div>
-
-        ${filas ? `
-          <details style="margin:16px 0">
-            <summary><b>Guía de medidas</b></summary>
-
-            <div style="overflow-x:auto;margin-top:10px">
-              <table style="width:100%;border-collapse:collapse;text-align:left">
-                <thead>
-                  <tr>
-                    <th>Talla</th>
-                    <th>Ancho</th>
-                    <th>Largo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${filas}
-                </tbody>
-              </table>
-            </div>
-          </details>
-        ` : ''}
-
-        <a
-          href="https://wa.me/34692943013?text=${mensaje}"
-          target="_blank">
-          Consultar por WhatsApp →
-        </a>
-
+        ${price ? `<p><strong>${price}</strong></p>` : ''}
+        ${sizes.length ? `<p><b>Tallas disponibles:</b><br>${sizes.map(t => `<span style="display:inline-block;border:1px solid #d7deea;border-radius:20px;padding:5px 10px;margin:4px 4px 0 0">${escCatalog(t)}</span>`).join('')}</p>` : ''}
+        ${colors.length ? `<p><b>Colores:</b> ${colors.map(escCatalog).join(' · ')}</p>` : ''}
+        ${p.material ? `<p><b>Composición:</b> ${escCatalog(p.material)}</p>` : ''}
+        ${p.grammage ? `<p><b>Gramaje:</b> ${escCatalog(p.grammage)}</p>` : ''}
+        ${p.fabric ? `<p><b>Tejido:</b> ${escCatalog(p.fabric)}</p>` : ''}
+        ${p.fit ? `<p><b>Corte:</b> ${escCatalog(p.fit)}</p>` : ''}
+        ${p.features ? `<p>${escCatalog(p.features)}</p>` : ''}
+        ${p.care ? `<p><b>Cuidados:</b> ${escCatalog(p.care)}</p>` : ''}
+        ${rows ? `<details style="margin:16px 0"><summary><b>Guía de medidas</b></summary><div style="overflow-x:auto;margin-top:10px"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>Talla</th><th>Ancho</th><th>Largo</th></tr></thead><tbody>${rows}</tbody></table></div></details>` : ''}
+        <a href="https://wa.me/34692943013?text=${message}" target="_blank">Quiero personalizar esta prenda →</a>
       </div>
-    </article>
-  `;
-}).join('');
-  
+    </article>`;
+  }).join('');
 }
 
 loadCatalog();
-</script></body></html>
+</script>
+</body>
+</html>
