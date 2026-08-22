@@ -17,23 +17,77 @@
     return data || [];
   }
 
-  async function uploadProductImage(productId, file) {
-    if (!file || !productId) return;
+    async function uploadProductImage(productId, file) {
+  if (!file || !productId) return;
 
-    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-    const path = `${productId}/${crypto.randomUUID()}.${ext}`;
+  const currentProduct = (window.products || [])
+    .find(p => String(p.id) === String(productId));
 
-    const upload = await window.supabaseClient.storage
-      .from(BUCKET)
-      .upload(path, file, {
-        cacheControl: '3600',
-        upsert: false
+  if (!currentProduct) {
+    alert('Producto no encontrado');
+    return;
+  }
+
+  const sameVariants = (window.products || []).filter(p =>
+    String(p.model || '').trim().toLowerCase() ===
+      String(currentProduct.model || '').trim().toLowerCase()
+    &&
+    String(p.color || '').trim().toLowerCase() ===
+      String(currentProduct.color || '').trim().toLowerCase()
+  );
+
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+
+  const groupKey = `${String(currentProduct.model || 'producto')
+    .trim()
+    .replace(/[^a-zA-Z0-9-_]/g,'-')}-${String(currentProduct.color || 'color')
+    .trim()
+    .replace(/[^a-zA-Z0-9-_]/g,'-')}`;
+
+  const path = `${groupKey}/${crypto.randomUUID()}.${ext}`;
+
+  const upload = await window.supabaseClient.storage
+    .from(BUCKET)
+    .upload(path, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+
+  if (upload.error) {
+    alert(upload.error.message);
+    return;
+  }
+
+  const { data: urlData } = window.supabaseClient.storage
+    .from(BUCKET)
+    .getPublicUrl(path);
+
+  for (const variant of sameVariants) {
+    const existing = await getProductImages(variant.id);
+
+    const result = await window.supabaseClient
+      .from('product_images')
+      .insert({
+        product_id: variant.id,
+        storage_path: path,
+        public_url: urlData.publicUrl,
+        is_primary: existing.length === 0,
+        sort_order: existing.length
       });
 
-    if (upload.error) {
-      alert(upload.error.message);
-      return;
+    if (result.error) {
+      console.error(result.error);
     }
+  }
+
+  if (typeof window.loadAll === 'function') {
+    await window.loadAll();
+  }
+
+  if (typeof window.setView === 'function') {
+    window.setView('products');
+  }
+}
 
     const { data: urlData } = window.supabaseClient.storage
       .from(BUCKET)
