@@ -89,35 +89,7 @@
   }
 }
 
-    const { data: urlData } = window.supabaseClient.storage
-      .from(BUCKET)
-      .getPublicUrl(path);
-
-    const existing = await getProductImages(productId);
-
-    const result = await window.supabaseClient
-      .from('product_images')
-      .insert({
-        product_id: productId,
-        storage_path: path,
-        public_url: urlData.publicUrl,
-        is_primary: existing.length === 0,
-        sort_order: existing.length
-      });
-
-    if (result.error) {
-      alert(result.error.message);
-      return;
-    }
-
-    if (typeof window.loadAll === 'function') {
-      await window.loadAll();
-    }
-
-    if (typeof window.setView === 'function') {
-      window.setView('products');
-    }
-  }
+    
 
   window.aihxoUploadProductImage = uploadProductImage;
   window.aihxoGetProductImages = getProductImages;
