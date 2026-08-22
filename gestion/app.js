@@ -114,6 +114,11 @@ function productForm(id){
     <input name="color" value="${esc(p.color||'')}">
    </div>
   </div>
+  <div class="field">
+  <label>Foto principal</label>
+  <input id="productImage" type="file" accept="image/*">
+  <div id="productImagePreview" style="margin-top:10px"></div>
+</div>
 
   <h3 style="margin-top:22px">Características principales</h3>
 
@@ -214,8 +219,40 @@ function productForm(id){
 
  $('#pf').onsubmit=async e=>{
   e.preventDefault();
-
   const f=new FormData(e.target);
+  
+  let imageUrl = p.image_url || '';
+
+const imageFile = document.querySelector('#productImage')?.files?.[0];
+
+if(imageFile){
+  const ext = imageFile.name.split('.').pop().toLowerCase();
+  const safeSku = String(f.get('sku') || 'producto')
+    .trim()
+    .replace(/[^a-zA-Z0-9-_]/g,'-');
+
+  const fileName = `${safeSku}-${Date.now()}.${ext}`;
+
+  const upload = await supabaseClient
+    .storage
+    .from('product-images')
+    .upload(fileName, imageFile, {
+      cacheControl:'3600',
+      upsert:false
+    });
+
+  if(upload.error){
+    toast('Error subiendo la foto: ' + upload.error.message);
+    return;
+  }
+
+  const {data:publicData} = supabaseClient
+    .storage
+    .from('product-images')
+    .getPublicUrl(fileName);
+
+  imageUrl = publicData.publicUrl;
+}
 
   const measurements={};
 
@@ -242,6 +279,7 @@ function productForm(id){
    color:f.get('color'),
 
    material:f.get('material'),
+   image_url:imageUrl,
    grammage:f.get('grammage'),
    fabric:f.get('fabric'),
    fit:f.get('fit'),
