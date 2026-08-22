@@ -117,7 +117,17 @@ function productForm(id){
   <div class="field">
   <label>Foto principal</label>
   <input id="productImage" type="file" accept="image/*">
-  <div id="productImagePreview" style="margin-top:10px"></div>
+  <div id="productImagePreview" style="margin-top:10px">
+  ${p.image_url ? `
+    <img
+      src="${esc(p.image_url)}"
+      alt="Foto del producto"
+      style="width:100%;max-width:220px;border-radius:14px;display:block"
+    >
+  ` : `
+    <div class="muted">Sin foto principal</div>
+  `}
+</div>
 </div>
 
   <h3 style="margin-top:22px">Características principales</h3>
