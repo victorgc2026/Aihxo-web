@@ -83,7 +83,24 @@ data.forEach(p => {
 
 grid.innerHTML = Object.values(grupos).map(p => {
 
-  const tallas = [...p.tallas];
+  const ordenTallas = [
+  '2-3','3-4','4-5','5-6','6-7','7-8','8-9','9-10','9-11','10-11','11-12','12-13','13-14',
+  'XXS','XS','S','M','L','XL','XXL','3XL','4XL'
+];
+
+const tallas = [...p.tallas].sort((a,b)=>{
+  const A = String(a).trim().toUpperCase();
+  const B = String(b).trim().toUpperCase();
+
+  const ia = ordenTallas.findIndex(x=>x.toUpperCase()===A);
+  const ib = ordenTallas.findIndex(x=>x.toUpperCase()===B);
+
+  if(ia === -1 && ib === -1) return A.localeCompare(B,'es',{numeric:true});
+  if(ia === -1) return 1;
+  if(ib === -1) return -1;
+
+  return ia - ib;
+});
 
   const colores = [...p.colores];
 
