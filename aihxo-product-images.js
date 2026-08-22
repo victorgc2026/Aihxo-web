@@ -29,12 +29,12 @@
   }
 
   const sameVariants = (window.products || []).filter(p =>
-    String(p.model || '').trim().toLowerCase() ===
-      String(currentProduct.model || '').trim().toLowerCase()
-    &&
-    String(p.color || '').trim().toLowerCase() ===
-      String(currentProduct.color || '').trim().toLowerCase()
-  );
+  String(p.category || '').trim().toLowerCase() ===
+    String(currentProduct.category || '').trim().toLowerCase()
+  &&
+  String(p.color || '').trim().toLowerCase() ===
+    String(currentProduct.color || '').trim().toLowerCase()
+);
 
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
 
