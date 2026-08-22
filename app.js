@@ -255,29 +255,29 @@ async function productsView(c){
             <b class="${p.stock<=3?'red':'green'}">${p.stock}</b>
           </div>
 
-          <div class="actions" style="margin-top:10px">
-            <button class="primary" onclick="aihxoCameraInput('${p.id}')">
-             📷 Cámara
-            </button>
+          <div class="actions product-actions" style="margin-top:10px">
 
-            <button class="secondary" onclick="aihxoLibraryInput('${p.id}')">
-             🖼️ Biblioteca
-            </button>
-            <button class="secondary" onclick="productGallery('${p.id}')">
-              🖼️ Galería
-            </button>  
+  <button class="primary" onclick="aihxoCameraInput('${p.id}')">
+    📷 Cámara
+  </button>
 
-            <button class="secondary" onclick="productForm('${p.id}')">
-              Editar
-            </button>
+  <button class="secondary" onclick="aihxoLibraryInput('${p.id}')">
+    🖼️ Biblioteca
+  </button>
 
-            <button class="secondary" onclick="addStock('${p.id}')">
-              ＋ Stock
-            </button>
-          </div>
-        </div>
-      `).join('')}
-    </div>
+  <button class="secondary" onclick="productGallery('${p.id}')">
+    🖼️ Galería
+  </button>
+
+  <button class="secondary" onclick="productForm('${p.id}')">
+    ✏️ Editar
+  </button>
+
+  <button class="secondary" onclick="addStock('${p.id}')">
+    ＋ Stock
+  </button>
+
+</div>
   </div>`;
 
   for(const p of products){
