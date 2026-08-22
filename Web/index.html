@@ -45,17 +45,163 @@ async function loadCatalog(){
   }
 
   if(!data || !data.length) return;
+const grupos = {};
 
-  grid.innerHTML = data.map(p => {
+data.forEach(p => {
+  const clave = `${String(p.category || '').toLowerCase()}|${String(p.model || '').toLowerCase()}`;
 
-    const medidas = p.measurements || {};
-    const filas = Object.entries(medidas).map(([talla,m]) => `
-      <tr>
-        <td>${escCatalog(talla)}</td>
-        <td>${escCatalog(m.width || '—')} cm</td>
-        <td>${escCatalog(m.length || '—')} cm</td>
-      </tr>
-    `).join('');
+  if(!grupos[clave]){
+    grupos[clave] = {
+      ...p,
+      variantes: [],
+      tallas: new Set(),
+      colores: new Set(),
+      medidas: {}
+    };
+  }
+
+  const g = grupos[clave];
+
+  g.variantes.push(p);
+
+  if(p.size) g.tallas.add(p.size);
+  if(p.color) g.colores.add(p.color);
+
+  if(p.measurements && typeof p.measurements === 'object'){
+    Object.entries(p.measurements).forEach(([talla,m]) => {
+      g.medidas[talla] = m;
+    });
+  }
+
+  if(!g.material && p.material) g.material = p.material;
+  if(!g.grammage && p.grammage) g.grammage = p.grammage;
+  if(!g.fabric && p.fabric) g.fabric = p.fabric;
+  if(!g.fit && p.fit) g.fit = p.fit;
+  if(!g.features && p.features) g.features = p.features;
+  if(!g.care && p.care) g.care = p.care;
+});
+
+grid.innerHTML = Object.values(grupos).map(p => {
+
+  const tallas = [...p.tallas];
+
+  const colores = [...p.colores];
+
+  const filas = Object.entries(p.medidas || {}).map(([talla,m]) => `
+    <tr>
+      <td>${escCatalog(talla)}</td>
+      <td>${escCatalog(m.width || '—')} cm</td>
+      <td>${escCatalog(m.length || '—')} cm</td>
+    </tr>
+  `).join('');
+
+  const categoria =
+    String(p.category || '').toLowerCase().includes('bolso')
+    ? 'tote'
+    : 'camiseta';
+
+  const precios = p.variantes
+    .map(v => Number(v.sale_price || 0))
+    .filter(v => v > 0);
+
+  const precioMin = precios.length ? Math.min(...precios) : 0;
+  const precioMax = precios.length ? Math.max(...precios) : 0;
+
+  let precio = '';
+
+  if(precioMin){
+    if(precioMin === precioMax){
+      precio = precioMin.toLocaleString(
+        'es-ES',
+        {style:'currency',currency:'EUR'}
+      );
+    }else{
+      precio = `Desde ${precioMin.toLocaleString(
+        'es-ES',
+        {style:'currency',currency:'EUR'}
+      )}`;
+    }
+  }
+
+  const mensaje = encodeURIComponent(
+    `Hola AIHXO, me interesa ${p.model || p.sku || 'este producto'}.`
+  );
+
+  return `
+    <article class="product" data-cat="${categoria}">
+
+      <div class="ph dark">
+        <b>AIHXO</b>
+        <small>${escCatalog(p.model || p.sku || 'PRODUCTO')}</small>
+      </div>
+
+      <div class="info">
+
+        <em>${escCatalog(p.category || 'AIHXO')}</em>
+
+        <h3>${escCatalog(p.model || p.sku || 'Producto AIHXO')}</h3>
+
+        ${precio ? `<p><strong>${precio}</strong></p>` : ''}
+
+        ${tallas.length ? `
+          <p>
+            <b>Tallas disponibles:</b><br>
+            ${tallas.map(t => `<span style="display:inline-block;border:1px solid #d7deea;border-radius:20px;padding:5px 10px;margin:4px 4px 0 0">${escCatalog(t)}</span>`).join('')}
+          </p>
+        ` : ''}
+
+        ${colores.length ? `
+          <p><b>Colores:</b> ${colores.map(escCatalog).join(' · ')}</p>
+        ` : ''}
+
+        <div class="product-features">
+
+          ${p.material ? `<p><b>Composición:</b> ${escCatalog(p.material)}</p>` : ''}
+
+          ${p.grammage ? `<p><b>Gramaje:</b> ${escCatalog(p.grammage)}</p>` : ''}
+
+          ${p.fabric ? `<p><b>Tejido:</b> ${escCatalog(p.fabric)}</p>` : ''}
+
+          ${p.fit ? `<p><b>Corte:</b> ${escCatalog(p.fit)}</p>` : ''}
+
+          ${p.features ? `<p>${escCatalog(p.features)}</p>` : ''}
+
+          ${p.care ? `<p><b>Cuidados:</b> ${escCatalog(p.care)}</p>` : ''}
+
+        </div>
+
+        ${filas ? `
+          <details style="margin:16px 0">
+            <summary><b>Guía de medidas</b></summary>
+
+            <div style="overflow-x:auto;margin-top:10px">
+              <table style="width:100%;border-collapse:collapse;text-align:left">
+                <thead>
+                  <tr>
+                    <th>Talla</th>
+                    <th>Ancho</th>
+                    <th>Largo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filas}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        ` : ''}
+
+        <a
+          href="https://wa.me/34692943013?text=${mensaje}"
+          target="_blank">
+          Consultar por WhatsApp →
+        </a>
+
+      </div>
+    </article>
+  `;
+}).join('');
+  
 
     const categoria =
       String(p.category || '').toLowerCase().includes('bolso')
