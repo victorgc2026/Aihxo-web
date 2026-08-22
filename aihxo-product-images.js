@@ -29,8 +29,8 @@
   }
 
   const sameVariants = (window.products || []).filter(p =>
-  String(p.category || '').trim().toLowerCase() ===
-    String(currentProduct.category || '').trim().toLowerCase()
+  String(p.model || '').trim().toLowerCase() ===
+    String(currentProduct.model || '').trim().toLowerCase()
   &&
   String(p.color || '').trim().toLowerCase() ===
     String(currentProduct.color || '').trim().toLowerCase()
