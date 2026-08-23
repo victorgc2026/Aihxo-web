@@ -471,28 +471,35 @@ function showProductVariants(representativeId){
 
       ${variantes.map(p=>`
         <div class="statline">
+
           <div>
             <b>Talla ${esc(p.size||'—')}</b>
             <div class="muted">${esc(p.sku||'')}</div>
           </div>
 
-          <div style="display:flex;align-items:center;gap:10px">
-            <b class="${Number(p.stock)<=3?'red':'green'}">
+          <div style="display:flex;align-items:center;gap:8px">
+
+            <button
+              class="secondary"
+              onclick="changeVariantStock('${p.id}',-1,'${representativeId}')">
+              −
+            </button>
+
+            <b
+              class="${Number(p.stock)<=3?'red':'green'}"
+              style="min-width:42px;text-align:center"
+            >
               ${p.stock}
             </b>
 
             <button
-              class="secondary"
-              onclick="productForm('${p.id}')">
-              Editar
+              class="primary"
+              onclick="changeVariantStock('${p.id}',1,'${representativeId}')">
+              ＋
             </button>
 
-            <button
-              class="secondary"
-              onclick="addStock('${p.id}')">
-              ＋ Stock
-            </button>
           </div>
+
         </div>
       `).join('')}
 
@@ -501,6 +508,31 @@ function showProductVariants(representativeId){
 }
 
 window.showProductVariants = showProductVariants;
+async function changeVariantStock(productId, change, representativeId){
+
+  const p = products.find(x=>String(x.id)===String(productId));
+  if(!p) return;
+
+  const newStock = Math.max(0, Number(p.stock||0) + Number(change||0));
+
+  const r = await supabaseClient
+    .from('products')
+    .update({stock:newStock})
+    .eq('id',productId);
+
+  if(r.error){
+    toast(r.error.message);
+    return;
+  }
+
+  await loadAll();
+
+  showProductVariants(representativeId);
+
+  toast(change > 0 ? 'Stock añadido' : 'Stock retirado');
+}
+
+window.changeVariantStock = changeVariantStock;
 function productForm(id){const p=id?products.find(x=>x.id===id):{sku:'',category:'Camiseta',model:'',size:'M',color:'Blanco',garment_cost:4,dtf_cost:3,extras_cost:.68,sale_price:16.9,stock:0};openDrawer(`<h2>${id?'Editar':'Nuevo'} producto</h2><form class="form" id="pf"><div class="formgrid"><div class="field"><label>SKU *</label><input name="sku" value="${esc(p.sku)}" required ${id?'readonly':''}></div><div class="field"><label>Categoría</label><select name="category"><option ${p.category==='Camiseta'?'selected':''}>Camiseta</option><option ${p.category==='Bolso'?'selected':''}>Bolso</option></select></div></div><div class="field"><label>Modelo *</label><input name="model" value="${esc(p.model)}" required></div><div class="formgrid"><div class="field"><label>Talla</label><input name="size" value="${esc(p.size||'')}"></div><div class="field"><label>Color</label><input name="color" value="${esc(p.color||'')}"></div></div><div class="formgrid"><div class="field"><label>Coste prenda</label><input name="garment_cost" type="number" min="0" step=".01" value="${p.garment_cost}"></div><div class="field"><label>Coste DTF</label><input name="dtf_cost" type="number" min="0" step=".01" value="${p.dtf_cost}"></div></div><div class="formgrid"><div class="field"><label>Extras</label><input name="extras_cost" type="number" min="0" step=".01" value="${p.extras_cost}"></div><div class="field"><label>Precio venta</label><input name="sale_price" type="number" min="0" step=".01" value="${p.sale_price}"></div></div><div class="field"><label>Stock</label><input name="stock" type="number" min="0" value="${p.stock}"></div><button class="primary">Guardar</button></form>`);$('#pf').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),o={sku:f.get('sku').trim(),category:f.get('category'),model:f.get('model').trim(),size:f.get('size').trim()||null,color:f.get('color').trim()||null,garment_cost:+f.get('garment_cost'),dtf_cost:+f.get('dtf_cost'),extras_cost:+f.get('extras_cost'),sale_price:+f.get('sale_price'),stock:Math.floor(+f.get('stock'))};const r=id?await supabaseClient.from('products').update(o).eq('id',id):await supabaseClient.from('products').insert(o);if(r.error)toast(r.error.message);else{closeDrawer();await loadAll();setView('products');toast('Producto guardado')}}}window.productForm=productForm;
 async function productGallery(id){
   const p=products.find(x=>x.id===id);
