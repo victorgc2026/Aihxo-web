@@ -531,27 +531,7 @@ async function changeVariantStock(productId, change, representativeId){
     return;
   }
 
-  const session = await supabaseClient.auth.getSession();
-  const userEmail = session?.data?.session?.user?.email || null;
-
-  const movement = await supabaseClient
-    .from('stock_movements')
-    .insert({
-      product_id: productId,
-      movement_type: Number(change) > 0 ? 'Entrada' : 'Salida',
-      quantity: Number(change),
-      previous_stock: previousStock,
-      new_stock: newStock,
-      reason: Number(change) > 0
-        ? 'Ajuste manual desde Productos'
-        : 'Salida manual desde Productos',
-      created_by: userEmail
-    });
-
-  if(movement.error){
-    console.error(movement.error);
-    toast('Stock actualizado, pero no se pudo guardar el historial');
-  }
+  
 
   await loadAll();
 
