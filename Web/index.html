@@ -226,10 +226,11 @@ async function loadCatalog(){
   const grid = document.getElementById('productsGrid');
   if(!grid) return;
 
-  const {data, error} = await catalogSB
+  let {data, error} = await catalogSB
     .from('products')
     .select('id,sku,category,model,size,color,sale_price,material,grammage,fabric,fit,care,features,measurements,image_url')
     .order('model');
+  data = data.filter(p => String(p.model || '').trim().toUpperCase() !== 'AINHOA MERA');
 
   if(error){ console.error(error); return; }
   if(!data || !data.length) return;
