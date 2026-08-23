@@ -513,7 +513,13 @@ async function changeVariantStock(productId, change, representativeId){
   const p = products.find(x=>String(x.id)===String(productId));
   if(!p) return;
 
-  const newStock = Math.max(0, Number(p.stock||0) + Number(change||0));
+  const previousStock = Number(p.stock||0);
+  const newStock = Math.max(0, previousStock + Number(change||0));
+
+  if(newStock === previousStock && Number(change) < 0){
+    toast('El stock ya está en 0');
+    return;
+  }
 
   const r = await supabaseClient
     .from('products')
@@ -525,11 +531,33 @@ async function changeVariantStock(productId, change, representativeId){
     return;
   }
 
+  const session = await supabaseClient.auth.getSession();
+  const userEmail = session?.data?.session?.user?.email || null;
+
+  const movement = await supabaseClient
+    .from('stock_movements')
+    .insert({
+      product_id: productId,
+      movement_type: Number(change) > 0 ? 'entrada' : 'salida',
+      quantity: Math.abs(Number(change)),
+      previous_stock: previousStock,
+      new_stock: newStock,
+      reason: Number(change) > 0
+        ? 'Ajuste manual desde Productos'
+        : 'Salida manual desde Productos',
+      created_by: userEmail
+    });
+
+  if(movement.error){
+    console.error(movement.error);
+    toast('Stock actualizado, pero no se pudo guardar el historial');
+  }
+
   await loadAll();
 
   showProductVariants(representativeId);
 
-  toast(change > 0 ? 'Stock añadido' : 'Stock retirado');
+  toast(Number(change) > 0 ? 'Stock añadido' : 'Stock retirado');
 }
 
 window.changeVariantStock = changeVariantStock;
