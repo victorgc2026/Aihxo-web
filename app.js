@@ -538,8 +538,8 @@ async function changeVariantStock(productId, change, representativeId){
     .from('stock_movements')
     .insert({
       product_id: productId,
-      movement_type: Number(change) > 0 ? 'entrada' : 'salida',
-      quantity: Math.abs(Number(change)),
+      movement_type: Number(change) > 0 ? 'Entrada' : 'Salida',
+      quantity: Number(change),
       previous_stock: previousStock,
       new_stock: newStock,
       reason: Number(change) > 0
