@@ -285,12 +285,47 @@ async function productsView(c){
           ＋ Producto
         </button>
       </div>
+<div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;margin-bottom:18px">
 
+  <input
+    id="productSearch"
+    type="search"
+    placeholder="🔎 Buscar producto..."
+  >
+
+  <select id="productCategoryFilter">
+    <option value="">Todas las categorías</option>
+    <option value="Camiseta">Camisetas</option>
+    <option value="Bolso">Bolsos</option>
+  </select>
+
+  <select id="productColorFilter">
+    <option value="">Todos los colores</option>
+  </select>
+
+  <label
+    style="display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #d8deea;border-radius:9px;padding:0 12px;white-space:nowrap"
+  >
+    <input
+      id="productLowStockFilter"
+      type="checkbox"
+      style="width:auto"
+    >
+    Stock bajo
+  </label>
+
+</div>
       <div class="grid three">
 
         ${Object.values(grupos).map(g=>`
 
-          <div class="card product-card">
+          <div
+  class="card product-card"
+  data-model="${esc(g.model||'')}"
+  data-category="${esc(g.category||'')}"
+  data-color="${esc(g.color||'')}"
+  data-stock="${g.totalStock}"
+>
 
             <div class="product-photo" id="group-photo-${g.representativeId}">
               <div class="thumb">
@@ -359,6 +394,64 @@ async function productsView(c){
       `;
     }
   }
+   const searchEl = document.getElementById('productSearch');
+  const categoryEl = document.getElementById('productCategoryFilter');
+  const colorEl = document.getElementById('productColorFilter');
+  const lowStockEl = document.getElementById('productLowStockFilter');
+
+  const colors = [...new Set(
+    Object.values(grupos)
+      .map(g => g.color)
+      .filter(Boolean)
+  )].sort((a,b)=>String(a).localeCompare(String(b),'es'));
+
+  colorEl.innerHTML =
+    '<option value="">Todos los colores</option>' +
+    colors.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+
+  function applyProductFilters(){
+
+    const q = String(searchEl.value || '').trim().toLowerCase();
+    const category = String(categoryEl.value || '').trim().toLowerCase();
+    const color = String(colorEl.value || '').trim().toLowerCase();
+    const lowStock = lowStockEl.checked;
+
+    document.querySelectorAll('.product-card').forEach(card=>{
+
+      const model = String(card.dataset.model || '').toLowerCase();
+      const cardCategory = String(card.dataset.category || '').toLowerCase();
+      const cardColor = String(card.dataset.color || '').toLowerCase();
+      const stock = Number(card.dataset.stock || 0);
+
+      const matchesSearch =
+        !q ||
+        model.includes(q) ||
+        cardColor.includes(q) ||
+        cardCategory.includes(q);
+
+      const matchesCategory =
+        !category || cardCategory === category;
+
+      const matchesColor =
+        !color || cardColor === color;
+
+      const matchesStock =
+        !lowStock || stock <= 3;
+
+      card.style.display =
+        matchesSearch &&
+        matchesCategory &&
+        matchesColor &&
+        matchesStock
+          ? ''
+          : 'none';
+    });
+  }
+
+  searchEl.oninput = applyProductFilters;
+  categoryEl.onchange = applyProductFilters;
+  colorEl.onchange = applyProductFilters;
+  lowStockEl.onchange = applyProductFilters;
 }
 function showProductVariants(representativeId){
 
