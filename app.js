@@ -29,8 +29,9 @@ function showLogin(msg=''){
  $('#signup').onclick=async()=>{const email=$('#email').value.trim().toLowerCase(),pass=$('#password').value;if(!isAdmin(email))return $('#authMsg').textContent='Este correo no está autorizado.';if(pass.length<6)return $('#authMsg').textContent='La contraseña debe tener al menos 6 caracteres.';const r=await supabaseClient.auth.signUp({email,password:pass});$('#authMsg').textContent=r.error?r.error.message:(r.data.session?'Cuenta creada.':'Cuenta creada. Revisa el correo.');};
 }
 function shell(){document.body.innerHTML=`<div id="app"><aside class="sidebar"><div class="brand"><div class="brandmark">AIHXO</div><small>GESTIÓN ONLINE</small></div><nav id="nav"><button data-view="dashboard">⌂ <span>Inicio</span></button><button data-view="orders">▣ <span>Pedidos</span></button><button data-view="products">◇ <span>Productos</span></button><button data-view="stock">□ <span>Stock</span></button><button data-view="designs">✦ <span>Diseños</span></button><button data-view="customers">♙ <span>Clientes</span></button><button data-view="expenses">€ <span>Gastos</span></button><button data-view="reports">▥ <span>Informes</span></button><button data-view="settings">⚙ <span>Configuración</span></button><button data-view="users">👤 <span>Usuarios</span></button></nav><div class="sidebar-foot">Administrador<br><button class="secondary" style="margin-top:8px" id="logout">Cerrar sesión</button></div></aside><div class="menu-overlay" id="menuOverlay"></div><main><header class="topbar"><button class="hamb" id="hamb">☰</button><h1 id="title">Inicio</h1><button class="primary small" id="quickOrder">＋ Pedido</button></header><div id="view"></div></main></div><div id="drawer" class="drawer hidden"><div class="drawer-card"><button class="x" id="closeDrawer">×</button><div id="drawerBody"></div></div></div><div id="toast"></div>`;$('#logout').onclick=()=>supabaseClient.auth.signOut();$('#closeDrawer').onclick=closeDrawer;$('#hamb').onclick=toggleMenu;$('#menuOverlay').onclick=closeMenu;$('#quickOrder').onclick=orderForm;document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>setView(b.dataset.view))}
+<button data-view="stockHistory">↺ <span>Historial stock</span></button>
 function closeDrawer(){$('#drawer')?.classList.add('hidden')}function openDrawer(h){$('#drawer').classList.remove('hidden');$('#drawerBody').innerHTML=h}function toggleMenu(){$('.sidebar')?.classList.toggle('open');$('#menuOverlay')?.classList.toggle('open')}function closeMenu(){$('.sidebar')?.classList.remove('open');$('#menuOverlay')?.classList.remove('open')}
-const views={dashboard:['Inicio',dashboard],orders:['Pedidos',ordersView],products:['Productos',productsView],stock:['Stock',stockView],designs:['Diseños',designsView],customers:['Clientes',customersView],expenses:['Gastos',expensesView],reports:['Informes',reportsView],settings:['Configuración',settingsView],users:['Usuarios',usersView]};
+const views={dashboard:['Inicio',dashboard],orders:['Pedidos',ordersView],products:['Productos',productsView],stock:['Stock',stockView],stockHistory:['Historial stock',stockHistoryView],designs:['Diseños',designsView],customers:['Clientes',customersView],expenses:['Gastos',expensesView],reports:['Informes',reportsView],settings:['Configuración',settingsView],users:['Usuarios',usersView]};
 function setView(v){const x=views[v]||views.dashboard;$('#title').textContent=x[0];document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));closeMenu();x[1]($('#view'));window.scrollTo(0,0)}window.setView=setView;
 function dashboard(c){const sales=orders.reduce((a,o)=>a+Number(o.total||0),0),costs=orders.reduce((a,o)=>a+Number(o.product_cost||0),0),exp=expenses.reduce((a,o)=>a+Number(o.amount||0),0),units=orders.reduce((a,o)=>a+Number(o.quantity||0),0),stock=products.reduce((a,o)=>a+Number(o.stock||0),0),profit=sales-costs-exp,low=products.filter(p=>Number(p.stock)<=3);c.innerHTML=`<div class="page"><div class="grid kpis">${kpi('Ventas',money(sales),orders.length+' pedidos')}${kpi('Pedidos',orders.length,'registrados')}${kpi('Unidades',units,'vendidas')}${kpi('Beneficio',money(profit),sales?((profit/sales)*100).toFixed(1)+'% margen':'')}${kpi('Stock',stock,'unidades')}</div><div class="grid two"><div class="card"><div class="section"><h2>Pedidos recientes</h2><button class="secondary" onclick="setView('orders')">Ver todos</button></div>${orders.length?`<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody>${orders.slice(0,7).map(o=>`<tr><td><b>${esc(o.order_number)}</b></td><td>${esc(o.customer_name)}</td><td>${money(o.total)}</td><td>${esc(o.status)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay pedidos todavía.</div>'}</div><div class="card"><div class="section"><h2>Alertas de stock</h2><button class="secondary" onclick="setView('stock')">Ver stock</button></div>${low.length?low.slice(0,8).map(p=>`<div class="statline"><span>${esc(p.model)} · ${esc(p.size||'')} · ${esc(p.color||'')}</span><b class="red">${p.stock}</b></div>`).join(''):'<div class="empty">Todo el stock está correcto.</div>'}</div></div></div>`}
 function ordersView(c){c.innerHTML=`<div class="page"><div class="section"><div><h2>Pedidos</h2><div class="muted">${orders.length} pedidos</div></div><button class="primary" onclick="orderForm()">＋ Nuevo pedido</button></div><div class="card"><input class="search" id="oq" placeholder="Buscar…"><div id="orderTable"></div></div></div>`;$('#oq').oninput=drawOrders;drawOrders()}
@@ -744,6 +745,175 @@ function expensesView(c){const total=expenses.reduce((a,e)=>a+Number(e.amount||0
 function expenseForm(){openDrawer(`<h2>Nuevo gasto</h2><form class="form" id="ef"><div class="formgrid"><div class="field"><label>Fecha *</label><input name="expense_date" type="date" value="${today()}" required></div><div class="field"><label>Categoría *</label><select name="category"><option>DTF</option><option>Camisetas</option><option>Bolsos</option><option>Packaging</option><option>Envíos</option><option>Herramientas</option><option>Publicidad</option><option>Otros</option></select></div></div><div class="field"><label>Importe *</label><input name="amount" type="number" min="0" step=".01" required></div><div class="field"><label>Descripción *</label><input name="description" required></div><button class="primary">Guardar gasto</button></form>`);$('#ef').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),r=await supabaseClient.from('expenses').insert({expense_date:f.get('expense_date'),category:f.get('category'),amount:+f.get('amount'),description:f.get('description').trim()});if(r.error)toast(r.error.message);else{closeDrawer();await loadAll();setView('expenses');toast('Gasto guardado')}}}window.expenseForm=expenseForm;window.deleteExpense=async id=>{if(!confirm('¿Eliminar este gasto?'))return;const r=await supabaseClient.from('expenses').delete().eq('id',id);if(r.error)toast(r.error.message);else{await loadAll();setView('expenses');toast('Gasto eliminado')}};
 function designsView(c){c.innerHTML=`<div class="page"><div class="section"><div><h2>Diseños</h2><div class="muted">${designs.length} diseños</div></div><button class="primary" onclick="designForm()">＋ Diseño</button></div><div class="grid three">${designs.length?designs.map(d=>`<div class="card"><div class="section"><div><b>${esc(d.name)}</b><div class="muted">${esc(d.category||'')}</div></div><span class="${d.active?'green':'red'}">${d.active?'Activo':'Inactivo'}</span></div><div class="row"><span>Coste</span><b>${money(d.cost)}</b></div><div class="actions" style="margin-top:10px"><button class="secondary" onclick="designForm('${d.id}')">Editar</button><button class="secondary" onclick="toggleDesign('${d.id}',${!d.active})">${d.active?'Desactivar':'Activar'}</button></div></div>`).join(''):'<div class="card empty">No hay diseños.</div>'}</div></div>`}
 function designForm(id){const d=id?designs.find(x=>x.id===id):{name:'',category:'Camisetas',cost:0,active:true};openDrawer(`<h2>${id?'Editar':'Nuevo'} diseño</h2><form class="form" id="df"><div class="field"><label>Nombre *</label><input name="name" required value="${esc(d.name||'')}"></div><div class="field"><label>Categoría</label><input name="category" value="${esc(d.category||'')}"></div><div class="field"><label>Coste</label><input name="cost" type="number" min="0" step=".01" value="${d.cost||0}"></div><label><input name="active" type="checkbox" ${d.active!==false?'checked':''} style="width:auto"> Activo</label><button class="primary">Guardar diseño</button></form>`);$('#df').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),o={name:f.get('name').trim(),category:f.get('category').trim()||null,cost:+f.get('cost'),active:f.get('active')==='on'},r=id?await supabaseClient.from('designs').update(o).eq('id',id):await supabaseClient.from('designs').insert(o);if(r.error)toast(r.error.message);else{closeDrawer();await loadAll();setView('designs');toast('Diseño guardado')}}}window.designForm=designForm;window.toggleDesign=async(id,active)=>{const r=await supabaseClient.from('designs').update({active}).eq('id',id);if(r.error)toast(r.error.message);else{await loadAll();setView('designs');toast('Diseño actualizado')}};
+async function stockHistoryView(c){
+
+  const { data, error } = await supabaseClient
+    .from('stock_movements')
+    .select(`
+      id,
+      created_at,
+      movement_type,
+      quantity,
+      previous_stock,
+      new_stock,
+      reason,
+      created_by,
+      product_id,
+      products (
+        model,
+        size,
+        color,
+        sku
+      )
+    `)
+    .order('created_at', { ascending:false });
+
+  if(error){
+    console.error(error);
+    c.innerHTML = `<div class="page"><div class="card">Error cargando historial de stock.</div></div>`;
+    return;
+  }
+
+  const movements = data || [];
+
+  c.innerHTML = `
+    <div class="page">
+
+      <div class="section">
+        <div>
+          <h2>Historial de stock</h2>
+          <div class="muted">${movements.length} movimientos</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+
+        <div class="formgrid">
+
+          <div class="field">
+            <label>Buscar producto</label>
+            <input id="stockHistorySearch" placeholder="Modelo, talla, color o SKU">
+          </div>
+
+          <div class="field">
+            <label>Tipo</label>
+            <select id="stockHistoryType">
+              <option value="">Todos</option>
+              <option value="Entrada">Entradas</option>
+              <option value="Salida">Salidas</option>
+            </select>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="card">
+        <div id="stockHistoryTable"></div>
+      </div>
+
+    </div>
+  `;
+
+  function drawStockHistory(){
+
+    const q = String(
+      document.getElementById('stockHistorySearch')?.value || ''
+    ).trim().toLowerCase();
+
+    const type = String(
+      document.getElementById('stockHistoryType')?.value || ''
+    ).trim();
+
+    const filtered = movements.filter(m=>{
+
+      const p = m.products || {};
+
+      const haystack = [
+        p.model,
+        p.size,
+        p.color,
+        p.sku,
+        m.reason,
+        m.created_by
+      ].join(' ').toLowerCase();
+
+      const matchesSearch = !q || haystack.includes(q);
+      const matchesType = !type || m.movement_type === type;
+
+      return matchesSearch && matchesType;
+    });
+
+    document.getElementById('stockHistoryTable').innerHTML = filtered.length
+      ? `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Producto</th>
+                <th>Talla</th>
+                <th>Color</th>
+                <th>Tipo</th>
+                <th>Cantidad</th>
+                <th>Stock</th>
+                <th>Motivo</th>
+                <th>Usuario</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              ${filtered.map(m=>{
+
+                const p = m.products || {};
+
+                const fecha = m.created_at
+                  ? new Date(m.created_at).toLocaleString('es-ES')
+                  : '—';
+
+                const qty = Number(m.quantity || 0);
+
+                return `
+                  <tr>
+                    <td>${esc(fecha)}</td>
+                    <td>
+                      <b>${esc(p.model || '—')}</b>
+                      <div class="muted">${esc(p.sku || '')}</div>
+                    </td>
+                    <td>${esc(p.size || '—')}</td>
+                    <td>${esc(p.color || '—')}</td>
+                    <td>
+                      <b class="${m.movement_type === 'Entrada' ? 'green' : 'red'}">
+                        ${esc(m.movement_type || '—')}
+                      </b>
+                    </td>
+                    <td>
+                      <b class="${qty >= 0 ? 'green' : 'red'}">
+                        ${qty > 0 ? '+' : ''}${qty}
+                      </b>
+                    </td>
+                    <td>
+                      ${Number(m.previous_stock || 0)}
+                      →
+                      ${Number(m.new_stock || 0)}
+                    </td>
+                    <td>${esc(m.reason || '—')}</td>
+                    <td>${esc(m.created_by || '—')}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `
+      : `<div class="empty">No hay movimientos que coincidan.</div>`;
+  }
+
+  document.getElementById('stockHistorySearch').oninput = drawStockHistory;
+  document.getElementById('stockHistoryType').onchange = drawStockHistory;
+
+  drawStockHistory();
+}
 function reportsView(c){const sales=orders.reduce((a,o)=>a+Number(o.total||0),0),costs=orders.reduce((a,o)=>a+Number(o.product_cost||0),0),exp=expenses.reduce((a,o)=>a+Number(o.amount||0),0),stockValue=products.reduce((a,p)=>a+Number(p.stock||0)*cost(p),0);c.innerHTML=`<div class="page"><div class="grid four">${kpi('Ventas',money(sales))}${kpi('Coste productos',money(costs))}${kpi('Gastos',money(exp))}${kpi('Beneficio',money(sales-costs-exp))}</div><div class="grid two"><div class="card"><h2>Inventario</h2><div class="statline"><span>Referencias</span><b>${products.length}</b></div><div class="statline"><span>Unidades</span><b>${products.reduce((a,p)=>a+p.stock,0)}</b></div><div class="statline"><span>Valor a coste</span><b>${money(stockValue)}</b></div></div><div class="card"><h2>Estados</h2>${STATUS.map(s=>`<div class="statline"><span>${s}</span><b>${orders.filter(o=>o.status===s).length}</b></div>`).join('')}</div></div></div>`}
 function settingsView(c){c.innerHTML=`<div class="page"><div class="grid two"><div class="card"><h2>Supabase</h2><div class="statline"><span>Conexión</span><b class="green">Activa</b></div><div class="statline"><span>Productos</span><b>${products.length}</b></div><div class="statline"><span>Pedidos</span><b>${orders.length}</b></div><div class="statline"><span>Clientes</span><b>${customers.length}</b></div><div class="statline"><span>Gastos</span><b>${expenses.length}</b></div><div class="statline"><span>Diseños</span><b>${designs.length}</b></div></div><div class="card"><h2>Seguridad</h2><p class="muted">Solo los correos autorizados pueden acceder.</p><button class="primary" onclick="supabaseClient.auth.signOut()">Cerrar sesión</button></div></div></div>`}
 function usersView(c){c.innerHTML=`<div class="page"><div class="card">${ADMINS.map(e=>`<div class="user-card-v7"><div class="avatar-v7">${e[0].toUpperCase()}</div><div style="flex:1;min-width:0"><strong>${esc(e)}</strong><div class="muted">Administrador · Acceso completo</div></div><span class="green">● Autorizado</span></div>`).join('')}<div class="empty">El acceso se controla mediante Supabase Auth.</div></div></div>`}
