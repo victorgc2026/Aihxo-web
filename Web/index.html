@@ -66,19 +66,22 @@
     <p>
       Camiseta de la Colección AIHXO con diseño de bailarina y faro.
       Modelo mostrado en color rosa.
-      <p><b>Tallas disponibles:</b><br>
-  <span style="display:inline-block;border:1px solid #d7deea;border-radius:20px;padding:5px 10px;margin:4px 4px 0 0">3/4</span>
-  <span style="display:inline-block;border:1px solid #d7deea;border-radius:20px;padding:5px 10px;margin:4px 4px 0 0">5/6</span>
-  <span style="display:inline-block;border:1px solid #d7deea;border-radius:20px;padding:5px 10px;margin:4px 4px 0 0">7/8</span>
-  <span style="display:inline-block;border:1px solid #d7deea;border-radius:20px;padding:5px 10px;margin:4px 4px 0 0">9/11</span>
-  <span style="display:inline-block;border:1px solid #d7deea;border-radius:20px;padding:5px 10px;margin:4px 4px 0 0">12/13</span>
-</p>
+      <p><b>Tallas disponibles:</b></p>
+
+<div id="tallas-ainhoa" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;">
+  <button type="button" data-talla="3/4" onclick="seleccionarTallaAinhoa(this)">3/4</button>
+  <button type="button" data-talla="5/6" onclick="seleccionarTallaAinhoa(this)">5/6</button>
+  <button type="button" data-talla="7/8" onclick="seleccionarTallaAinhoa(this)">7/8</button>
+  <button type="button" data-talla="9/11" onclick="seleccionarTallaAinhoa(this)">9/11</button>
+  <button type="button" data-talla="12/13" onclick="seleccionarTallaAinhoa(this)">12/13</button>
+</div>
 
 <p><b>Color mostrado:</b> Rosa</p>
-    </p>
+    
 
     <a
-  href="https://wa.me/34692943013?text=Hola%20AIHXO%2C%20quiero%20pedir%20AINHOA%20MERA%20con%20la%20oferta%20de%20primera%20compra%20de%2012%2C95%20%E2%82%AC.%0A%0ANombre%3A%20%0ATalla%3A%20%0AColor%3A%20Rosa"
+  id="btn-ainhoa-mera"
+  href="#"
   target="_blank"
   style="display:inline-block;background:#087cf4;color:white;text-decoration:none;font-weight:800;padding:14px 22px;border-radius:14px;margin-top:10px;">
   Pedir AINHOA MERA →
@@ -271,6 +274,38 @@ async function loadCatalog(){
 }
 
 loadCatalog();
+</script>
+  <script>
+let tallaAinhoa = "";
+
+function seleccionarTallaAinhoa(btn) {
+  tallaAinhoa = btn.dataset.talla;
+
+  document.querySelectorAll('#tallas-ainhoa button').forEach(b => {
+    b.style.background = '#fff';
+    b.style.color = '#6d7890';
+    b.style.border = '1px solid #d7deea';
+  });
+
+  btn.style.background = '#087cf4';
+  btn.style.color = '#fff';
+  btn.style.border = '1px solid #087cf4';
+
+  const mensaje =
+    `Hola AIHXO, quiero pedir AINHOA MERA con la oferta de primera compra de 12,95 €.\n\n` +
+    `Talla: ${tallaAinhoa}\n` +
+    `Color: Rosa`;
+
+  document.getElementById('btn-ainhoa-mera').href =
+    'https://wa.me/34692943013?text=' + encodeURIComponent(mensaje);
+}
+
+document.getElementById('btn-ainhoa-mera').addEventListener('click', function(e) {
+  if (!tallaAinhoa) {
+    e.preventDefault();
+    alert('Selecciona una talla antes de realizar el pedido.');
+  }
+});
 </script>
 </body>
 </html>
