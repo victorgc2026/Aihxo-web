@@ -224,7 +224,25 @@ function productForm(id){
   </div>
 
   <button class="primary">Guardar producto</button>
-
+${id ? `
+  <button
+    type="button"
+    onclick="deleteProduct('${id}')"
+    style="
+      margin-top:12px;
+      width:100%;
+      background:#fff;
+      color:#c62828;
+      border:1px solid #ef9a9a;
+      border-radius:12px;
+      padding:13px 16px;
+      font-weight:800;
+      cursor:pointer;
+    "
+  >
+    🗑 Eliminar producto
+  </button>
+` : ''}
  </form>`;
 
  $('#pf').onsubmit=async e=>{
@@ -327,6 +345,37 @@ if(imageFile){
    toast('Producto guardado');
   }
  };
+}
+async function deleteProduct(id) {
+  const p = products.find(x => String(x.id) === String(id));
+
+  if (!p) {
+    toast('Producto no encontrado');
+    return;
+  }
+
+  const ok = confirm(
+    `¿Seguro que quieres eliminar este producto?\n\n` +
+    `${p.model || ''} · ${p.size || ''} · ${p.color || ''}\n\n` +
+    `Esta acción no se puede deshacer.`
+  );
+
+  if (!ok) return;
+
+  const { error } = await supabaseClient
+    .from('products')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    toast('No se pudo eliminar: ' + error.message);
+    return;
+  }
+
+  closeDrawer();
+  await loadAll();
+  setView('products');
+  toast('Producto eliminado');
 }
 async function addStock(id){const p=products.find(x=>x.id===id),n=Number(prompt('Unidades a añadir','5')||0);if(!n)return;const r=await supabaseClient.from('products').update({stock:p.stock+n}).eq('id',id);if(r.error)toast(r.error.message);else{await loadAll();setView('stock');toast('Stock actualizado')}}
 function stock(c){
