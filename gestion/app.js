@@ -217,7 +217,21 @@ function productForm(id){
      value="${p.sale_price||0}">
    </div>
   </div>
+<div class="formgrid">
+  <div class="field">
+    <label>Oferta apertura · 1 impresión</label>
+    <input name="price_one_print" type="number" step=".01"
+      value="${p.price_one_print ?? ''}"
+      placeholder="Ej. 9.95">
+  </div>
 
+  <div class="field">
+    <label>Oferta apertura · 2 impresiones</label>
+    <input name="price_two_print" type="number" step=".01"
+      value="${p.price_two_print ?? ''}"
+      placeholder="Ej. 12.95">
+  </div>
+</div>
   <div class="field">
    <label>Stock</label>
    <input name="stock" type="number" value="${p.stock||0}">
@@ -316,10 +330,21 @@ if(imageFile){
    measurements:measurements,
 
    garment_cost:+f.get('garment_cost'),
-   dtf_cost:+f.get('dtf_cost'),
-   extras_cost:+f.get('extras_cost'),
-   sale_price:+f.get('sale_price'),
-   stock:+f.get('stock')
+dtf_cost:+f.get('dtf_cost'),
+extras_cost:+f.get('extras_cost'),
+sale_price:+f.get('sale_price'),
+
+price_one_print:
+  f.get('price_one_print') !== ''
+    ? +f.get('price_one_print')
+    : null,
+
+price_two_print:
+  f.get('price_two_print') !== ''
+    ? +f.get('price_two_print')
+    : null,
+
+stock:+f.get('stock')
   };
 
   const duplicate=products.find(x=>
