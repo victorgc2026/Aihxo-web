@@ -323,54 +323,457 @@ const productosPersonalizables = Object.values(groups).filter(p => {
   const texto = `${p.model || ''} ${p.sku || ''}`.toUpperCase();
   return !texto.includes('AINHOA');
 });
-  
   grid.innerHTML = productosPersonalizables.map(p => {
-    const sizes = [...p.sizes].sort((a,b) => {
-      const A = String(a).trim().toUpperCase(), B = String(b).trim().toUpperCase();
-      const ia = sizeOrder.findIndex(x => x.toUpperCase() === A), ib = sizeOrder.findIndex(x => x.toUpperCase() === B);
-      if(ia === -1 && ib === -1) return A.localeCompare(B,'es',{numeric:true});
-      if(ia === -1) return 1;
-      if(ib === -1) return -1;
-      return ia - ib;
-    });
+  const sizes = [...p.sizes].sort((a,b) => {
+    const A = String(a).trim().toUpperCase();
+    const B = String(b).trim().toUpperCase();
 
-    const colors = [...p.colors];
-    const prices = p.variants.map(v => Number(v.sale_price || 0)).filter(v => v > 0);
-    const min = prices.length ? Math.min(...prices) : 0;
-    const max = prices.length ? Math.max(...prices) : 0;
-    const price = min ? (min === max
-      ? min.toLocaleString('es-ES',{style:'currency',currency:'EUR'})
-      : `Desde ${min.toLocaleString('es-ES',{style:'currency',currency:'EUR'})}`) : '';
+    const ia = sizeOrder.findIndex(x => x.toUpperCase() === A);
+    const ib = sizeOrder.findIndex(x => x.toUpperCase() === B);
 
-    const category = String(p.category || '').toLowerCase().includes('bolso') ? 'tote' : 'camiseta';
-    const rows = Object.entries(p.measures || {}).map(([size,m]) =>
-      `<tr><td>${escCatalog(size)}</td><td>${escCatalog(m.width || '—')} cm</td><td>${escCatalog(m.length || '—')} cm</td></tr>`
-    ).join('');
-    const message = encodeURIComponent(`Hola AIHXO, quiero personalizar ${p.model || p.sku || 'esta prenda'}.`);
+    if (ia === -1 && ib === -1) {
+      return A.localeCompare(B, 'es', {numeric:true});
+    }
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
 
-    return `<article class="product" data-cat="${category}">
-      ${p.image_url
-        ? `<div class="ph" style="padding:0;overflow:hidden"><img src="${escCatalog(p.image_url)}" alt="${escCatalog(p.model || 'Producto AIHXO')}" style="width:100%;height:100%;display:block;object-fit:cover"></div>`
-        : `<div class="ph dark"><b>AIHXO</b><small>${escCatalog(p.model || p.sku || 'PRODUCTO')}</small></div>`}
-      <div class="info">
-        <em>PARA PERSONALIZAR · ${escCatalog(p.category || 'AIHXO')}</em>
-        <h3>${escCatalog(p.model || p.sku || 'Producto AIHXO')}</h3>
-        ${price ? `<p><strong>${price}</strong></p>` : ''}
-        ${sizes.length ? `<p><b>Tallas disponibles:</b><br>${sizes.map(t => `<span style="display:inline-block;border:1px solid #d7deea;border-radius:20px;padding:5px 10px;margin:4px 4px 0 0">${escCatalog(t)}</span>`).join('')}</p>` : ''}
-        ${colors.length ? `<p><b>Colores:</b> ${colors.map(escCatalog).join(' · ')}</p>` : ''}
-        ${p.material ? `<p><b>Composición:</b> ${escCatalog(p.material)}</p>` : ''}
-        ${p.grammage ? `<p><b>Gramaje:</b> ${escCatalog(p.grammage)}</p>` : ''}
-        ${p.fabric ? `<p><b>Tejido:</b> ${escCatalog(p.fabric)}</p>` : ''}
-        ${p.fit ? `<p><b>Corte:</b> ${escCatalog(p.fit)}</p>` : ''}
-        ${p.features ? `<p>${escCatalog(p.features)}</p>` : ''}
-        ${p.care ? `<p><b>Cuidados:</b> ${escCatalog(p.care)}</p>` : ''}
-        ${rows ? `<details style="margin:16px 0"><summary><b>Guía de medidas</b></summary><div style="overflow-x:auto;margin-top:10px"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>Talla</th><th>Ancho</th><th>Largo</th></tr></thead><tbody>${rows}</tbody></table></div></details>` : ''}
-        <a href="https://wa.me/34692943013?text=${message}" target="_blank">Quiero personalizar esta prenda →</a>
-      </div>
-    </article>`;
+    return ia - ib;
+  });
+
+  const colors = [...p.colors];
+
+  const prices = p.variants
+    .map(v => Number(v.sale_price || 0))
+    .filter(v => v > 0);
+
+  const min = prices.length ? Math.min(...prices) : 0;
+  const max = prices.length ? Math.max(...prices) : 0;
+
+  const price = min
+    ? (
+        min === max
+          ? min.toLocaleString('es-ES', {
+              style:'currency',
+              currency:'EUR'
+            })
+          : `Desde ${min.toLocaleString('es-ES', {
+              style:'currency',
+              currency:'EUR'
+            })}`
+      )
+    : '';
+
+  /* =========================
+     CLASIFICACIÓN DEL PRODUCTO
+     ========================= */
+
+  const textoCategoria =
+    `${p.category || ''} ${p.model || ''}`.toLowerCase();
+
+  const tallasInfantiles = [
+    '2-3','3-4','4-5','5-6','6-7','7-8',
+    '8-9','9-10','9-11','10-11','11-12',
+    '12-13','13-14'
+  ];
+
+  let category = 'adulto';
+
+  if (
+    textoCategoria.includes('bolso') ||
+    textoCategoria.includes('tote')
+  ) {
+    category = 'tote';
+
+  } else if (
+    textoCategoria.includes('niño') ||
+    textoCategoria.includes('nino') ||
+    textoCategoria.includes('infantil') ||
+    textoCategoria.includes('kids')
+  ) {
+    category = 'nino';
+
+  } else {
+    const tieneTallaInfantil = sizes.some(t =>
+      tallasInfantiles.includes(String(t).trim())
+    );
+
+    category = tieneTallaInfantil ? 'nino' : 'adulto';
+  }
+
+  /* =========================
+     TABLA DE MEDIDAS
+     ========================= */
+
+  const rows = Object.entries(p.measures || {})
+    .map(([size,m]) => `
+      <tr>
+        <td>${escCatalog(size)}</td>
+        <td>${escCatalog(m.width || '—')} cm</td>
+        <td>${escCatalog(m.length || '—')} cm</td>
+      </tr>
+    `)
+    .join('');
+
+  /* =========================
+     COLORES
+     ========================= */
+
+  const mapaColores = {
+    'blanco':'#ffffff',
+    'negro':'#111111',
+    'rosa':'#f4a6c1',
+    'rosa claro':'#f8c8d8',
+    'fucsia':'#d9468f',
+    'azul':'#3478c7',
+    'azul marino':'#172554',
+    'azul royal':'#2563eb',
+    'celeste':'#87ceeb',
+    'rojo':'#dc2626',
+    'verde':'#3f8f55',
+    'verde botella':'#14532d',
+    'amarillo':'#facc15',
+    'naranja':'#f97316',
+    'gris':'#9ca3af',
+    'gris oscuro':'#4b5563',
+    'beige':'#d8c3a5',
+    'arena':'#d6bd98',
+    'morado':'#7e57c2',
+    'lila':'#c4a1e0',
+    'burdeos':'#7f1d1d'
+  };
+
+  const coloresHTML = colors.map(color => {
+    const nombre = String(color).trim();
+    const clave = nombre.toLowerCase();
+    const colorVisual = mapaColores[clave] || '#d1d5db';
+
+    return `
+      <button
+        type="button"
+        class="color-option"
+        data-color="${escCatalog(nombre)}"
+        onclick="seleccionarColorProducto(this)"
+        style="
+          display:inline-flex;
+          align-items:center;
+          gap:7px;
+          border:1px solid #d7deea;
+          border-radius:999px;
+          padding:6px 11px 6px 7px;
+          background:#fff;
+          cursor:pointer;
+          font-size:13px;
+        "
+      >
+        <span
+          style="
+            width:22px;
+            height:22px;
+            border-radius:50%;
+            background:${colorVisual};
+            border:1px solid #bfc7d3;
+            display:inline-block;
+            flex:none;
+          "
+        ></span>
+
+        ${escCatalog(nombre)}
+      </button>
+    `;
   }).join('');
+
+  /* =========================
+     TALLAS
+     ========================= */
+
+  const tallasHTML = sizes.map(talla => `
+    <button
+      type="button"
+      class="size-option"
+      data-size="${escCatalog(talla)}"
+      onclick="seleccionarTallaProducto(this)"
+      style="
+        border:1px solid #d7deea;
+        background:#fff;
+        border-radius:999px;
+        padding:7px 12px;
+        margin:4px 4px 0 0;
+        cursor:pointer;
+        font-weight:700;
+      "
+    >
+      ${escCatalog(talla)}
+    </button>
+  `).join('');
+
+  const nombreProducto = escCatalog(
+    p.model || p.sku || 'Producto AIHXO'
+  );
+
+  return `
+    <article
+      class="product"
+      data-cat="${category}"
+      data-product-name="${nombreProducto}"
+      data-selected-size=""
+      data-selected-color=""
+    >
+
+      ${
+        p.image_url
+          ? `
+            <div class="ph" style="padding:0;overflow:hidden">
+              <img
+                src="${escCatalog(p.image_url)}"
+                alt="${nombreProducto}"
+                style="
+                  width:100%;
+                  height:100%;
+                  display:block;
+                  object-fit:cover;
+                "
+              >
+            </div>
+          `
+          : `
+            <div class="ph dark">
+              <b>AIHXO</b>
+              <small>${nombreProducto}</small>
+            </div>
+          `
+      }
+
+      <div class="info">
+
+        <em>
+          PARA PERSONALIZAR ·
+          ${
+            category === 'nino'
+              ? 'NIÑOS'
+              : category === 'adulto'
+                ? 'ADULTOS'
+                : 'TOTE BAGS'
+          }
+        </em>
+
+        <h3>${nombreProducto}</h3>
+
+        ${price ? `
+          <p>
+            <strong style="font-size:22px">
+              ${price}
+            </strong>
+          </p>
+        ` : ''}
+
+        ${sizes.length ? `
+          <div style="margin:16px 0;">
+            <b>Selecciona talla:</b>
+
+            <div style="margin-top:8px;">
+              ${tallasHTML}
+            </div>
+          </div>
+        ` : ''}
+
+        ${colors.length ? `
+          <div style="margin:16px 0;">
+            <b>Selecciona color:</b>
+
+            <div
+              style="
+                display:flex;
+                flex-wrap:wrap;
+                gap:8px;
+                margin-top:10px;
+              "
+            >
+              ${coloresHTML}
+            </div>
+          </div>
+        ` : ''}
+
+        ${p.material ? `
+          <p>
+            <b>Composición:</b>
+            ${escCatalog(p.material)}
+          </p>
+        ` : ''}
+
+        ${p.grammage ? `
+          <p>
+            <b>Gramaje:</b>
+            ${escCatalog(p.grammage)}
+          </p>
+        ` : ''}
+
+        ${p.fabric ? `
+          <p>
+            <b>Tejido:</b>
+            ${escCatalog(p.fabric)}
+          </p>
+        ` : ''}
+
+        ${p.fit ? `
+          <p>
+            <b>Corte:</b>
+            ${escCatalog(p.fit)}
+          </p>
+        ` : ''}
+
+        ${p.features ? `
+          <p>${escCatalog(p.features)}</p>
+        ` : ''}
+
+        ${p.care ? `
+          <p>
+            <b>Cuidados:</b>
+            ${escCatalog(p.care)}
+          </p>
+        ` : ''}
+
+        ${rows ? `
+          <details style="margin:16px 0;">
+            <summary style="cursor:pointer;">
+              <b>📏 Guía de medidas</b>
+            </summary>
+
+            <div style="overflow-x:auto;margin-top:10px;">
+              <table
+                style="
+                  width:100%;
+                  border-collapse:collapse;
+                  text-align:left;
+                "
+              >
+                <thead>
+                  <tr>
+                    <th>Talla</th>
+                    <th>Ancho</th>
+                    <th>Largo</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  ${rows}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        ` : ''}
+
+        <a
+          href="#"
+          onclick="return pedirProductoPersonalizado(this)"
+          style="
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            margin-top:12px;
+            background:#087cf4;
+            color:#fff;
+            text-decoration:none;
+            font-weight:800;
+            padding:14px 20px;
+            border-radius:14px;
+          "
+        >
+          Personalizar esta prenda →
+        </a>
+
+      </div>
+    </article>
+  `;
+}).join('');
+
+
+function seleccionarTallaProducto(btn) {
+  const card = btn.closest('.product');
+
+  if (!card) return;
+
+  card.querySelectorAll('.size-option').forEach(b => {
+    b.style.background = '#fff';
+    b.style.color = '#26344d';
+    b.style.border = '1px solid #d7deea';
+  });
+
+  btn.style.background = '#087cf4';
+  btn.style.color = '#fff';
+  btn.style.border = '1px solid #087cf4';
+
+  card.dataset.selectedSize = btn.dataset.size || '';
 }
 
+
+function seleccionarColorProducto(btn) {
+  const card = btn.closest('.product');
+
+  if (!card) return;
+
+  card.querySelectorAll('.color-option').forEach(b => {
+    b.style.border = '1px solid #d7deea';
+    b.style.background = '#fff';
+    b.style.boxShadow = 'none';
+    b.style.fontWeight = '400';
+  });
+
+  btn.style.border = '2px solid #087cf4';
+  btn.style.background = '#eef6ff';
+  btn.style.boxShadow = '0 0 0 2px rgba(8,124,244,0.10)';
+  btn.style.fontWeight = '800';
+
+  card.dataset.selectedColor = btn.dataset.color || '';
+}
+
+
+function pedirProductoPersonalizado(btn) {
+  const card = btn.closest('.product');
+
+  if (!card) return false;
+
+  const nombre = card.dataset.productName || 'Producto AIHXO';
+  const talla = card.dataset.selectedSize || '';
+  const color = card.dataset.selectedColor || '';
+
+  const tieneTallas =
+    card.querySelectorAll('.size-option').length > 0;
+
+  const tieneColores =
+    card.querySelectorAll('.color-option').length > 0;
+
+  if (tieneTallas && !talla) {
+    alert('Selecciona una talla antes de continuar.');
+    return false;
+  }
+
+  if (tieneColores && !color) {
+    alert('Selecciona un color antes de continuar.');
+    return false;
+  }
+
+  let mensaje =
+    `Hola AIHXO, quiero personalizar esta prenda:\n\n` +
+    `Modelo: ${nombre}`;
+
+  if (talla) {
+    mensaje += `\nTalla: ${talla}`;
+  }
+
+  if (color) {
+    mensaje += `\nColor: ${color}`;
+  }
+
+  mensaje += `\n\nQuiero información para personalizarla.`;
+
+  window.open(
+    'https://wa.me/34692943013?text=' +
+    encodeURIComponent(mensaje),
+    '_blank'
+  );
+
+  return false;
+}
 loadCatalog();
 </script>
   <script>
