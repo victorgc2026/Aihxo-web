@@ -296,7 +296,7 @@ async function loadCatalog(){
 
   let {data, error} = await catalogSB
     .from('products')
-    .select('id,sku,category,model,size,color,sale_price,material,grammage,fabric,fit,care,features,measurements,image_url')
+    .select('id,sku,category,model,size,color,sale_price,price_one_print,price_two_print,material,grammage,fabric,fit,care,features,measurements,image_url')
     .order('model');
   if (error) {
   console.error('Error cargando catálogo:', error);
@@ -395,26 +395,30 @@ const productosPersonalizables = Object.values(groups).filter(p => {
 
   const colors = [...p.colors];
 
-  const prices = p.variants
-    .map(v => Number(v.sale_price || 0))
-    .filter(v => v > 0);
+const promoPrices = p.variants
+  .map(v => Number(v.price_one_print || 0))
+  .filter(v => v > 0);
 
-  const min = prices.length ? Math.min(...prices) : 0;
-  const max = prices.length ? Math.max(...prices) : 0;
+const normalPrices = p.variants
+  .map(v => Number(v.sale_price || 0))
+  .filter(v => v > 0);
 
-  const price = min
-    ? (
-        min === max
-          ? min.toLocaleString('es-ES', {
-              style:'currency',
-              currency:'EUR'
-            })
-          : `Desde ${min.toLocaleString('es-ES', {
-              style:'currency',
-              currency:'EUR'
-            })}`
-      )
-    : '';
+const promoMin = promoPrices.length ? Math.min(...promoPrices) : 0;
+const normalMin = normalPrices.length ? Math.min(...normalPrices) : 0;
+
+const price = promoMin
+  ? `OFERTA APERTURA · Desde ${promoMin.toLocaleString('es-ES', {
+      style:'currency',
+      currency:'EUR'
+    })}`
+  : (
+      normalMin
+        ? normalMin.toLocaleString('es-ES', {
+            style:'currency',
+            currency:'EUR'
+          })
+        : ''
+    );
 
   /* =========================
      CLASIFICACIÓN DEL PRODUCTO
