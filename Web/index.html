@@ -315,9 +315,39 @@ data = data.filter(p => {
 
   const groups = {};
   data.forEach(p => {
-    const key = `${String(p.category || '').toLowerCase()}|${String(p.model || '').toLowerCase()}`;
+    let modeloAgrupado = String(p.model || '')
+  .trim()
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '');
+
+/* Agrupar camisetas básicas infantiles */
+if (
+  modeloAgrupado.includes('nino') ||
+  modeloAgrupado.includes('kids') ||
+  modeloAgrupado.includes('gn649')
+) {
+  modeloAgrupado = 'basica-nino';
+}
+
+/* Agrupar variantes Gildan infantiles */
+if (
+  modeloAgrupado.includes('gildan')
+) {
+  modeloAgrupado = 'gildan-nino';
+}
+
+const key =
+  `${String(p.category || '').trim().toLowerCase()}|${modeloAgrupado}`;
     if(!groups[key]) groups[key] = {...p, variants:[], sizes:new Set(), colors:new Set(), measures:{}};
     const g = groups[key];
+    if (modeloAgrupado === 'basica-nino') {
+  g.model = 'Camiseta Básica Niño';
+}
+
+if (modeloAgrupado === 'gildan-nino') {
+  g.model = 'Camiseta Gildan Niño';
+}
     g.variants.push(p);
     if(p.size) g.sizes.add(p.size);
     if(p.color) g.colors.add(p.color);
