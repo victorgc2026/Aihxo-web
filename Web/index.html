@@ -361,7 +361,23 @@ const productosPersonalizables = Object.values(groups).filter(p => {
   return !texto.includes('AINHOA');
 });
   grid.innerHTML = productosPersonalizables.map(p => {
-  const sizes = [...p.sizes].sort((a,b) => {
+  const sizes = [...new Set(
+  [...p.sizes].map(t => {
+    const talla = String(t).trim().replace(/\//g, '-');
+
+    const equivalencias = {
+      '3-4': '3-4',
+      '4-5': '4-5',
+      '5-6': '5-6',
+      '7-8': '7-8',
+      '9-11': '9-11',
+      '10-12': '10-12',
+      '12-13': '12-13'
+    };
+
+    return equivalencias[talla] || talla;
+  })
+)].sort((a,b) => {
     const A = String(a).trim().toUpperCase();
     const B = String(b).trim().toUpperCase();
 
