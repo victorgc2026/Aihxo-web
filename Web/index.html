@@ -332,10 +332,11 @@ if (
 
 /* Agrupar variantes Gildan infantiles */
 if (
+ if (
   modeloAgrupado.includes('gildan')
 ) {
-  modeloAgrupado = 'gildan-nino';
-}
+  modeloAgrupado = 'basica-nino';
+} 
 
 const key =
   `${String(p.category || '').trim().toLowerCase()}|${modeloAgrupado}`;
@@ -345,9 +346,7 @@ const key =
   g.model = 'Camiseta Básica Niño';
 }
 
-if (modeloAgrupado === 'gildan-nino') {
-  g.model = 'Camiseta Premium Niño';
-}
+
     g.variants.push(p);
     if(p.size) g.sizes.add(p.size);
     if(p.color) g.colors.add(p.color);
