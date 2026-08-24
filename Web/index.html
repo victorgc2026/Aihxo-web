@@ -298,13 +298,20 @@ async function loadCatalog(){
     .from('products')
     .select('id,sku,category,model,size,color,sale_price,material,grammage,fabric,fit,care,features,measurements,image_url')
     .order('model');
-  data = data.filter(p => {
+  if (error) {
+  console.error('Error cargando catálogo:', error);
+  return;
+}
+
+if (!data || !data.length) {
+  console.warn('No hay productos disponibles');
+  return;
+}
+
+data = data.filter(p => {
   const texto = `${p.model || ''} ${p.sku || ''}`.toUpperCase();
   return !texto.includes('AINHOA');
 });
-
-  if(error){ console.error(error); return; }
-  if(!data || !data.length) return;
 
   const groups = {};
   data.forEach(p => {
