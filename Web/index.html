@@ -336,6 +336,15 @@ async function cargarDisenosPropiosAutomaticos() {
       const precioMostrar = oferta !== null && oferta > 0
         ? oferta
         : precio;
+      const tallas = String(p.size || '')
+  .split(',')
+  .map(x => x.trim())
+  .filter(Boolean);
+
+const colores = String(p.color || '')
+  .split(',')
+  .map(x => x.trim())
+  .filter(Boolean);
 
       return `
   <article class="product" data-collection-cat="${filtros}">
@@ -354,6 +363,51 @@ async function cargarDisenosPropiosAutomaticos() {
       ${esNovedad ? '<em>NOVEDAD</em>' : '<em>DISEÑO AIHXO</em>'}
 
       <h3>${nombre}</h3>
+      ${tallas.length ? `
+  <div style="margin:14px 0;">
+    <div style="font-weight:800;margin-bottom:8px;">Tallas disponibles</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      ${tallas.map(t => `
+        <button
+          type="button"
+          style="
+            border:1px solid #d7dee8;
+            background:#fff;
+            color:#087cf4;
+            padding:8px 12px;
+            border-radius:999px;
+            font-weight:800;
+          "
+        >
+          ${escaparHTML(t)}
+        </button>
+      `).join('')}
+    </div>
+  </div>
+` : ''}
+
+${colores.length ? `
+  <div style="margin:14px 0;">
+    <div style="font-weight:800;margin-bottom:8px;">Colores disponibles</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      ${colores.map(c => `
+        <button
+          type="button"
+          style="
+            border:1px solid #d7dee8;
+            background:#fff;
+            color:#087cf4;
+            padding:8px 12px;
+            border-radius:999px;
+            font-weight:800;
+          "
+        >
+          ${escaparHTML(c)}
+        </button>
+      `).join('')}
+    </div>
+  </div>
+` : ''}
 
       ${descripcion
         ? `<p>${descripcion.replace(/\n/g, '<br>')}</p>`
