@@ -603,3 +603,308 @@ productsView = function(c) {
     actions.appendChild(btn);
   });
 };
+window.orderForm = function() {
+  $('#drawer').classList.remove('hidden');
+
+  $('#drawerBody').innerHTML = `
+    <h2>Nuevo pedido personalizado</h2>
+
+    <form class="form" id="of">
+
+      <div class="formgrid">
+        <div class="field">
+          <label>Cliente</label>
+          <input name="customer" required>
+        </div>
+
+        <div class="field">
+          <label>Contacto</label>
+          <input name="contact" placeholder="Teléfono / WhatsApp">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Producto</label>
+        <select name="sku" id="osku">
+          ${products.map(p => `
+            <option value="${p.id}">
+              ${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)}
+            </option>
+          `).join('')}
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Personalización</label>
+        <select name="personalization" id="opersonalization">
+          <option value="1">1 impresión</option>
+          <option value="2">2 impresiones</option>
+        </select>
+      </div>
+
+      <div class="formgrid">
+        <div class="field">
+          <label>Ubicación impresión 1</label>
+          <input
+            name="position1"
+            placeholder="Ej. Pecho, espalda..."
+          >
+        </div>
+
+        <div class="field" id="position2Field" style="display:none;">
+          <label>Ubicación impresión 2</label>
+          <input
+            name="position2"
+            placeholder="Ej. Espalda, manga..."
+          >
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Diseño</label>
+        <input
+          name="design"
+          placeholder="Nombre o descripción del diseño"
+        >
+      </div>
+
+      <div class="field">
+        <label>Notas del cliente</label>
+        <textarea
+          name="notes"
+          rows="3"
+          placeholder="Colores, texto, instrucciones especiales..."
+        ></textarea>
+      </div>
+
+      <div class="formgrid">
+        <div class="field">
+          <label>Cantidad</label>
+          <input
+            name="qty"
+            id="oqty"
+            type="number"
+            min="1"
+            value="1"
+          >
+        </div>
+
+        <div class="field">
+          <label>Precio unitario</label>
+          <input
+            name="price"
+            id="oprice"
+            type="number"
+            step=".01"
+          >
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Envío cobrado</label>
+        <input
+          name="shipping"
+          id="oshipping"
+          type="number"
+          step=".01"
+          value="0"
+        >
+      </div>
+
+      <div
+        id="orderSummary"
+        class="card"
+        style="margin:16px 0;padding:16px;"
+      ></div>
+
+      <button class="primary">
+        Guardar pedido
+      </button>
+
+    </form>
+  `;
+
+  const actualizarPedido = () => {
+    const p = products.find(
+      x => x.id === $('#osku').value
+    );
+
+    if (!p) return;
+
+    const tipo = $('#opersonalization').value;
+
+    const precio =
+      tipo === '1'
+        ? Number(p.price_one_print || p.sale_price || 0)
+        : Number(p.price_two_print || p.sale_price || 0);
+
+    $('#oprice').value = precio || 0;
+
+    $('#position2Field').style.display =
+      tipo === '2' ? 'block' : 'none';
+
+    actualizarResumenPedido();
+  };
+
+  window.actualizarResumenPedido = function() {
+    const p = products.find(
+      x => x.id === $('#osku').value
+    );
+
+    if (!p) return;
+
+    const qty = Number($('#oqty').value || 1);
+    const price = Number($('#oprice').value || 0);
+    const shipping = Number($('#oshipping').value || 0);
+
+    const total = (qty * price) + shipping;
+    const coste = qty * cost(p);
+    const beneficio = total - coste;
+
+    $('#orderSummary').innerHTML = `
+      <div class="row">
+        <span>Total cliente</span>
+        <b>${money(total)}</b>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <span>Coste estimado</span>
+        <b>${money(coste)}</b>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <span>Beneficio estimado</span>
+        <b>${money(beneficio)}</b>
+      </div>
+    `;
+  };
+
+  $('#osku').onchange = actualizarPedido;
+  $('#opersonalization').onchange = actualizarPedido;
+  $('#oqty').oninput = actualizarResumenPedido;
+  $('#oprice').oninput = actualizarResumenPedido;
+  $('#oshipping').oninput = actualizarResumenPedido;
+
+  $('#of').onsubmit = async function(e) {
+    e.preventDefault();
+
+    const f = new FormData(e.target);
+
+    const p = products.find(
+      x => x.id === f.get('sku')
+    );
+
+    const qty = Number(f.get('qty') || 1);
+
+    if (!p) {
+      toast('Producto no válido');
+      return;
+    }
+
+    if (p.stock < qty) {
+      toast('Stock insuficiente');
+      return;
+    }
+
+    const tipo = f.get('personalization');
+
+    const detalleDiseno = [
+      f.get('design')
+        ? `Diseño: ${f.get('design')}`
+        : '',
+
+      `Personalización: ${tipo} impresión${tipo === '2' ? 'es' : ''}`,
+
+      f.get('position1')
+        ? `Ubicación 1: ${f.get('position1')}`
+        : '',
+
+      tipo === '2' && f.get('position2')
+        ? `Ubicación 2: ${f.get('position2')}`
+        : '',
+
+      f.get('notes')
+        ? `Notas: ${f.get('notes')}`
+        : ''
+    ]
+    .filter(Boolean)
+    .join(' | ');
+
+    const price = Number(f.get('price') || 0);
+    const shipping = Number(f.get('shipping') || 0);
+
+    let customer = customers.find(
+      x => x.name === f.get('customer')
+    );
+
+    if (!customer) {
+      const r = await supabaseClient
+        .from('customers')
+        .insert({
+          name: f.get('customer'),
+          contact: f.get('contact')
+        })
+        .select()
+        .single();
+
+      if (r.error) {
+        toast(r.error.message);
+        return;
+      }
+
+      customer = r.data;
+    }
+
+    const order = {
+      order_number:
+        'AIHXO-' +
+        String(orders.length + 1).padStart(4, '0'),
+
+      customer_id: customer.id,
+      customer_name: customer.name,
+      contact: f.get('contact'),
+
+      product_id: p.id,
+      product_name: p.model,
+      size: p.size,
+      color: p.color,
+
+      design: detalleDiseno,
+
+      quantity: qty,
+      unit_price: price,
+      shipping: shipping,
+      total: qty * price + shipping,
+
+      product_cost: qty * cost(p),
+
+      status: 'Pendiente'
+    };
+
+    const r = await supabaseClient
+      .from('orders')
+      .insert(order);
+
+    if (r.error) {
+      toast(r.error.message);
+      return;
+    }
+
+    await supabaseClient
+      .from('products')
+      .update({
+        stock: p.stock - qty
+      })
+      .eq('id', p.id);
+
+    closeDrawer();
+
+    await loadAll();
+
+    setView('orders');
+
+    toast('Pedido personalizado guardado');
+  };
+
+  actualizarPedido();
+};
