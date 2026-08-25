@@ -960,3 +960,163 @@ const tipo =
 
   actualizarPedido();
 };
+window.drawOrders = function() {
+  const q = ($('#oq')?.value || '').toLowerCase();
+
+  const lista = orders.filter(o =>
+    (
+      (o.order_number || '') + ' ' +
+      (o.customer_name || '') + ' ' +
+      (o.product_name || '')
+    ).toLowerCase().includes(q)
+  );
+
+  $('#orderTable').innerHTML = `
+    <div class="table-wrap" style="margin-top:14px">
+      <table>
+        <thead>
+          <tr>
+            <th>Pedido</th>
+            <th>Cliente</th>
+            <th>Producto</th>
+            <th>Total</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${lista.map(o => `
+            <tr>
+              <td><b>${esc(o.order_number || '')}</b></td>
+
+              <td>
+                ${esc(o.customer_name || '')}
+                <div class="muted">
+                  ${esc(o.contact || '')}
+                </div>
+              </td>
+
+              <td>
+                ${esc(o.product_name || '')}
+                <div class="muted">
+                  ${esc(o.size || '')} · ${esc(o.color || '')}
+                </div>
+              </td>
+
+              <td>${money(o.total || 0)}</td>
+
+              <td>
+                <select onchange="status('${o.id}',this.value)">
+                  ${[
+                    'Pendiente',
+                    'Pagado',
+                    'En producción',
+                    'Preparado',
+                    'Enviado',
+                    'Entregado',
+                    'Cancelado'
+                  ].map(s => `
+                    <option ${o.status === s ? 'selected' : ''}>
+                      ${s}
+                    </option>
+                  `).join('')}
+                </select>
+              </td>
+
+              <td>
+                <button
+                  class="secondary"
+                  onclick="verDetallePedido('${o.id}')"
+                >
+                  Ver detalle
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+};
+
+window.verDetallePedido = function(id) {
+  const o = orders.find(x => x.id === id);
+
+  if (!o) {
+    toast('Pedido no encontrado');
+    return;
+  }
+
+  const beneficio =
+    Number(o.total || 0) -
+    Number(o.product_cost || 0);
+
+  $('#drawer').classList.remove('hidden');
+
+  $('#drawerBody').innerHTML = `
+    <h2>Pedido ${esc(o.order_number || '')}</h2>
+
+    <div class="card" style="padding:16px;margin-bottom:16px;">
+      <div class="row">
+        <span>Cliente</span>
+        <b>${esc(o.customer_name || '')}</b>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <span>Contacto</span>
+        <b>${esc(o.contact || '-')}</b>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <span>Producto</span>
+        <b>${esc(o.product_name || '')}</b>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <span>Talla / Color</span>
+        <b>${esc(o.size || '')} · ${esc(o.color || '')}</b>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <span>Cantidad</span>
+        <b>${o.quantity || 0}</b>
+      </div>
+    </div>
+
+    <div class="card" style="padding:16px;margin-bottom:16px;">
+      <h3 style="margin-top:0;">Ficha de producción</h3>
+
+      <div style="white-space:pre-wrap;line-height:1.6;">
+        ${esc(o.design || 'Sin instrucciones de diseño')}
+      </div>
+    </div>
+
+    <div class="card" style="padding:16px;">
+      <div class="row">
+        <span>Precio unitario</span>
+        <b>${money(o.unit_price || 0)}</b>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <span>Envío</span>
+        <b>${money(o.shipping || 0)}</b>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <span>Total cliente</span>
+        <b>${money(o.total || 0)}</b>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <span>Coste estimado</span>
+        <b>${money(o.product_cost || 0)}</b>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <span>Beneficio estimado</span>
+        <b>${money(beneficio)}</b>
+      </div>
+    </div>
+  `;
+};
