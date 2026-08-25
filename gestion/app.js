@@ -1092,13 +1092,11 @@ window.drawOrders = function() {
               style="max-width:150px;"
             >
               ${[
-                'Pendiente',
-                'Pagado',
-                'En producción',
-                'Preparado',
-                'Enviado',
-                'Entregado',
-                'Cancelado'
+               'Pendiente',
+'En producción',
+'Enviado',
+'Entregado',
+'Cancelado'
               ].map(s => `
                 <option ${o.status === s ? 'selected' : ''}>
                   ${s}
