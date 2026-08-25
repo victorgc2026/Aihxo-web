@@ -259,6 +259,38 @@ function productForm(id){
    <textarea name="care" rows="3"
     placeholder="Ej. lavar a 30 °C, no usar secadora">${esc(p.care||'')}</textarea>
   </div>
+<h3 style="margin-top:22px">Datos de compra / proveedor</h3>
+
+<div class="formgrid">
+  <div class="field">
+    <label>Proveedor</label>
+    <input
+      name="supplier"
+      placeholder="Ej. Makito"
+      value="${esc(p.supplier||'')}"
+    >
+  </div>
+
+  <div class="field">
+    <label>Modelo / referencia proveedor</label>
+    <input
+      name="supplier_model"
+      placeholder="Ej. GN649"
+      value="${esc(p.supplier_model||'')}"
+    >
+  </div>
+</div>
+
+<div class="field">
+  <label>Coste unitario sin IVA</label>
+  <input
+    name="purchase_cost"
+    type="number"
+    step=".01"
+    placeholder="Ej. 3.45"
+    value="${p.purchase_cost ?? ''}"
+  >
+</div>
 
   <h3 style="margin-top:22px">Guía de medidas</h3>
 
@@ -404,6 +436,12 @@ if(imageFile){
    size:f.get('size'),
    color:f.get('color'),
 
+   supplier:f.get('supplier'),
+supplier_model:f.get('supplier_model'),
+purchase_cost:
+  f.get('purchase_cost') !== ''
+    ? +f.get('purchase_cost')
+    : null,
    material:f.get('material'),
    image_url:imageUrl,
    grammage:f.get('grammage'),
