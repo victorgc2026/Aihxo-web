@@ -634,31 +634,33 @@ window.orderForm = function() {
         </select>
       </div>
 
-      <div class="field">
-        <label>Personalización</label>
-        <select name="personalization" id="opersonalization">
-          <option value="1">1 impresión</option>
-          <option value="2">2 impresiones</option>
-        </select>
-      </div>
+  <div id="personalizacionPedido">
+  <div class="field">
+    <label>Personalización</label>
+    <select name="personalization" id="opersonalization">
+      <option value="1">1 impresión</option>
+      <option value="2">2 impresiones</option>
+    </select>
+  </div>
 
-      <div class="formgrid">
-        <div class="field">
-          <label>Ubicación impresión 1</label>
-          <input
-            name="position1"
-            placeholder="Ej. Pecho, espalda..."
-          >
-        </div>
+  <div class="formgrid">
+    <div class="field">
+      <label>Ubicación impresión 1</label>
+      <input
+        name="position1"
+        placeholder="Ej. Pecho, espalda..."
+      >
+    </div>
 
-        <div class="field" id="position2Field" style="display:none;">
-          <label>Ubicación impresión 2</label>
-          <input
-            name="position2"
-            placeholder="Ej. Espalda, manga..."
-          >
-        </div>
-      </div>
+    <div class="field" id="position2Field" style="display:none;">
+      <label>Ubicación impresión 2</label>
+      <input
+        name="position2"
+        placeholder="Ej. Espalda, manga..."
+      >
+    </div>
+  </div>
+</div> 
 
       <div class="field">
         <label>Diseño</label>
@@ -724,27 +726,48 @@ window.orderForm = function() {
     </form>
   `;
 
-  const actualizarPedido = () => {
-    const p = products.find(
-      x => x.id === $('#osku').value
-    );
+ const actualizarPedido = () => {
+  const p = products.find(
+    x => x.id === $('#osku').value
+  );
 
-    if (!p) return;
+  if (!p) return;
 
+  const bloquePersonalizacion =
+    document.getElementById('personalizacionPedido');
+
+  const tienePrecioUno =
+    Number(p.price_one_print || 0) > 0;
+
+  const tienePrecioDos =
+    Number(p.price_two_print || 0) > 0;
+
+  const esPersonalizable =
+    tienePrecioUno || tienePrecioDos;
+
+  if (bloquePersonalizacion) {
+    bloquePersonalizacion.style.display =
+      esPersonalizable ? 'block' : 'none';
+  }
+
+  let precio = Number(p.sale_price || 0);
+
+  if (esPersonalizable) {
     const tipo = $('#opersonalization').value;
 
-    const precio =
+    precio =
       tipo === '1'
         ? Number(p.price_one_print || p.sale_price || 0)
         : Number(p.price_two_print || p.sale_price || 0);
 
-    $('#oprice').value = precio || 0;
-
     $('#position2Field').style.display =
       tipo === '2' ? 'block' : 'none';
+  }
 
-    actualizarResumenPedido();
-  };
+  $('#oprice').value = precio || 0;
+
+  actualizarResumenPedido();
+};
 
   window.actualizarResumenPedido = function() {
     const p = products.find(
@@ -806,14 +829,28 @@ window.orderForm = function() {
       return;
     }
 
-    const tipo = f.get('personalization');
+    const tienePrecioUno =
+  Number(p.price_one_print || 0) > 0;
+
+const tienePrecioDos =
+  Number(p.price_two_print || 0) > 0;
+
+const esPersonalizable =
+  tienePrecioUno || tienePrecioDos;
+
+const tipo =
+  esPersonalizable
+    ? f.get('personalization')
+    : '';
 
     const detalleDiseno = [
       f.get('design')
         ? `Diseño: ${f.get('design')}`
         : '',
 
-      `Personalización: ${tipo} impresión${tipo === '2' ? 'es' : ''}`,
+      esPersonalizable
+  ? `Personalización: ${tipo} impresión${tipo === '2' ? 'es' : ''}`
+  : '',
 
       f.get('position1')
         ? `Ubicación 1: ${f.get('position1')}`
