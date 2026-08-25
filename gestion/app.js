@@ -607,7 +607,8 @@ window.orderForm = function() {
   $('#drawer').classList.remove('hidden');
 
   $('#drawerBody').innerHTML = `
-    <h2>Nuevo pedido personalizado</h2>
+    <h2 id="tituloPedido">Nuevo pedido</h2>
+<div id="tipoPedido" class="muted" style="margin-bottom:18px;font-weight:700;"></div>
 
     <form class="form" id="of">
 
@@ -744,6 +745,20 @@ window.orderForm = function() {
 
   const esPersonalizable =
     tienePrecioUno || tienePrecioDos;
+  const tituloPedido = document.getElementById('tituloPedido');
+const tipoPedido = document.getElementById('tipoPedido');
+
+if (tituloPedido) {
+  tituloPedido.textContent = esPersonalizable
+    ? 'Pedido personalizado'
+    : 'Pedido diseño propio';
+}
+
+if (tipoPedido) {
+  tipoPedido.textContent = esPersonalizable
+    ? 'PERSONALIZACIÓN AIHXO'
+    : 'DISEÑO PROPIO AIHXO';
+}
 
   if (bloquePersonalizacion) {
     bloquePersonalizacion.style.display =
