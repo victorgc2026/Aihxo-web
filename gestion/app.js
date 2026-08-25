@@ -431,7 +431,10 @@ if(imageFile){
 
   const o={
    sku:String(f.get('sku')||'').trim(),
-   category:f.get('category'),
+   category:
+  (p && String(p.category || '').toLowerCase().includes('diseno propio'))
+    ? p.category
+    : f.get('category'),
    model:f.get('model'),
    size:f.get('size'),
    color:f.get('color'),
