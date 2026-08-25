@@ -39,6 +39,7 @@
     <button data-collection-filter="novedad">Novedades</button>
   </div>
   <div class="products" id="collectionGrid">
+    <div id="disenosPropiosAutomaticos" style="display:contents;"></div>
     <article class="product" data-collection-cat="camiseta infantil novedad">
   <div class="ph" style="padding:0;overflow:hidden;height:auto">
     <img
@@ -289,7 +290,95 @@ const catalogSB = supabase.createClient(
 function escCatalog(v){
   return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 }
+async function cargarDisenosPropiosAutomaticos() {
+  const contenedor = document.getElementById('disenosPropiosAutomaticos');
+  if (!contenedor) return;
 
+  try {
+    const { data, error } = await catalogSB
+      .from('products')
+      .select('*')
+      .ilike('category', '%Diseno propio%')
+      .ilike('category', '%publicado%')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const productos = data || [];
+
+    contenedor.innerHTML = productos.map(p => {
+      const categoria = String(p.category || '').toLowerCase();
+
+      let filtro = 'camiseta';
+
+      if (categoria.includes('sudadera')) filtro = 'sudadera';
+      else if (categoria.includes('tote')) filtro = 'tote';
+
+      const esInfantil = categoria.includes('infantil');
+      const esAdulto = categoria.includes('adulto');
+      const esNovedad = categoria.includes('novedad');
+
+      const filtros = [
+        filtro,
+        esInfantil ? 'infantil' : '',
+        esAdulto ? 'adulto' : '',
+        esNovedad ? 'novedad' : ''
+      ].filter(Boolean).join(' ');
+
+      const nombre = escaparHTML(p.model || p.sku || 'Diseño AIHXO');
+      const imagen = escaparHTML(p.image_url || '');
+      const descripcion = escaparHTML(p.features || '');
+      const precio = Number(p.sale_price || 0);
+      const oferta = p.price_one_print != null
+        ? Number(p.price_one_print)
+        : null;
+
+      const precioMostrar = oferta !== null && oferta > 0
+        ? oferta
+        : precio;
+
+      return `
+        <article class="product" data-collection-cat="${filtros}">
+          <div class="thumb">
+            <img
+              src="${imagen}"
+              alt="${nombre}"
+              loading="lazy"
+              style="width:100%;display:block;object-fit:cover;"
+            >
+          </div>
+
+          <div class="product-body">
+            ${esNovedad ? '<span class="tag">NOVEDAD</span>' : ''}
+
+            <h3>${nombre}</h3>
+
+            ${descripcion
+              ? `<p>${descripcion.replace(/\n/g, '<br>')}</p>`
+              : ''
+            }
+
+            <div class="price">
+              ${precioMostrar.toFixed(2).replace('.', ',')} €
+            </div>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+  } catch (error) {
+    console.error('Error cargando diseños propios:', error);
+  }
+}
+
+function escaparHTML(valor) {
+  return String(valor ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 async function loadCatalog(){
   const grid = document.getElementById('productsGrid');
   if(!grid) return;
@@ -951,6 +1040,7 @@ document.getElementById('btn-ainhoa-mera').addEventListener('click', function(e)
     alert('Selecciona una talla antes de realizar el pedido.');
   }
 });
+    cargarDisenosPropiosAutomaticos();
 </script>
 <div id="modal-personalizacion" style="
   display:none;
