@@ -396,85 +396,443 @@
     location.reload();
   };
 
+async function guardarDisenoPropio(event) {
 
-  async function guardarDisenoPropio(event) {
+  event.preventDefault();
 
-    event.preventDefault();
+  const boton = document.getElementById('dpGuardar');
+  const mensaje = document.getElementById('dpMensaje');
 
-    const boton = document.getElementById('dpGuardar');
-    const mensaje = document.getElementById('dpMensaje');
+  const sku = normalizarSKU(
+    document.getElementById('dpSku').value
+  );
 
-    const sku = normalizarSKU(
-      document.getElementById('dpSku').value
+  const nombre =
+    document.getElementById('dpNombre').value.trim();
+
+  const tipo =
+    document.getElementById('dpTipo').value;
+
+  const publico =
+    document.getElementById('dpPublico').value;
+
+  const precio =
+    Number(document.getElementById('dpPrecio').value || 0);
+
+  const ofertaTexto =
+    document.getElementById('dpOferta').value;
+
+  const precioOferta =
+    ofertaTexto !== ''
+      ? Number(ofertaTexto)
+      : null;
+
+  const textoOferta =
+    document.getElementById('dpTextoOferta').value.trim();
+
+  const descripcion =
+    document.getElementById('dpDescripcion').value.trim();
+
+  const tallas =
+    listaDesdeTexto(
+      document.getElementById('dpTallas').value
     );
 
-    const nombre =
-      document.getElementById('dpNombre').value.trim();
+  const colores =
+    listaDesdeTexto(
+      document.getElementById('dpColores').value
+    );
 
-    if (!sku || !nombre) {
+  const publicar =
+    document.getElementById('dpPublicar').checked;
+
+  const novedad =
+    document.getElementById('dpNovedad').checked;
+
+  const fotoPrincipal =
+    document.getElementById('dpFoto').files[0];
+
+  const fotosGaleria =
+    Array.from(
+      document.getElementById('dpGaleria').files || []
+    );
+
+
+  if (!sku || !nombre || !fotoPrincipal) {
+
+    mostrarMensaje(
+      mensaje,
+      'Completa el SKU, el nombre y la foto principal.',
+      false
+    );
+
+    return;
+  }
+
+
+  if (precio <= 0) {
+
+    mostrarMensaje(
+      mensaje,
+      'Introduce un precio normal válido.',
+      false
+    );
+
+    return;
+  }
+
+
+  boton.disabled = true;
+  boton.textContent = 'GUARDANDO DISEÑO...';
+
+
+  try {
+
+    if (typeof supabaseClient === 'undefined') {
+
+      throw new Error(
+        'No se ha encontrado la conexión con Supabase.'
+      );
+    }
+
+
+    /* =====================================================
+       1. COMPROBAR SKU
+       ===================================================== */
+
+    mostrarMensaje(
+      mensaje,
+      'Comprobando SKU...',
+      true
+    );
+
+
+    const {
+      data: existente,
+      error: errorSku
+    } = await supabaseClient
+      .from('products')
+      .select('id,sku')
+      .eq('sku', sku)
+      .limit(1);
+
+
+    if (errorSku) throw errorSku;
+
+
+    if (existente && existente.length) {
+
       mostrarMensaje(
         mensaje,
-        'Completa el SKU y el nombre del diseño.',
+        `El SKU ${escDP(sku)} ya existe.`,
         false
       );
+
+      boton.disabled = false;
+      boton.textContent = 'GUARDAR Y PUBLICAR';
+
       return;
     }
 
-    boton.disabled = true;
-    boton.textContent = 'COMPROBANDO SKU...';
 
-    try {
+    /* =====================================================
+       2. SUBIR FOTO PRINCIPAL
+       ===================================================== */
 
-     if (typeof supabaseClient === 'undefined') {
-        throw new Error(
-          'No se ha encontrado la conexión de AIHXO con Supabase.'
-        );
-      }
+    boton.textContent = 'SUBIENDO FOTO PRINCIPAL...';
 
-      const { data: existente, error: errorSku } = await supabaseClient
-        .from('products')
-        .select('id,sku')
-        .eq('sku', sku)
-        .limit(1);
 
-      if (errorSku) throw errorSku;
+    const extPrincipal =
+      (fotoPrincipal.name.split('.').pop() || 'jpg')
+        .toLowerCase();
 
-      if (existente && existente.length) {
-        mostrarMensaje(
-          mensaje,
-          `El SKU ${escDP(sku)} ya existe. Introduce otro SKU.`,
-          false
-        );
 
-        boton.disabled = false;
-        boton.textContent = 'GUARDAR Y PUBLICAR';
-        return;
-      }
+    const rutaPrincipal =
+      `disenos-propios/${sku}/principal-${Date.now()}.${extPrincipal}`;
 
-      mostrarMensaje(
-        mensaje,
-        'SKU disponible. El formulario está preparado para guardar el nuevo diseño.',
-        true
+
+    const {
+      error: errorUploadPrincipal
+    } = await supabaseClient
+      .storage
+      .from(AIHXO_DESIGN_BUCKET)
+      .upload(
+        rutaPrincipal,
+        fotoPrincipal,
+        {
+          cacheControl: '3600',
+          upsert: false
+        }
       );
 
-      boton.disabled = false;
-      boton.textContent = 'GUARDAR Y PUBLICAR';
 
-    } catch (error) {
-
-      console.error(error);
-
-      mostrarMensaje(
-        mensaje,
-        'No se ha podido comprobar el SKU: ' +
-          escDP(error.message || error),
-        false
-      );
-
-      boton.disabled = false;
-      boton.textContent = 'GUARDAR Y PUBLICAR';
+    if (errorUploadPrincipal) {
+      throw errorUploadPrincipal;
     }
+
+
+    const {
+      data: publicPrincipal
+    } = supabaseClient
+      .storage
+      .from(AIHXO_DESIGN_BUCKET)
+      .getPublicUrl(rutaPrincipal);
+
+
+    const urlPrincipal =
+      publicPrincipal.publicUrl;
+
+
+    /* =====================================================
+       3. SUBIR GALERÍA
+       ===================================================== */
+
+    const galleryUrls = [];
+
+    const galleryData = [];
+
+
+    for (
+      let i = 0;
+      i < fotosGaleria.length;
+      i++
+    ) {
+
+      boton.textContent =
+        `SUBIENDO FOTO ${i + 1} DE ${fotosGaleria.length}...`;
+
+
+      const archivo = fotosGaleria[i];
+
+      const ext =
+        (archivo.name.split('.').pop() || 'jpg')
+          .toLowerCase();
+
+
+      const ruta =
+        `disenos-propios/${sku}/galeria-${Date.now()}-${i}.${ext}`;
+
+
+      const {
+        error: errorGaleria
+      } = await supabaseClient
+        .storage
+        .from(AIHXO_DESIGN_BUCKET)
+        .upload(
+          ruta,
+          archivo,
+          {
+            cacheControl: '3600',
+            upsert: false
+          }
+        );
+
+
+      if (errorGaleria) {
+        throw errorGaleria;
+      }
+
+
+      const {
+        data: publicGaleria
+      } = supabaseClient
+        .storage
+        .from(AIHXO_DESIGN_BUCKET)
+        .getPublicUrl(ruta);
+
+
+      galleryUrls.push(
+        publicGaleria.publicUrl
+      );
+
+
+      galleryData.push({
+        storage_path: ruta,
+        public_url: publicGaleria.publicUrl
+      });
+    }
+
+
+    /* =====================================================
+       4. CREAR PRODUCTO
+       ===================================================== */
+
+    boton.textContent = 'CREANDO PRODUCTO...';
+
+
+    const categoria = [
+      'Diseno propio',
+      tipo,
+      publico,
+      publicar ? 'publicado' : 'oculto',
+      novedad ? 'novedad' : ''
+    ]
+      .filter(Boolean)
+      .join('|');
+
+
+    let features = descripcion;
+
+
+    if (textoOferta) {
+
+      features +=
+        `${features ? '\n' : ''}Oferta: ${textoOferta}`;
+    }
+
+
+    const producto = {
+
+      sku: sku,
+
+      category: categoria,
+
+      model: nombre,
+
+      size: tallas.join(', '),
+
+      color: colores.join(', '),
+
+      garment_cost: 0,
+
+      dtf_cost: 0,
+
+      extras_cost: 0,
+
+      sale_price: precio,
+
+      price_one_print: precioOferta,
+
+      price_two_print: null,
+
+      stock: 0,
+
+      features: features,
+
+      image_url: urlPrincipal,
+
+      gallery: galleryUrls
+    };
+
+
+    const {
+      data: nuevoProducto,
+      error: errorProducto
+    } = await supabaseClient
+      .from('products')
+      .insert(producto)
+      .select('id')
+      .single();
+
+
+    if (errorProducto) {
+      throw errorProducto;
+    }
+
+
+    /* =====================================================
+       5. GUARDAR FOTO PRINCIPAL EN PRODUCT_IMAGES
+       ===================================================== */
+
+    const imagenesBD = [
+      {
+        product_id: nuevoProducto.id,
+        storage_path: rutaPrincipal,
+        public_url: urlPrincipal,
+        is_primary: true,
+        sort_order: 0
+      }
+    ];
+
+
+    galleryData.forEach(
+      (img, index) => {
+
+        imagenesBD.push({
+
+          product_id: nuevoProducto.id,
+
+          storage_path: img.storage_path,
+
+          public_url: img.public_url,
+
+          is_primary: false,
+
+          sort_order: index + 1
+        });
+
+      }
+    );
+
+
+    const {
+      error: errorImagenes
+    } = await supabaseClient
+      .from('product_images')
+      .insert(imagenesBD);
+
+
+    if (errorImagenes) {
+      throw errorImagenes;
+    }
+
+
+    /* =====================================================
+       6. FINAL
+       ===================================================== */
+
+    mostrarMensaje(
+      mensaje,
+      `Diseño ${escDP(nombre)} guardado correctamente.`,
+      true
+    );
+
+
+    boton.textContent = 'DISEÑO GUARDADO ✓';
+
+
+    setTimeout(() => {
+
+      if (
+        typeof loadAll === 'function' &&
+        typeof setView === 'function'
+      ) {
+
+        loadAll().then(() => {
+          location.reload();
+        });
+
+      } else {
+
+        location.reload();
+      }
+
+    }, 1400);
+
+
+  } catch (error) {
+
+    console.error(
+      'Error guardando diseño propio:',
+      error
+    );
+
+
+    mostrarMensaje(
+      mensaje,
+      'No se pudo guardar el diseño: ' +
+        escDP(error.message || error),
+      false
+    );
+
+
+    boton.disabled = false;
+
+    boton.textContent =
+      'GUARDAR Y PUBLICAR';
   }
+}
+  
 
 
   function mostrarMensaje(elemento, texto, correcto) {
