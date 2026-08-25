@@ -746,7 +746,7 @@ window.orderForm = function() {
   </div>
 </div> 
 
-      <div class="field">
+      <div class="field" id="designPedidoField">
         <label>Diseño</label>
         <input
           name="design"
@@ -847,7 +847,26 @@ if (tipoPedido) {
     bloquePersonalizacion.style.display =
       esPersonalizable ? 'block' : 'none';
   }
+const campoDiseno =
+  document.getElementById('designPedidoField');
 
+if (campoDiseno) {
+  campoDiseno.style.display =
+    esPersonalizable ? 'block' : 'none';
+}
+  const inputDiseno = document.querySelector('input[name="design"]');
+
+if (inputDiseno) {
+  if (esPersonalizable) {
+    if (inputDiseno.dataset.auto === '1') {
+      inputDiseno.value = '';
+      inputDiseno.dataset.auto = '0';
+    }
+  } else {
+    inputDiseno.value = p.model || '';
+    inputDiseno.dataset.auto = '1';
+  }
+}
   let precio = Number(p.sale_price || 0);
 
   if (esPersonalizable) {
