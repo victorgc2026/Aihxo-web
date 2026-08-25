@@ -90,13 +90,14 @@ function drawOrders(){
               style="width:auto;max-width:160px;"
             >
               ${[
-                'Pendiente',
-                'Pagado',
-                'En producción',
-                'Preparado',
-                'Enviado',
-                'Entregado',
-                'Cancelado'
+                
+  'Pendiente',
+  'Diseño preparado',
+  'En producción',
+  'Terminado',
+  'Enviado',
+  'Entregado',
+  'Cancelado'
               ].map(s =>
                 `<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`
               ).join('')}
