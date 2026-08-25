@@ -1118,10 +1118,31 @@ document.getElementById('btn-ainhoa-mera').addEventListener('click', function(e)
     alert('Selecciona una talla antes de realizar el pedido.');
   }
 });
-  true';
-     function seleccionarOpcionDiseno(btn) {
-      function comprarDisenoPropio(btn) {
+
+function seleccionarOpcionDiseno(btn) {
+  const tipo = btn.dataset.opcionDiseno;
   const tarjeta = btn.closest('.product');
+
+  if (!tarjeta) return;
+
+  tarjeta
+    .querySelectorAll(`[data-opcion-diseno="${tipo}"]`)
+    .forEach(b => {
+      b.style.background = '#fff';
+      b.style.color = '#087cf4';
+      b.style.borderColor = '#d7dee8';
+      b.dataset.seleccionado = 'false';
+    });
+
+  btn.style.background = '#087cf4';
+  btn.style.color = '#fff';
+  btn.style.borderColor = '#087cf4';
+  btn.dataset.seleccionado = 'true';
+}
+
+function comprarDisenoPropio(btn) {
+  const tarjeta = btn.closest('.product');
+
   if (!tarjeta) return;
 
   const talla = tarjeta.querySelector(
@@ -1132,12 +1153,14 @@ document.getElementById('btn-ainhoa-mera').addEventListener('click', function(e)
     '[data-opcion-diseno="color"][data-seleccionado="true"]'
   );
 
-  const nombre = tarjeta.querySelector('h3')?.textContent?.trim() || 'Diseño AIHXO';
+  const nombre =
+    tarjeta.querySelector('h3')?.textContent?.trim() || 'Diseño AIHXO';
 
   const precioTexto = Array.from(
     tarjeta.querySelectorAll('p')
-  ).map(p => p.textContent.trim())
-   .find(t => t.includes('€')) || '';
+  )
+    .map(p => p.textContent.trim())
+    .find(t => t.includes('€')) || '';
 
   if (!talla) {
     alert('Selecciona una talla.');
@@ -1164,25 +1187,6 @@ document.getElementById('btn-ainhoa-mera').addEventListener('click', function(e)
     '_blank'
   );
 }
-  const tipo = btn.dataset.opcionDiseno;
-  const tarjeta = btn.closest('.product');
-
-  if (!tarjeta) return;
-
-  tarjeta
-    .querySelectorAll(`[data-opcion-diseno="${tipo}"]`)
-    .forEach(b => {
-      b.style.background = '#fff';
-      b.style.color = '#087cf4';
-      b.style.borderColor = '#d7dee8';
-      b.dataset.seleccionado = 'false';
-    });
-
-  btn.style.background = '#087cf4';
-  btn.style.color = '#fff';
-  btn.style.borderColor = '#087cf4';
-  btn.dataset.seleccionado = ' 
-
     cargarDisenosPropiosAutomaticos();
 </script>
 <div id="modal-personalizacion" style="
