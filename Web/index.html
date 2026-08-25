@@ -839,25 +839,37 @@ function elegirImpresionProducto(opcion) {
   const color = card.dataset.selectedColor || '';
 
   const impresiones =
-    opcion === 1
-      ? '1 impresión — 9,95 €'
-      : '2 impresiones — 12,95 €';
+  opcion === 1
+    ? '1 impresión'
+    : '2 impresiones';
+
+const tamanoMaximo =
+  opcion === 1
+    ? '25 × 30 cm'
+    : '30 × 35 cm';
+
+const precioOferta =
+  opcion === 1
+    ? '9,95 €'
+    : '12,95 €';
 
   let mensaje =
-    `Hola AIHXO, quiero personalizar esta prenda:\n\n` +
-    `Modelo: ${nombre}`;
+  `Hola AIHXO 👋 Quiero personalizar una prenda.\n\n` +
+  `👕 Modelo: ${nombre}`;
 
-  if (talla) {
-    mensaje += `\nTalla: ${talla}`;
-  }
+if (talla) {
+  mensaje += `\n📏 Talla: ${talla}`;
+}
 
-  if (color) {
-    mensaje += `\nColor: ${color}`;
-  }
+if (color) {
+  mensaje += `\n🎨 Color: ${color}`;
+}
 
-  mensaje +=
-    `\nPersonalización: ${impresiones}` +
-    `\n\nQuiero continuar con el pedido.`;
+mensaje +=
+  `\n🖨️ Personalización: ${impresiones}` +
+  `\n📐 Tamaño máximo: ${tamanoMaximo}` +
+  `\n💙 OFERTA APERTURA: ${precioOferta}` +
+  `\n\nQuiero continuar con el pedido.`;
 
   cerrarModalPersonalizacion();
 
