@@ -1105,36 +1105,7 @@ window.elegirImpresionProducto = elegirImpresionProducto;
 loadCatalog();
 </script>
   <script>
-let tallaAinhoa = "";
 
-function seleccionarTallaAinhoa(btn) {
-  tallaAinhoa = btn.dataset.talla;
-
-  document.querySelectorAll('#tallas-ainhoa button').forEach(b => {
-    b.style.background = '#fff';
-    b.style.color = '#6d7890';
-    b.style.border = '1px solid #d7deea';
-  });
-
-  btn.style.background = '#087cf4';
-  btn.style.color = '#fff';
-  btn.style.border = '1px solid #087cf4';
-
-  const mensaje =
-    `Hola AIHXO, quiero pedir AINHOA MERA con la oferta de primera compra de 12,95 €.\n\n` +
-    `Talla: ${tallaAinhoa}\n` +
-    `Color: Rosa`;
-
-  document.getElementById('btn-ainhoa-mera').href =
-    'https://wa.me/34692943013?text=' + encodeURIComponent(mensaje);
-}
-
-document.getElementById('btn-ainhoa-mera').addEventListener('click', function(e) {
-  if (!tallaAinhoa) {
-    e.preventDefault();
-    alert('Selecciona una talla antes de realizar el pedido.');
-  }
-});
 
 function seleccionarOpcionDiseno(btn) {
   const tipo = btn.dataset.opcionDiseno;
