@@ -432,8 +432,10 @@ if(imageFile){
   const o={
    sku:String(f.get('sku')||'').trim(),
    category:
-  (p && String(p.category || '').toLowerCase().includes('diseno propio'))
-    ? p.category
+  ['FRIENDS', 'AIH-MER 5/6'].includes(
+    String(f.get('sku') || '').trim().toUpperCase()
+  )
+    ? 'Diseno propio publicado infantil camiseta'
     : f.get('category'),
    model:f.get('model'),
    size:f.get('size'),
