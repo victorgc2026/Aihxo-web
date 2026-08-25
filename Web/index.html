@@ -477,7 +477,15 @@ if (!data || !data.length) {
 
 data = data.filter(p => {
   const texto = `${p.model || ''} ${p.sku || ''}`.toUpperCase();
-  return !texto.includes('AINHOA');
+  const categoria = String(p.category || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  return (
+    !texto.includes('AINHOA') &&
+    !categoria.includes('diseno propio')
+  );
 });
 
   const groups = {};
