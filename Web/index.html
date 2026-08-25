@@ -388,6 +388,50 @@ onclick="seleccionarOpcionDiseno(this)"
   </div>
 ` : ''}
 
+${esInfantil ? `
+  <details style="margin:14px 0;">
+    <summary style="
+      cursor:pointer;
+      font-weight:800;
+      color:#087cf4;
+      margin-bottom:10px;
+    ">
+      📏 Ver guía de tallas
+    </summary>
+
+    <div style="overflow-x:auto;">
+      <table style="
+        width:100%;
+        border-collapse:collapse;
+        text-align:center;
+        font-size:15px;
+      ">
+        <thead>
+          <tr>
+            <th style="padding:8px;border-bottom:1px solid #ddd;">Talla</th>
+            <th style="padding:8px;border-bottom:1px solid #ddd;">Ancho</th>
+            <th style="padding:8px;border-bottom:1px solid #ddd;">Largo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="padding:8px;">5/6</td><td>38 cm</td><td>48 cm</td></tr>
+          <tr><td style="padding:8px;">7/8</td><td>41 cm</td><td>52 cm</td></tr>
+          <tr><td style="padding:8px;">9/11</td><td>44 cm</td><td>56 cm</td></tr>
+          <tr><td style="padding:8px;">12/13</td><td>47 cm</td><td>60 cm</td></tr>
+        </tbody>
+      </table>
+
+      <div style="
+        margin-top:8px;
+        color:#8a94a6;
+        font-size:13px;
+      ">
+        Ancho × Largo de la prenda. Medidas aproximadas en cm.
+      </div>
+    </div>
+  </details>
+` : ''}
+
 ${colores.length ? `
   <div style="margin:14px 0;">
     <div style="font-weight:800;margin-bottom:8px;">Colores disponibles</div>
