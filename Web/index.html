@@ -783,7 +783,6 @@ function seleccionarColorProducto(btn) {
   card.dataset.selectedColor = btn.dataset.color || '';
 }
 
-
 function pedirProductoPersonalizado(btn) {
   const card = btn.closest('.product');
 
@@ -809,6 +808,22 @@ function pedirProductoPersonalizado(btn) {
     return false;
   }
 
+  const opcion = prompt(
+    'Elige una opción de personalización:\n\n' +
+    '1 · 1 impresión — 9,95 €\n' +
+    '2 · 2 impresiones — 12,95 €\n\n' +
+    'Escribe 1 o 2'
+  );
+
+  if (opcion !== '1' && opcion !== '2') {
+    return false;
+  }
+
+  const impresiones =
+    opcion === '1'
+      ? '1 impresión — 9,95 €'
+      : '2 impresiones — 12,95 €';
+
   let mensaje =
     `Hola AIHXO, quiero personalizar esta prenda:\n\n` +
     `Modelo: ${nombre}`;
@@ -821,7 +836,9 @@ function pedirProductoPersonalizado(btn) {
     mensaje += `\nColor: ${color}`;
   }
 
-  mensaje += `\n\nQuiero información para personalizarla.`;
+  mensaje +=
+    `\nPersonalización: ${impresiones}` +
+    `\n\nQuiero continuar con el pedido.`;
 
   window.open(
     'https://wa.me/34692943013?text=' +
@@ -831,6 +848,7 @@ function pedirProductoPersonalizado(btn) {
 
   return false;
 }
+
 
 } 
 loadCatalog();
