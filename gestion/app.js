@@ -833,7 +833,7 @@ const tipoPedido = document.getElementById('tipoPedido');
 
 if (tituloPedido) {
   tituloPedido.textContent = esPersonalizable
-    ? 'Pedido personalizado'
+    ? 'Nuevo pedido personalizado'
     : 'Pedido diseño propio';
 }
 
