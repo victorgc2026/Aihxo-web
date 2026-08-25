@@ -782,13 +782,13 @@ function seleccionarColorProducto(btn) {
 
   card.dataset.selectedColor = btn.dataset.color || '';
 }
+let productoPendientePersonalizacion = null;
 
 function pedirProductoPersonalizado(btn) {
   const card = btn.closest('.product');
 
   if (!card) return false;
 
-  const nombre = card.dataset.productName || 'Producto AIHXO';
   const talla = card.dataset.selectedSize || '';
   const color = card.dataset.selectedColor || '';
 
@@ -808,19 +808,38 @@ function pedirProductoPersonalizado(btn) {
     return false;
   }
 
-  const opcion = prompt(
-    'Elige una opción de personalización:\n\n' +
-    '1 · 1 impresión — 9,95 €\n' +
-    '2 · 2 impresiones — 12,95 €\n\n' +
-    'Escribe 1 o 2'
-  );
+  productoPendientePersonalizacion = card;
 
-  if (opcion !== '1' && opcion !== '2') {
-    return false;
+  const modal = document.getElementById('modal-personalizacion');
+
+  if (modal) {
+    modal.style.display = 'flex';
   }
 
+  return false;
+}
+
+function cerrarModalPersonalizacion() {
+  const modal = document.getElementById('modal-personalizacion');
+
+  if (modal) {
+    modal.style.display = 'none';
+  }
+
+  productoPendientePersonalizacion = null;
+}
+
+function elegirImpresionProducto(opcion) {
+  const card = productoPendientePersonalizacion;
+
+  if (!card) return;
+
+  const nombre = card.dataset.productName || 'Producto AIHXO';
+  const talla = card.dataset.selectedSize || '';
+  const color = card.dataset.selectedColor || '';
+
   const impresiones =
-    opcion === '1'
+    opcion === 1
       ? '1 impresión — 9,95 €'
       : '2 impresiones — 12,95 €';
 
@@ -840,18 +859,20 @@ function pedirProductoPersonalizado(btn) {
     `\nPersonalización: ${impresiones}` +
     `\n\nQuiero continuar con el pedido.`;
 
+  cerrarModalPersonalizacion();
+
   window.open(
     'https://wa.me/34692943013?text=' +
     encodeURIComponent(mensaje),
     '_blank'
   );
-
-  return false;
 }
 
 window.seleccionarTallaProducto = seleccionarTallaProducto;
 window.seleccionarColorProducto = seleccionarColorProducto;
 window.pedirProductoPersonalizado = pedirProductoPersonalizado;
+ window.cerrarModalPersonalizacion = cerrarModalPersonalizacion;
+window.elegirImpresionProducto = elegirImpresionProducto; 
 } 
 loadCatalog();
 </script>
@@ -887,5 +908,93 @@ document.getElementById('btn-ainhoa-mera').addEventListener('click', function(e)
   }
 });
 </script>
+<div id="modal-personalizacion" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(5,18,40,.55);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+">
+  <div style="
+    width:min(420px,100%);
+    background:#fff;
+    border-radius:24px;
+    padding:24px;
+    box-shadow:0 24px 70px rgba(0,0,0,.25);
+  ">
+    <div style="
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:.12em;
+      color:#087cf4;
+      margin-bottom:8px;
+    ">
+      OFERTA APERTURA
+    </div>
+
+    <h2 style="margin:0 0 8px;color:#07152f;">
+      Elige tu personalización
+    </h2>
+
+    <p style="margin:0 0 20px;color:#6d7890;">
+      Selecciona cuántas zonas quieres imprimir.
+    </p>
+
+    <button
+      type="button"
+      onclick="elegirImpresionProducto(1)"
+      style="
+        width:100%;
+        text-align:left;
+        padding:16px;
+        border:1px solid #d7deea;
+        border-radius:16px;
+        background:#fff;
+        margin-bottom:12px;
+        cursor:pointer;
+      "
+    >
+      <b style="font-size:18px;color:#07152f;">1 impresión · 9,95 €</b><br>
+      <span style="color:#6d7890;">Hasta 25 × 30 cm</span>
+    </button>
+
+    <button
+      type="button"
+      onclick="elegirImpresionProducto(2)"
+      style="
+        width:100%;
+        text-align:left;
+        padding:16px;
+        border:1px solid #d7deea;
+        border-radius:16px;
+        background:#fff;
+        margin-bottom:16px;
+        cursor:pointer;
+      "
+    >
+      <b style="font-size:18px;color:#07152f;">2 impresiones · 12,95 €</b><br>
+      <span style="color:#6d7890;">Hasta 30 × 35 cm</span>
+    </button>
+
+    <button
+      type="button"
+      onclick="cerrarModalPersonalizacion()"
+      style="
+        width:100%;
+        padding:13px;
+        border:0;
+        background:#eef3f8;
+        border-radius:14px;
+        font-weight:800;
+        color:#26344d;
+      "
+    >
+      Cancelar
+    </button>
+  </div>
+</div>  
 </body>
 </html>
