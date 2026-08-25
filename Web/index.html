@@ -462,9 +462,44 @@ onclick="seleccionarOpcionDiseno(this)"
         : ''
       }
 
-      <p style="font-size:20px;font-weight:900;color:#07152f;margin:14px 0 0;">
-        ${precioMostrar.toFixed(2).replace('.', ',')} €
-      </p>
+      ${oferta !== null && oferta > 0 ? `
+  <div style="margin:20px 0 6px;text-align:center;">
+
+    <div style="
+      font-size:18px;
+      font-weight:800;
+      color:#8a94a6;
+      text-decoration:line-through;
+      margin-bottom:2px;
+    ">
+      ${precio.toFixed(2).replace('.', ',')} €
+    </div>
+
+    <div style="
+      font-size:36px;
+      line-height:1;
+      font-weight:950;
+      color:#087cf4;
+      margin-bottom:12px;
+    ">
+      ${oferta.toFixed(2).replace('.', ',')} €
+    </div>
+
+    <div style="
+      font-size:14px;
+      font-weight:800;
+      letter-spacing:2px;
+      color:#07152f;
+    ">
+      Oferta exclusiva en tu primera compra
+    </div>
+
+  </div>
+` : `
+  <p style="font-size:22px;font-weight:900;color:#07152f;margin:14px 0 0;">
+    ${precio.toFixed(2).replace('.', ',')} €
+  </p>
+`}
 <button
   type="button"
   onclick="comprarDisenoPropio(this)"
