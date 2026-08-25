@@ -972,70 +972,73 @@ window.drawOrders = function() {
   );
 
   $('#orderTable').innerHTML = `
-    <div class="table-wrap" style="margin-top:14px">
-      <table>
-        <thead>
-          <tr>
-            <th>Pedido</th>
-            <th>Cliente</th>
-            <th>Producto</th>
-            <th>Total</th>
-            <th>Estado</th>
-            <th></th>
-          </tr>
-        </thead>
+    <div style="display:grid;gap:14px;margin-top:14px;">
+      ${lista.map(o => `
+        <div class="card" style="padding:16px;">
+          
+          <div class="row">
+            <div>
+              <div class="muted" style="font-size:12px;">PEDIDO</div>
+              <b style="font-size:18px;">
+                ${esc(o.order_number || '')}
+              </b>
+            </div>
 
-        <tbody>
-          ${lista.map(o => `
-            <tr>
-              <td><b>${esc(o.order_number || '')}</b></td>
+            <select
+              onchange="status('${o.id}',this.value)"
+              style="max-width:150px;"
+            >
+              ${[
+                'Pendiente',
+                'Pagado',
+                'En producción',
+                'Preparado',
+                'Enviado',
+                'Entregado',
+                'Cancelado'
+              ].map(s => `
+                <option ${o.status === s ? 'selected' : ''}>
+                  ${s}
+                </option>
+              `).join('')}
+            </select>
+          </div>
 
-              <td>
-                ${esc(o.customer_name || '')}
-                <div class="muted">
-                  ${esc(o.contact || '')}
-                </div>
-              </td>
+          <div style="margin-top:14px;">
+            <div class="muted">Cliente</div>
+            <b>${esc(o.customer_name || '')}</b>
+            ${o.contact ? `
+              <div class="muted">
+                ${esc(o.contact)}
+              </div>
+            ` : ''}
+          </div>
 
-              <td>
-                ${esc(o.product_name || '')}
-                <div class="muted">
-                  ${esc(o.size || '')} · ${esc(o.color || '')}
-                </div>
-              </td>
+          <div style="margin-top:14px;">
+            <div class="muted">Producto</div>
+            <b>${esc(o.product_name || '')}</b>
+            <div class="muted">
+              ${esc(o.size || '')} · ${esc(o.color || '')}
+            </div>
+          </div>
 
-              <td>${money(o.total || 0)}</td>
+          <div class="row" style="margin-top:14px;">
+            <span>Total</span>
+            <b style="font-size:18px;">
+              ${money(o.total || 0)}
+            </b>
+          </div>
 
-              <td>
-                <select onchange="status('${o.id}',this.value)">
-                  ${[
-                    'Pendiente',
-                    'Pagado',
-                    'En producción',
-                    'Preparado',
-                    'Enviado',
-                    'Entregado',
-                    'Cancelado'
-                  ].map(s => `
-                    <option ${o.status === s ? 'selected' : ''}>
-                      ${s}
-                    </option>
-                  `).join('')}
-                </select>
-              </td>
+          <button
+            class="secondary"
+            style="width:100%;margin-top:14px;"
+            onclick="verDetallePedido('${o.id}')"
+          >
+            Ver detalle
+          </button>
 
-              <td>
-                <button
-                  class="secondary"
-                  onclick="verDetallePedido('${o.id}')"
-                >
-                  Ver detalle
-                </button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+        </div>
+      `).join('')}
     </div>
   `;
 };
