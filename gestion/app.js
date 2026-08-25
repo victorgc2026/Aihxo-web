@@ -548,3 +548,58 @@ auth();
     closeDrawerV7();
   };
 })();
+window.aplicarPreciosModelo = async function(modelo) {
+  const uno = Number(prompt('Precio oferta · 1 impresión'));
+  if (!uno) return;
+
+  const dos = Number(prompt('Precio oferta · 2 impresiones'));
+  if (!dos) return;
+
+  const confirmar = confirm(
+    `Aplicar a todas las variantes de "${modelo}":\n\n` +
+    `1 impresión: ${uno.toFixed(2)} €\n` +
+    `2 impresiones: ${dos.toFixed(2)} €`
+  );
+
+  if (!confirmar) return;
+
+  const { error } = await supabaseClient
+    .from('products')
+    .update({
+      price_one_print: uno,
+      price_two_print: dos
+    })
+    .eq('model', modelo);
+
+  if (error) {
+    alert('Error al aplicar los precios: ' + error.message);
+    return;
+  }
+
+  await loadAll();
+  setView('products');
+  toast('Precios aplicados a todo el modelo');
+};
+const productsViewOriginal = productsView;
+
+productsView = function(c) {
+  productsViewOriginal(c);
+
+  const cards = c.querySelectorAll('.grid.three .card');
+
+  cards.forEach((card, i) => {
+    const p = products[i];
+    if (!p) return;
+
+    const actions = card.querySelector('.actions');
+    if (!actions) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'secondary';
+    btn.type = 'button';
+    btn.textContent = '€ Aplicar precios al modelo';
+    btn.onclick = () => aplicarPreciosModelo(p.model);
+
+    actions.appendChild(btn);
+  });
+};
