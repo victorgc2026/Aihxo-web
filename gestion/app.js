@@ -58,7 +58,90 @@ function showApp(session){document.body.innerHTML=`<div id="app"><aside class="s
 function toggleMobileMenu(){document.querySelector('.sidebar')?.classList.toggle('open');document.querySelector('#menuOverlay')?.classList.toggle('open')}function closeMobileMenu(){document.querySelector('.sidebar')?.classList.remove('open');document.querySelector('#menuOverlay')?.classList.remove('open')}function setView(v){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Inicio',orders:'Pedidos',products:'Productos',stock:'Stock',customers:'Clientes',expenses:'Gastos',reports:'Informes'};const views={dashboard,orders:ordersView,products:productsView,stock,customers:customersView,expenses:expensesView,reports};$('#title').textContent=titles[v]||'AIHXO';const render=views[v];if(typeof render==='function'){render($('#view'));closeMobileMenu()}else{console.error('Vista no disponible:',v);toast('No se pudo abrir esta sección')}}
 function dashboard(c){const sales=orders.reduce((a,o)=>a+ +o.total,0),costs=orders.reduce((a,o)=>a+ +o.product_cost,0),exp=expenses.reduce((a,e)=>a+ +e.amount,0),units=orders.reduce((a,o)=>a+o.quantity,0),stock=products.reduce((a,p)=>a+p.stock,0),profit=sales-costs-exp,low=products.filter(p=>p.stock<=3);c.innerHTML=`<div class="page"><div class="grid kpis">${kpi('Ventas',money(sales),orders.length+' pedidos')}${kpi('Pedidos',orders.length,'online')}${kpi('Unidades',units,'vendidas')}${kpi('Beneficio',money(profit),sales?((profit/sales)*100).toFixed(1)+'% margen':'')}${kpi('Stock',stock,'unidades')}</div><div class="grid two"><div class="card"><div class="section"><h2>Pedidos recientes</h2><button class="secondary" onclick="setView('orders')">Ver todos</button></div>${orders.length?`<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody>${orders.slice(0,7).map(o=>`<tr><td><b>${o.order_number}</b></td><td>${esc(o.customer_name)}</td><td>${money(o.total)}</td><td>${o.status}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No hay pedidos.</div>'}</div><div class="card"><div class="section"><h2>Alertas de stock</h2></div>${low.length?low.slice(0,8).map(p=>`<div class="statline"><span>${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)}</span><b class="red">${p.stock}</b></div>`).join(''):'<div class="empty">Stock correcto.</div>'}</div></div></div>`}
 function ordersView(c){c.innerHTML=`<div class="page"><div class="section"><div><h2>Pedidos</h2><div class="muted">${orders.length} pedidos</div></div><button class="primary" onclick="orderForm()">＋ Nuevo pedido</button></div><div class="card"><input class="search" id="oq" placeholder="Buscar..." oninput="drawOrders()"><div id="orderTable"></div></div></div>`;drawOrders()}
-function drawOrders(){const q=($('#oq')?.value||'').toLowerCase();const a=orders.filter(o=>(o.order_number+' '+o.customer_name+' '+o.product_name).toLowerCase().includes(q));$('#orderTable').innerHTML=`<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Total</th><th>Estado</th></tr></thead><tbody>${a.map(o=>`<tr><td>${o.order_number}</td><td>${o.order_date}</td><td>${esc(o.customer_name)}</td><td>${esc(o.product_name)}<div class="muted">${esc(o.size||'')} · ${esc(o.color||'')}</div></td><td>${o.quantity}</td><td>${money(o.total)}</td><td><select onchange="status('${o.id}',this.value)">${['Pendiente','Pagado','En producción','Preparado','Enviado','Entregado','Cancelado'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>`}
+function drawOrders(){
+  const q = ($('#oq')?.value || '').toLowerCase();
+
+  const lista = orders.filter(o =>
+    `${o.order_number || ''} ${o.customer_name || ''} ${o.product_name || ''} ${o.size || ''} ${o.color || ''}`
+      .toLowerCase()
+      .includes(q)
+  );
+
+  const cont = $('#orderTable');
+  if (!cont) return;
+
+  cont.innerHTML = lista.length ? `
+    <div style="display:grid;gap:14px;margin-top:14px;">
+      ${lista.map(o => `
+        <div class="card" style="padding:18px;">
+
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px;">
+            <div>
+              <div class="muted" style="font-size:12px;font-weight:800;">
+                PEDIDO
+              </div>
+              <div style="font-size:20px;font-weight:900;">
+                ${esc(o.order_number || '—')}
+              </div>
+            </div>
+
+            <select
+              onchange="status('${o.id}',this.value)"
+              style="width:auto;max-width:160px;"
+            >
+              ${[
+                'Pendiente',
+                'Pagado',
+                'En producción',
+                'Preparado',
+                'Enviado',
+                'Entregado',
+                'Cancelado'
+              ].map(s =>
+                `<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`
+              ).join('')}
+            </select>
+          </div>
+
+          <div style="display:grid;gap:10px;margin-bottom:16px;">
+            <div>
+              <div class="muted">Cliente</div>
+              <b>${esc(o.customer_name || '—')}</b>
+              ${o.contact ? `<div class="muted">${esc(o.contact)}</div>` : ''}
+            </div>
+
+            <div>
+              <div class="muted">Producto</div>
+              <b>${esc(o.product_name || '—')}</b>
+              <div class="muted">
+                ${esc(o.size || '')} · ${esc(o.color || '')}
+              </div>
+            </div>
+
+            <div class="row">
+              <span>Total</span>
+              <b style="font-size:18px;">
+                ${money(o.total || 0)}
+              </b>
+            </div>
+          </div>
+
+          <button
+            class="secondary"
+            onclick="verDetallePedido('${o.id}')"
+            style="width:100%;">
+            Ver detalle
+          </button>
+
+        </div>
+      `).join('')}
+    </div>
+  ` : `
+    <div class="muted" style="padding:20px;text-align:center;">
+      No hay pedidos
+    </div>
+  `;
+}
 async function status(id,s){const {error}=await supabaseClient.from('orders').update({status:s}).eq('id',id);if(error)toast(error.message);else{toast('Estado actualizado');await loadAll();drawOrders()}}
 function orderForm(){$('#drawer').classList.remove('hidden');$('#drawerBody').innerHTML=`<h2>Nuevo pedido</h2><form class="form" id="of"><div class="formgrid"><div class="field"><label>Cliente</label><input name="customer" required></div><div class="field"><label>Contacto</label><input name="contact"></div></div><div class="field"><label>Producto</label><select name="sku" id="osku">${products.map(p=>`<option value="${p.id}">${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)} — ${money(p.sale_price)}</option>`).join('')}</select></div><div class="formgrid"><div class="field"><label>Diseño</label><input name="design" placeholder="Nombre del diseño"></div><div class="field"><label>Cantidad</label><input name="qty" type="number" min="1" value="1"></div></div><div class="formgrid"><div class="field"><label>Precio unitario</label><input name="price" id="oprice" type="number" step=".01"></div><div class="field"><label>Envío cobrado</label><input name="shipping" type="number" step=".01" value="0"></div></div><button class="primary">Guardar pedido</button></form>`;$('#oprice').value=products[0]?.sale_price||0;$('#osku').onchange=e=>$('#oprice').value=products.find(p=>p.id===e.target.value)?.sale_price||0;$('#of').onsubmit=createOrder}
 async function createOrder(e){e.preventDefault();const f=new FormData(e.target),p=products.find(x=>x.id===f.get('sku')),qty=+f.get('qty');if(!p||p.stock<qty){toast('Stock insuficiente');return}const price=+f.get('price'),shipping=+f.get('shipping')||0;let customer=customers.find(x=>x.name===f.get('customer'));if(!customer){const r=await supabaseClient.from('customers').insert({name:f.get('customer'),contact:f.get('contact')}).select().single();if(r.error){toast(r.error.message);return}customer=r.data}const order={order_number:'AIHXO-'+String(orders.length+1).padStart(4,'0'),customer_id:customer.id,customer_name:customer.name,contact:f.get('contact'),product_id:p.id,product_name:p.model,size:p.size,color:p.color,design:f.get('design'),quantity:qty,unit_price:price,shipping,total:qty*price+shipping,product_cost:qty*cost(p),status:'Pendiente'};const r=await supabaseClient.from('orders').insert(order);if(r.error){toast(r.error.message);return}await supabaseClient.from('products').update({stock:p.stock-qty}).eq('id',p.id);closeDrawer();await loadAll();setView('orders');toast('Pedido guardado en Supabase')}
