@@ -572,6 +572,8 @@ const price = promoMin
       class="product"
       data-cat="${category}"
       data-product-name="${nombreProducto}"
+      data-price-one="${promoMin || ''}"
+data-price-two="${p.variants.find(v => Number(v.price_two_print || 0) > 0)?.price_two_print || ''}"
       data-selected-size=""
       data-selected-color=""
     >
@@ -791,6 +793,27 @@ function pedirProductoPersonalizado(btn) {
 
   const talla = card.dataset.selectedSize || '';
   const color = card.dataset.selectedColor || '';
+  const precioUno = Number(card.dataset.priceOne || 0);
+const precioDos = Number(card.dataset.priceTwo || 0);
+
+const modal = document.getElementById('modal-personalizacion');
+
+if (modal) {
+  const opcionUno = modal.querySelector('[data-opcion="1"]');
+  const opcionDos = modal.querySelector('[data-opcion="2"]');
+
+  if (opcionUno && precioUno) {
+    opcionUno.innerHTML =
+      `<b style="font-size:18px;color:#07152f;">1 impresión · ${precioUno.toLocaleString('es-ES',{style:'currency',currency:'EUR'})}</b><br>` +
+      `<span style="color:#6d7890;">Hasta 25 × 30 cm</span>`;
+  }
+
+  if (opcionDos && precioDos) {
+    opcionDos.innerHTML =
+      `<b style="font-size:18px;color:#07152f;">2 impresiones · ${precioDos.toLocaleString('es-ES',{style:'currency',currency:'EUR'})}</b><br>` +
+      `<span style="color:#6d7890;">Hasta 30 × 35 cm</span>`;
+  }
+}
 
   const tieneTallas =
     card.querySelectorAll('.size-option').length > 0;
@@ -848,10 +871,19 @@ const tamanoMaximo =
     ? '25 × 30 cm'
     : '30 × 35 cm';
 
+const precioUno = Number(card.dataset.priceOne || 0);
+const precioDos = Number(card.dataset.priceTwo || 0);
+
 const precioOferta =
   opcion === 1
-    ? '9,95 €'
-    : '12,95 €';
+    ? precioUno.toLocaleString('es-ES', {
+        style:'currency',
+        currency:'EUR'
+      })
+    : precioDos.toLocaleString('es-ES', {
+        style:'currency',
+        currency:'EUR'
+      });
 
   let mensaje =
   `Hola AIHXO 👋 Quiero personalizar una prenda.\n\n` +
@@ -958,6 +990,7 @@ document.getElementById('btn-ainhoa-mera').addEventListener('click', function(e)
     <button
       type="button"
       onclick="elegirImpresionProducto(1)"
+      data-opcion="1"
       style="
         width:100%;
         text-align:left;
@@ -976,6 +1009,7 @@ document.getElementById('btn-ainhoa-mera').addEventListener('click', function(e)
     <button
       type="button"
       onclick="elegirImpresionProducto(2)"
+      data-opcion="2"
       style="
         width:100%;
         text-align:left;
