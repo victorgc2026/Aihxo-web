@@ -261,7 +261,133 @@ function cuponesView(c) {
     `;
   };
 }
+async function cargarListaCupones() {
+  const contenedor = document.getElementById('listaCupones');
+  if (!contenedor) return;
 
+  contenedor.innerHTML = '<div class="muted">Cargando cupones...</div>';
+
+  const { data, error } = await supabaseClient
+    .from('coupons')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    contenedor.innerHTML =
+      '<div class="muted">No se pudieron cargar los cupones.</div>';
+    return;
+  }
+
+  const cupones = data || [];
+
+  if (!cupones.length) {
+    contenedor.innerHTML =
+      '<div class="muted">Todavía no hay cupones creados.</div>';
+    return;
+  }
+
+  contenedor.innerHTML = cupones.map(c => {
+    const tipoTexto =
+      c.discount_type === 'percent'
+        ? `${Number(c.discount_value || 0)} %`
+        : c.discount_type === 'fixed'
+          ? money(c.discount_value || 0)
+          : 'Envío gratis';
+
+    const caducidad = c.expires_at
+      ? new Date(c.expires_at).toLocaleDateString('es-ES')
+      : 'Sin caducidad';
+
+    const usosMaximos =
+      c.max_uses == null ? 'Sin límite' : c.max_uses;
+
+    const estado = c.active ? 'Activo' : 'Inactivo';
+
+    return `
+      <div class="card" style="margin-top:12px;padding:16px;">
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:12px;
+          align-items:flex-start;
+        ">
+          <div>
+            <div style="
+              font-size:20px;
+              font-weight:900;
+              color:#07152f;
+              margin-bottom:4px;
+            ">
+              ${c.code}
+            </div>
+
+            <div class="muted">
+              ${c.collaborator_name || c.description || 'Cupón AIHXO'}
+            </div>
+          </div>
+
+          <div style="
+            font-weight:900;
+            color:${c.active ? '#15803d' : '#b91c1c'};
+          ">
+            ${estado}
+          </div>
+        </div>
+
+        <div style="margin-top:14px;display:grid;gap:6px;">
+          <div>
+            Descuento:
+            <b>${tipoTexto}</b>
+          </div>
+
+          <div>
+            Compra mínima:
+            <b>${money(c.minimum_order || 0)}</b>
+          </div>
+
+          <div>
+            Usos:
+            <b>${c.uses_count || 0} / ${usosMaximos}</b>
+          </div>
+
+          <div>
+            Caducidad:
+            <b>${caducidad}</b>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="${c.active ? 'secondary' : 'primary'}"
+          style="margin-top:14px;width:100%;"
+          onclick="cambiarEstadoCupon('${c.id}', ${!c.active})"
+        >
+          ${c.active ? 'Desactivar cupón' : 'Reactivar cupón'}
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function cambiarEstadoCupon(id, nuevoEstado) {
+  const { error } = await supabaseClient
+    .from('coupons')
+    .update({ active: nuevoEstado })
+    .eq('id', id);
+
+  if (error) {
+    console.error(error);
+    toast(error.message || 'No se pudo actualizar el cupón');
+    return;
+  }
+
+  toast(nuevoEstado ? 'Cupón reactivado' : 'Cupón desactivado');
+  await cargarListaCupones();
+}
+
+window.cargarListaCupones = cargarListaCupones;
+window.cambiarEstadoCupon = cambiarEstadoCupon;
 window.cuponesView = cuponesView;
 window.generarCodigoColaborador = generarCodigoColaborador;
 window.crearCuponColaborador = crearCuponColaborador;
