@@ -151,12 +151,35 @@ function cuponesView(c) {
           Aún no has generado ningún cupón.
         </div>
       </div>
+      <div class="card" style="margin-top:18px;">
+  <div class="section">
+    <div>
+      <h3>Todos los cupones</h3>
+      <div class="muted">
+        Activa, desactiva y controla el uso de cada código.
+      </div>
+    </div>
+
+    <button
+      type="button"
+      class="secondary"
+      onclick="cargarListaCupones()"
+    >
+      Actualizar
+    </button>
+  </div>
+
+  <div id="listaCupones">
+    <div class="muted">Cargando cupones...</div>
+  </div>
+</div>
 
     </div>
   `;
 
   const tipo = document.getElementById('cuponTipo');
   const valor = document.getElementById('cuponValor');
+  cargarListaCupones();
 
   tipo.onchange = () => {
     if (tipo.value === 'free_shipping') {
