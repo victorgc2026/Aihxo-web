@@ -1217,7 +1217,24 @@ window.elegirImpresionProducto = elegirImpresionProducto;
 loadCatalog();
 </script>
   <script>
+function cambiarCantidadDiseno(btn, cambio) {
+  const tarjeta = btn.closest('.product');
+  if (!tarjeta) return;
 
+  const cantidadEl = tarjeta.querySelector('[data-cantidad-diseno]');
+  if (!cantidadEl) return;
+
+  let cantidad = Number(cantidadEl.textContent || 1);
+
+  cantidad += cambio;
+
+  if (cantidad < 1) cantidad = 1;
+  if (cantidad > 99) cantidad = 99;
+
+  cantidadEl.textContent = cantidad;
+}
+
+window.cambiarCantidadDiseno = cambiarCantidadDiseno;
 
 function seleccionarOpcionDiseno(btn) {
   const tipo = btn.dataset.opcionDiseno;
