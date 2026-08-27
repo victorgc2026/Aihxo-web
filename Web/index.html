@@ -1619,6 +1619,7 @@ function abrirModalCuponAIHXO(datosPedido) {
   const modal = document.getElementById('modal-cupon');
   const producto = document.getElementById('cupon-producto');
   const subtotal = document.getElementById('cupon-subtotal');
+ const envio = document.getElementById('cupon-envio');
   const total = document.getElementById('cupon-total');
   const filaDescuento = document.getElementById('fila-descuento');
   const mensaje = document.getElementById('mensaje-cupon');
@@ -1626,7 +1627,10 @@ function abrirModalCuponAIHXO(datosPedido) {
 
   producto.textContent = datosPedido.nombre || 'Pedido AIHXO';
   subtotal.textContent = dineroAIHXO(datosPedido.subtotal);
-  total.textContent = dineroAIHXO(datosPedido.subtotal + (datosPedido.envio || 0));
+envio.textContent = dineroAIHXO(datosPedido.envio || 0);
+total.textContent = dineroAIHXO(
+  datosPedido.subtotal + (datosPedido.envio || 0)
+);
 
   filaDescuento.style.display = 'none';
   mensaje.textContent = '';
