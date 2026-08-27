@@ -323,7 +323,11 @@ const colores = String(p.color || '')
   .filter(Boolean);
 
       return `
-  <article class="product" data-collection-cat="${filtros}">
+  <article
+  class="product"
+  data-collection-cat="${filtros}"
+  data-order-price="${precioMostrar}"
+>
 
     <div class="ph" style="padding:0;overflow:hidden;height:auto;">
       <img
@@ -1135,11 +1139,17 @@ mensaje +=
 
   cerrarModalPersonalizacion();
 
-  window.open(
-    'https://wa.me/34692943013?text=' +
-    encodeURIComponent(mensaje),
-    '_blank'
-  );
+  const precioSeleccionado =
+  opcion === 1
+    ? precioUno
+    : precioDos;
+
+abrirModalCuponAIHXO({
+  nombre: nombre,
+  subtotal: precioSeleccionado,
+  envio: 0,
+  mensajeBase: mensaje
+});
 }
 
 window.seleccionarTallaProducto = seleccionarTallaProducto;
@@ -1216,12 +1226,367 @@ function comprarDisenoPropio(btn) {
 
   const telefono = '34692943013';
 
-  window.open(
-    `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`,
-    '_blank'
-  );
+  const precioNumero =
+  Number(tarjeta.dataset.orderPrice || 0);
+
+abrirModalCuponAIHXO({
+  nombre: nombre,
+  subtotal: precioNumero,
+  envio: 0,
+  mensajeBase: mensaje
+});
 }
     cargarDisenosPropiosAutomaticos();
+</script>
+ <!-- =========================
+     MODAL CUPONES AIHXO
+========================= -->
+
+<div id="modal-cupon" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(5,18,40,.60);
+  z-index:10000;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+">
+  <div style="
+    width:min(440px,100%);
+    background:#fff;
+    border-radius:24px;
+    padding:24px;
+    box-shadow:0 24px 70px rgba(0,0,0,.25);
+  ">
+
+    <div style="
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.14em;
+      color:#087cf4;
+      margin-bottom:8px;
+    ">
+      AIHXO
+    </div>
+
+    <h2 style="margin:0 0 6px;color:#07152f;">
+      Finalizar pedido
+    </h2>
+
+    <p id="cupon-producto" style="
+      margin:0 0 18px;
+      color:#6d7890;
+    "></p>
+
+    <div style="
+      background:#f5f8fc;
+      border-radius:16px;
+      padding:16px;
+      margin-bottom:18px;
+    ">
+
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        margin-bottom:8px;
+      ">
+        <span>Precio</span>
+        <strong id="cupon-subtotal">0,00 €</strong>
+      </div>
+
+      <div id="fila-descuento" style="
+        display:none;
+        justify-content:space-between;
+        margin-bottom:8px;
+        color:#087cf4;
+      ">
+        <span>Descuento</span>
+        <strong id="cupon-descuento">-0,00 €</strong>
+      </div>
+
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        border-top:1px solid #d7deea;
+        padding-top:10px;
+        font-size:19px;
+      ">
+        <strong>Total</strong>
+        <strong id="cupon-total">0,00 €</strong>
+      </div>
+
+    </div>
+
+    <label style="
+      display:block;
+      font-weight:900;
+      margin-bottom:7px;
+      color:#07152f;
+    ">
+      ¿Tienes un código de descuento?
+    </label>
+
+    <div style="
+      display:flex;
+      gap:8px;
+      margin-bottom:8px;
+    ">
+
+      <input
+        id="codigo-cupon"
+        type="text"
+        placeholder="Ej. XOEL5"
+        autocomplete="off"
+        style="
+          flex:1;
+          min-width:0;
+          border:1px solid #d7deea;
+          border-radius:12px;
+          padding:13px;
+          font-size:16px;
+          text-transform:uppercase;
+        "
+      >
+
+      <button
+        type="button"
+        onclick="aplicarCuponAIHXO()"
+        style="
+          border:0;
+          border-radius:12px;
+          background:#07152f;
+          color:#fff;
+          padding:0 16px;
+          font-weight:900;
+        "
+      >
+        APLICAR
+      </button>
+
+    </div>
+
+    <div
+      id="mensaje-cupon"
+      style="
+        min-height:24px;
+        font-size:14px;
+        font-weight:800;
+        margin-bottom:14px;
+      "
+    ></div>
+
+    <button
+      type="button"
+      onclick="confirmarPedidoConCupon()"
+      style="
+        width:100%;
+        border:0;
+        border-radius:14px;
+        background:#087cf4;
+        color:#fff;
+        padding:15px;
+        font-size:16px;
+        font-weight:900;
+        margin-bottom:10px;
+      "
+    >
+      Continuar por WhatsApp →
+    </button>
+
+    <button
+      type="button"
+      onclick="cerrarModalCupon()"
+      style="
+        width:100%;
+        border:0;
+        border-radius:14px;
+        background:#eef3f8;
+        color:#26344d;
+        padding:13px;
+        font-weight:800;
+      "
+    >
+      Cancelar
+    </button>
+
+  </div>
+</div>
+ <script>
+let pedidoCuponAIHXO = null;
+let cuponAplicadoAIHXO = null;
+
+function dineroAIHXO(valor) {
+  return Number(valor || 0).toLocaleString('es-ES', {
+    style: 'currency',
+    currency: 'EUR'
+  });
+}
+
+function abrirModalCuponAIHXO(datosPedido) {
+  pedidoCuponAIHXO = datosPedido;
+  cuponAplicadoAIHXO = null;
+
+  const modal = document.getElementById('modal-cupon');
+  const producto = document.getElementById('cupon-producto');
+  const subtotal = document.getElementById('cupon-subtotal');
+  const total = document.getElementById('cupon-total');
+  const filaDescuento = document.getElementById('fila-descuento');
+  const mensaje = document.getElementById('mensaje-cupon');
+  const input = document.getElementById('codigo-cupon');
+
+  producto.textContent = datosPedido.nombre || 'Pedido AIHXO';
+  subtotal.textContent = dineroAIHXO(datosPedido.subtotal);
+  total.textContent = dineroAIHXO(datosPedido.subtotal + (datosPedido.envio || 0));
+
+  filaDescuento.style.display = 'none';
+  mensaje.textContent = '';
+  mensaje.style.color = '#26344d';
+  input.value = '';
+
+  modal.style.display = 'flex';
+}
+
+function cerrarModalCupon() {
+  const modal = document.getElementById('modal-cupon');
+
+  if (modal) {
+    modal.style.display = 'none';
+  }
+
+  pedidoCuponAIHXO = null;
+  cuponAplicadoAIHXO = null;
+}
+
+async function aplicarCuponAIHXO() {
+  if (!pedidoCuponAIHXO) return;
+
+  const input = document.getElementById('codigo-cupon');
+  const mensaje = document.getElementById('mensaje-cupon');
+  const filaDescuento = document.getElementById('fila-descuento');
+  const descuentoEl = document.getElementById('cupon-descuento');
+  const totalEl = document.getElementById('cupon-total');
+
+  const codigo = String(input.value || '').trim().toUpperCase();
+
+  if (!codigo) {
+    mensaje.textContent = 'Introduce un código de descuento.';
+    mensaje.style.color = '#dc2626';
+    return;
+  }
+
+  mensaje.textContent = 'Comprobando código...';
+  mensaje.style.color = '#6d7890';
+
+  try {
+    const { data, error } = await catalogSB.rpc('validate_coupon', {
+      p_code: codigo,
+      p_subtotal: Number(pedidoCuponAIHXO.subtotal || 0),
+      p_shipping: Number(pedidoCuponAIHXO.envio || 0)
+    });
+
+    if (error) throw error;
+
+    const resultado = Array.isArray(data) ? data[0] : data;
+
+    if (!resultado || !resultado.valid) {
+      cuponAplicadoAIHXO = null;
+      filaDescuento.style.display = 'none';
+
+      totalEl.textContent = dineroAIHXO(
+        Number(pedidoCuponAIHXO.subtotal || 0) +
+        Number(pedidoCuponAIHXO.envio || 0)
+      );
+
+      mensaje.textContent =
+        resultado?.message || 'Código no válido.';
+      mensaje.style.color = '#dc2626';
+
+      return;
+    }
+
+    cuponAplicadoAIHXO = resultado;
+
+    const descuentoProducto =
+      Number(resultado.discount_amount || 0);
+
+    const descuentoEnvio =
+      Number(resultado.shipping_discount || 0);
+
+    const descuentoTotal =
+      descuentoProducto + descuentoEnvio;
+
+    const totalFinal = Math.max(
+      0,
+      Number(pedidoCuponAIHXO.subtotal || 0) +
+      Number(pedidoCuponAIHXO.envio || 0) -
+      descuentoTotal
+    );
+
+    filaDescuento.style.display = 'flex';
+    descuentoEl.textContent = '-' + dineroAIHXO(descuentoTotal);
+    totalEl.textContent = dineroAIHXO(totalFinal);
+
+    mensaje.textContent =
+      resultado.message || 'Cupón aplicado correctamente.';
+    mensaje.style.color = '#087cf4';
+
+  } catch (error) {
+    console.error('Error aplicando cupón:', error);
+
+    mensaje.textContent =
+      'No se ha podido comprobar el cupón. Inténtalo de nuevo.';
+    mensaje.style.color = '#dc2626';
+  }
+}
+
+function confirmarPedidoConCupon() {
+  if (!pedidoCuponAIHXO) return;
+
+  let mensaje = pedidoCuponAIHXO.mensajeBase || '';
+
+  const subtotal = Number(pedidoCuponAIHXO.subtotal || 0);
+  const envio = Number(pedidoCuponAIHXO.envio || 0);
+
+  let descuentoProducto = 0;
+  let descuentoEnvio = 0;
+
+  if (cuponAplicadoAIHXO?.valid) {
+    descuentoProducto =
+      Number(cuponAplicadoAIHXO.discount_amount || 0);
+
+    descuentoEnvio =
+      Number(cuponAplicadoAIHXO.shipping_discount || 0);
+
+    mensaje +=
+      `\n\n🎟️ Cupón: ${cuponAplicadoAIHXO.code}` +
+      `\n💙 Descuento: ${dineroAIHXO(descuentoProducto + descuentoEnvio)}`;
+  }
+
+  const totalFinal = Math.max(
+    0,
+    subtotal + envio - descuentoProducto - descuentoEnvio
+  );
+
+  if (envio > 0) {
+    mensaje += `\n🚚 Envío: ${dineroAIHXO(envio - descuentoEnvio)}`;
+  }
+
+  mensaje += `\n💰 Total final: ${dineroAIHXO(totalFinal)}`;
+
+  window.open(
+    'https://wa.me/34692943013?text=' +
+    encodeURIComponent(mensaje),
+    '_blank'
+  );
+
+  cerrarModalCupon();
+}
+
+window.abrirModalCuponAIHXO = abrirModalCuponAIHXO;
+window.cerrarModalCupon = cerrarModalCupon;
+window.aplicarCuponAIHXO = aplicarCuponAIHXO;
+window.confirmarPedidoConCupon = confirmarPedidoConCupon;
 </script>
 <div id="modal-personalizacion" style="
   display:none;
