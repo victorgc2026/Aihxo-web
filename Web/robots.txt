@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://victorgc2026.github.io/Aihxo-web/Web/sitemap.xml
