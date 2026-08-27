@@ -1087,7 +1087,28 @@ data-price-two="${p.variants.find(v => Number(v.price_two_print || 0) > 0)?.pric
     </article>
   `;
 }).join('');
+function cambiarCantidadPersonalizada(btn, cambio) {
+  const tarjeta = btn.closest('.product');
+  if (!tarjeta) return;
 
+  const cantidadEl =
+    tarjeta.querySelector('[data-cantidad-personalizada]');
+
+  if (!cantidadEl) return;
+
+  let cantidad =
+    Number(cantidadEl.textContent || 1);
+
+  cantidad += cambio;
+
+  if (cantidad < 1) cantidad = 1;
+  if (cantidad > 99) cantidad = 99;
+
+  cantidadEl.textContent = cantidad;
+}
+
+window.cambiarCantidadPersonalizada =
+  cambiarCantidadPersonalizada;
 
 function seleccionarTallaProducto(btn) {
   const card = btn.closest('.product');
