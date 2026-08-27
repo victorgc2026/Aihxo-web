@@ -1281,9 +1281,28 @@ mensaje +=
     ? precioUno
     : precioDos;
 
+const precioSeleccionado =
+  opcion === 1
+    ? precioUno
+    : precioDos;
+
+const cantidad =
+  Math.max(
+    1,
+    Number(card.dataset.selectedQuantity || 1)
+  );
+
+const subtotal =
+  precioSeleccionado * cantidad;
+
+mensaje +=
+  `\n👕 Cantidad: ${cantidad}` +
+  `\n💶 Precio unitario: ${dineroAIHXO(precioSeleccionado)}` +
+  `\n💰 Subtotal: ${dineroAIHXO(subtotal)}`;
+
 abrirModalCuponAIHXO({
-  nombre: nombre,
-  subtotal: precioSeleccionado,
+  nombre: `${nombre} × ${cantidad}`,
+  subtotal: subtotal,
   envio: 0,
   mensajeBase: mensaje
 });
