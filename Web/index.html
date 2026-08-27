@@ -1083,6 +1083,13 @@ function pedirProductoPersonalizado(btn) {
 
   const talla = card.dataset.selectedSize || '';
   const color = card.dataset.selectedColor || '';
+ const cantidadEl =
+  card.querySelector('[data-cantidad-personalizada]');
+
+const cantidad =
+  Math.max(1, Number(cantidadEl?.textContent || 1));
+
+card.dataset.selectedQuantity = cantidad;
   const precioUno = Number(card.dataset.priceOne || 0);
 const precioDos = Number(card.dataset.priceTwo || 0);
 
