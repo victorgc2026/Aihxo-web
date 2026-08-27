@@ -1299,14 +1299,33 @@ function comprarDisenoPropio(btn) {
 
   const telefono = '34692943013';
 
-  const precioNumero =
+  const cantidadEl =
+  tarjeta.querySelector('[data-cantidad-diseno]');
+
+const cantidad =
+  Math.max(1, Number(cantidadEl?.textContent || 1));
+
+const precioUnitario =
   Number(tarjeta.dataset.orderPrice || 0);
 
+const subtotal =
+  precioUnitario * cantidad;
+
+const mensajeConCantidad =
+  `Hola AIHXO, quiero pedir este diseño:\n\n` +
+  `Diseño: ${nombre}\n` +
+  `Talla: ${talla.textContent.trim()}\n` +
+  `Color: ${color.textContent.trim()}\n` +
+  `Cantidad: ${cantidad}\n` +
+  `Precio unitario: ${dineroAIHXO(precioUnitario)}\n` +
+  `Subtotal: ${dineroAIHXO(subtotal)}\n\n` +
+  `¿Está disponible?`;
+
 abrirModalCuponAIHXO({
-  nombre: nombre,
-  subtotal: precioNumero,
+  nombre: `${nombre} × ${cantidad}`,
+  subtotal: subtotal,
   envio: 0,
-  mensajeBase: mensaje
+  mensajeBase: mensajeConCantidad
 });
 }
     cargarDisenosPropiosAutomaticos();
