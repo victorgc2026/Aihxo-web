@@ -1010,7 +1010,60 @@ data-price-two="${p.variants.find(v => Number(v.price_two_print || 0) > 0)?.pric
             </div>
           </details>
         ` : ''}
+<div style="
+  margin:16px 0 6px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+">
+  <strong style="color:#07152f;">Cantidad</strong>
 
+  <div style="
+    display:flex;
+    align-items:center;
+    gap:10px;
+  ">
+    <button
+      type="button"
+      onclick="cambiarCantidadPersonalizada(this,-1)"
+      style="
+        width:38px;
+        height:38px;
+        border:1px solid #d7deea;
+        border-radius:10px;
+        background:#fff;
+        font-size:20px;
+        font-weight:900;
+      "
+    >−</button>
+
+    <span
+      data-cantidad-personalizada
+      style="
+        min-width:28px;
+        text-align:center;
+        font-size:18px;
+        font-weight:900;
+        color:#07152f;
+      "
+    >1</span>
+
+    <button
+      type="button"
+      onclick="cambiarCantidadPersonalizada(this,1)"
+      style="
+        width:38px;
+        height:38px;
+        border:1px solid #d7deea;
+        border-radius:10px;
+        background:#fff;
+        font-size:20px;
+        font-weight:900;
+      "
+    >+</button>
+  </div>
+</div>
         <a
           href="#"
           onclick="return pedirProductoPersonalizado(this)"
