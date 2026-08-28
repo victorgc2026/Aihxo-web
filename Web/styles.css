@@ -49,3 +49,29 @@
   .memories-logo{width:min(100%,235px)}
   .memories-copy h2{font-size:32px}
 }
+/* AIHXO — Diseño destacado */
+.product-destacado{
+  transform:scale(1.03);
+  border:2px solid #07152f;
+  box-shadow:0 16px 38px rgba(7,21,47,.16);
+  position:relative;
+  z-index:2;
+}
+
+.product-destacado .info em{
+  display:inline-block;
+  background:#07152f;
+  color:#fff;
+  padding:7px 10px;
+  border-radius:999px;
+  font-weight:900;
+  letter-spacing:1px;
+}
+
+@media(max-width:600px){
+  .product-destacado{
+    transform:none;
+    border-width:2px;
+    box-shadow:0 14px 32px rgba(7,21,47,.14);
+  }
+}
