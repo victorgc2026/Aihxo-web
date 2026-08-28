@@ -282,7 +282,20 @@ async function cargarDisenosPropiosAutomaticos() {
 
     if (error) throw error;
 
-    const productos = data || [];
+    const prioridad = {
+  destacado: 1,
+  prioritario: 2,
+  normal: 3,
+  baja: 4
+};
+
+const productos = (data || [])
+  .filter(p => (p.commercial_visibility || 'normal') !== 'oculto')
+  .sort((a, b) => {
+    const pa = prioridad[a.commercial_visibility || 'normal'] || 3;
+    const pb = prioridad[b.commercial_visibility || 'normal'] || 3;
+    return pa - pb;
+  });
 
     contenedor.innerHTML = productos.map(p => {
       const categoria = String(p.category || '').toLowerCase();
