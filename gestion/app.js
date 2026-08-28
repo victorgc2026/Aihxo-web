@@ -186,7 +186,16 @@ function productForm(id){
    <label>Modelo</label>
    <input name="model" value="${esc(p.model||'')}" required>
   </div>
-
+<div class="field">
+  <label>Visibilidad comercial</label>
+  <select name="commercial_visibility">
+    <option value="destacado" ${p.commercial_visibility==='destacado'?'selected':''}>⭐ Destacado</option>
+    <option value="prioritario" ${p.commercial_visibility==='prioritario'?'selected':''}>🔥 Prioritario</option>
+    <option value="normal" ${!p.commercial_visibility || p.commercial_visibility==='normal'?'selected':''}>Normal</option>
+    <option value="baja" ${p.commercial_visibility==='baja'?'selected':''}>Baja visibilidad</option>
+    <option value="oculto" ${p.commercial_visibility==='oculto'?'selected':''}>Oculto</option>
+  </select>
+</div>
   <div class="formgrid">
    <div class="field">
     <label>Talla</label>
@@ -438,6 +447,7 @@ if(imageFile){
     ? 'Diseno propio publicado infantil camiseta'
     : f.get('category'),
    model:f.get('model'),
+   commercial_visibility:f.get('commercial_visibility') || 'normal',
    size:f.get('size'),
    color:f.get('color'),
 
