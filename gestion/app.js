@@ -600,6 +600,16 @@ auth();
           <div class="field"><label>SKU</label><input name="sku" required value="${esc(p.sku||'')}"></div>
           <div class="field"><label>Categoría</label><input name="category" value="${esc(p.category||'')}"></div>
           <div class="field"><label>Modelo</label><input name="model" required value="${esc(p.model||'')}"></div>
+         <div class="field">
+  <label>Visibilidad comercial</label>
+  <select name="commercial_visibility">
+    <option value="destacado" ${p.commercial_visibility==='destacado'?'selected':''}>⭐ Destacado</option>
+    <option value="prioritario" ${p.commercial_visibility==='prioritario'?'selected':''}>🔥 Prioritario</option>
+    <option value="normal" ${!p.commercial_visibility || p.commercial_visibility==='normal'?'selected':''}>Normal</option>
+    <option value="baja" ${p.commercial_visibility==='baja'?'selected':''}>Baja visibilidad</option>
+    <option value="oculto" ${p.commercial_visibility==='oculto'?'selected':''}>Oculto</option>
+  </select>
+</div> 
           <div class="field"><label>Talla</label><input name="size" value="${esc(p.size||'')}"></div>
           <div class="field"><label>Color</label><input name="color" value="${esc(p.color||'')}"></div>
           <div class="field"><label>Stock</label><input name="stock" type="number" min="0" required value="${Number(p.stock||0)}"></div>
