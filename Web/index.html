@@ -299,6 +299,7 @@ const productos = (data || [])
 
     contenedor.innerHTML = productos.map(p => {
       const categoria = String(p.category || '').toLowerCase();
+     const esDestacado = (p.commercial_visibility || 'normal') === 'destacado';
 
       let filtro = 'camiseta';
 
@@ -339,7 +340,7 @@ const colores = String(p.color || '')
 
       return `
   <article
-  class="product"
+  class="product ${esDestacado ? 'product-destacado' : ''}"
   data-collection-cat="${filtros}"
   data-order-price="${precioMostrar}"
 >
@@ -355,7 +356,11 @@ const colores = String(p.color || '')
 
     <div class="info">
 
-      ${esNovedad ? '<em>NOVEDAD</em>' : '<em>DISEÑO AIHXO</em>'}
+      ${esDestacado
+  ? '<em>⭐ DESTACADO AIHXO</em>'
+  : esNovedad
+    ? '<em>NOVEDAD</em>'
+    : '<em>DISEÑO AIHXO</em>'}
 
       <h3>${nombre}</h3>
       ${tallas.length ? `
