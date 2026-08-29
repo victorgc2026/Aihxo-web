@@ -192,10 +192,10 @@ function productsView(c){
 
         </div>
 <div style="display:flex;gap:8px;overflow-x:auto;margin:14px 0;padding-bottom:4px;">
-  <button class="secondary" onclick="setProductQuickFilter('all')">Todos</button>
-  <button class="secondary" onclick="setProductQuickFilter('published')">👁 Publicados</button>
-  <button class="secondary" onclick="setProductQuickFilter('hidden')">🙈 Ocultos</button>
-  <button class="secondary" onclick="setProductQuickFilter('low')">⚠️ Stock bajo</button>
+  <button class="primary" data-product-filter="all" onclick="setProductQuickFilter('all')">Todos</button>
+  <button class="secondary" data-product-filter="published" onclick="setProductQuickFilter('published')">👁 Publicados</button>
+  <button class="secondary" data-product-filter="hidden" onclick="setProductQuickFilter('hidden')">🙈 Ocultos</button>
+  <button class="secondary" data-product-filter="low" onclick="setProductQuickFilter('low')">⚠️ Stock bajo</button>
 </div>
         <div id="productTable"></div>
 
@@ -230,6 +230,12 @@ let productQuickFilter = 'all';
 
 function setProductQuickFilter(filter){
   productQuickFilter = filter;
+
+  document.querySelectorAll('[data-product-filter]').forEach(btn => {
+    btn.classList.toggle('primary', btn.dataset.productFilter === filter);
+    btn.classList.toggle('secondary', btn.dataset.productFilter !== filter);
+  });
+
   drawProducts();
 }
 function drawProducts(){
