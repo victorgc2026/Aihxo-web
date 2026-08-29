@@ -260,7 +260,7 @@ if(esMovil){
         </div>
 
         <div class="muted" style="margin-bottom:10px;">
-          ${esc(p.category || '')}
+          ${esc(p.category || '').replace(/\|/g,' · ')}
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:13px;">
