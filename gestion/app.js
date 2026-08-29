@@ -191,7 +191,12 @@ function productsView(c){
           </select>
 
         </div>
-
+<div style="display:flex;gap:8px;overflow-x:auto;margin:14px 0;padding-bottom:4px;">
+  <button class="secondary" onclick="setProductQuickFilter('all')">Todos</button>
+  <button class="secondary" onclick="setProductQuickFilter('published')">👁 Publicados</button>
+  <button class="secondary" onclick="setProductQuickFilter('hidden')">🙈 Ocultos</button>
+  <button class="secondary" onclick="setProductQuickFilter('low')">⚠️ Stock bajo</button>
+</div>
         <div id="productTable"></div>
 
       </div>
@@ -221,13 +226,18 @@ function formatCategory(category){
 
   return partes.length ? [...new Set(partes)].join(' · ') : texto;
 }
+let productQuickFilter = 'all';
 
+function setProductQuickFilter(filter){
+  productQuickFilter = filter;
+  drawProducts();
+}
 function drawProducts(){
 
   const q = ($('#pq')?.value || '').toLowerCase().trim();
   const category = $('#pcategory')?.value || '';
   const stockFilter = $('#pstock')?.value || '';
-
+const quickFilter = productQuickFilter;
   let lista = products.filter(p => {
 
     const texto = `
@@ -247,7 +257,9 @@ function drawProducts(){
     if(stockFilter === 'available' && stock <= 0) return false;
     if(stockFilter === 'low' && (stock <= 0 || stock > 3)) return false;
     if(stockFilter === 'zero' && stock !== 0) return false;
-
+if(quickFilter === 'low' && !(stock > 0 && stock <= 3)) return false;
+if(quickFilter === 'hidden' && !/oculto/i.test(String(p.category || ''))) return false;
+if(quickFilter === 'published' && !/publicado/i.test(String(p.category || ''))) return false;
     return true;
   });
 
