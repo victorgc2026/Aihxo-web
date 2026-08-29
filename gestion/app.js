@@ -146,7 +146,211 @@ function drawOrders(){
 async function status(id,s){const {error}=await supabaseClient.from('orders').update({status:s}).eq('id',id);if(error)toast(error.message);else{toast('Estado actualizado');await loadAll();drawOrders()}}
 function orderForm(){$('#drawer').classList.remove('hidden');$('#drawerBody').innerHTML=`<h2>Nuevo pedido</h2><form class="form" id="of"><div class="formgrid"><div class="field"><label>Cliente</label><input name="customer" required></div><div class="field"><label>Contacto</label><input name="contact"></div></div><div class="field"><label>Producto</label><select name="sku" id="osku">${products.map(p=>`<option value="${p.id}">${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)} — ${money(p.sale_price)}</option>`).join('')}</select></div><div class="formgrid"><div class="field"><label>Diseño</label><input name="design" placeholder="Nombre del diseño"></div><div class="field"><label>Cantidad</label><input name="qty" type="number" min="1" value="1"></div></div><div class="formgrid"><div class="field"><label>Precio unitario</label><input name="price" id="oprice" type="number" step=".01"></div><div class="field"><label>Envío cobrado</label><input name="shipping" type="number" step=".01" value="0"></div></div><button class="primary">Guardar pedido</button></form>`;$('#oprice').value=products[0]?.sale_price||0;$('#osku').onchange=e=>$('#oprice').value=products.find(p=>p.id===e.target.value)?.sale_price||0;$('#of').onsubmit=createOrder}
 async function createOrder(e){e.preventDefault();const f=new FormData(e.target),p=products.find(x=>x.id===f.get('sku')),qty=+f.get('qty');if(!p||p.stock<qty){toast('Stock insuficiente');return}const price=+f.get('price'),shipping=+f.get('shipping')||0;let customer=customers.find(x=>x.name===f.get('customer'));if(!customer){const r=await supabaseClient.from('customers').insert({name:f.get('customer'),contact:f.get('contact')}).select().single();if(r.error){toast(r.error.message);return}customer=r.data}const order={order_number:'AIHXO-'+String(orders.length+1).padStart(4,'0'),customer_id:customer.id,customer_name:customer.name,contact:f.get('contact'),product_id:p.id,product_name:p.model,size:p.size,color:p.color,design:f.get('design'),quantity:qty,unit_price:price,shipping,total:qty*price+shipping,product_cost:qty*cost(p),status:'Pendiente'};const r=await supabaseClient.from('orders').insert(order);if(r.error){toast(r.error.message);return}await supabaseClient.from('products').update({stock:p.stock-qty}).eq('id',p.id);closeDrawer();await loadAll();setView('orders');toast('Pedido guardado en Supabase')}
-function productsView(c){c.innerHTML=`<div class="page"><div class="section"><div><h2>Productos</h2><div class="muted">${products.length} referencias</div></div><button class="primary" onclick="productForm()">＋ Producto</button></div><div class="grid three">${products.map(p=>`<div class="card"><div class="thumb">${p.category==='Bolso'?'👜':'👕'}</div><b>${esc(p.model)}</b><div class="muted">${esc(p.size||'')} · ${esc(p.color||'')} · ${p.sku}</div><div class="row" style="margin-top:12px"><span>Coste <b>${money(cost(p))}</b></span><span>Venta <b>${money(p.sale_price)}</b></span></div><div class="row" style="margin-top:8px"><span>Stock</span><b class="${p.stock<=3?'red':'green'}">${p.stock}</b></div><div class="actions" style="margin-top:10px"><button class="secondary" onclick="productForm('${p.id}')">Editar</button><button class="secondary" onclick="addStock('${p.id}')">＋ Stock</button></div></div>`).join('')}</div></div>`}
+function productsView(c){
+  c.innerHTML=`
+    <div class="page">
+
+      <div class="section">
+        <div>
+          <h2>Gestionar productos</h2>
+          <div class="muted">${products.length} referencias</div>
+        </div>
+
+        <button class="primary" onclick="productForm()">
+          ＋ Nuevo producto
+        </button>
+      </div>
+
+      <div class="card">
+
+        <div style="
+          display:grid;
+          grid-template-columns:minmax(200px,1fr) 180px 180px;
+          gap:10px;
+          margin-bottom:16px;
+        ">
+
+          <input
+            class="search"
+            id="pq"
+            placeholder="🔎 Buscar producto, SKU, talla..."
+            oninput="drawProducts()"
+          >
+
+          <select id="pcategory" onchange="drawProducts()">
+            <option value="">Todas las categorías</option>
+            <option value="Camiseta">Camisetas</option>
+            <option value="Bolso">Bolsos</option>
+          </select>
+
+          <select id="pstock" onchange="drawProducts()">
+            <option value="">Todo el stock</option>
+            <option value="available">Con stock</option>
+            <option value="low">Stock bajo (≤3)</option>
+            <option value="zero">Sin stock</option>
+          </select>
+
+        </div>
+
+        <div id="productTable"></div>
+
+      </div>
+
+    </div>
+  `;
+
+  drawProducts();
+}
+
+
+function drawProducts(){
+
+  const q = ($('#pq')?.value || '').toLowerCase().trim();
+  const category = $('#pcategory')?.value || '';
+  const stockFilter = $('#pstock')?.value || '';
+
+  let lista = products.filter(p => {
+
+    const texto = `
+      ${p.model || ''}
+      ${p.sku || ''}
+      ${p.size || ''}
+      ${p.color || ''}
+      ${p.category || ''}
+    `.toLowerCase();
+
+    if(q && !texto.includes(q)) return false;
+
+    if(category && p.category !== category) return false;
+
+    const stock = Number(p.stock || 0);
+
+    if(stockFilter === 'available' && stock <= 0) return false;
+    if(stockFilter === 'low' && (stock <= 0 || stock > 3)) return false;
+    if(stockFilter === 'zero' && stock !== 0) return false;
+
+    return true;
+  });
+
+
+  const cont = $('#productTable');
+
+  if(!cont) return;
+
+
+  cont.innerHTML = lista.length ? `
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>SKU</th>
+            <th>Talla</th>
+            <th>Color</th>
+            <th>Stock</th>
+            <th>Venta</th>
+            <th>Visibilidad</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          ${lista.map(p => {
+
+            const stock = Number(p.stock || 0);
+
+            const visibilidad = {
+              destacado:'⭐ Destacado',
+              prioritario:'🔥 Prioritario',
+              normal:'Normal',
+              baja:'Baja',
+              oculto:'🙈 Oculto'
+            }[p.commercial_visibility || 'normal'];
+
+            return `
+
+              <tr>
+
+                <td>
+                  <b>${esc(p.model || 'Sin nombre')}</b>
+                  <div class="muted">
+                    ${esc(p.category || '')}
+                  </div>
+                </td>
+
+                <td>
+                  ${esc(p.sku || '—')}
+                </td>
+
+                <td>
+                  ${esc(p.size || '—')}
+                </td>
+
+                <td>
+                  ${esc(p.color || '—')}
+                </td>
+
+                <td>
+                  <b class="${stock <= 3 ? 'red' : 'green'}">
+                    ${stock}
+                  </b>
+                </td>
+
+                <td>
+                  <b>${money(p.sale_price)}</b>
+                </td>
+
+                <td>
+                  ${visibilidad}
+                </td>
+
+                <td>
+
+                  <div class="actions">
+
+                    <button
+                      class="primary small"
+                      onclick="productForm('${p.id}')"
+                    >
+                      ✏️ Editar
+                    </button>
+
+                    <button
+                      class="secondary small"
+                      onclick="addStock('${p.id}')"
+                    >
+                      ＋ Stock
+                    </button>
+
+                  </div>
+
+                </td>
+
+              </tr>
+
+            `;
+
+          }).join('')}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  ` : `
+
+    <div class="empty">
+      No se encontraron productos.
+    </div>
+
+  `;
+
+}
 function productForm(id){
  const p=id?products.find(x=>x.id===id):{
   sku:'',category:'Camiseta',model:'',size:'M',color:'Blanco',
