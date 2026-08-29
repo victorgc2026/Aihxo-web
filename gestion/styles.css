@@ -217,3 +217,128 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted
 .mobile-doc-actions .secondary{
   white-space:nowrap;
 }
+/* =========================================
+   AIHXO - PRODUCTOS ADAPTADOS A MÓVIL
+   ========================================= */
+
+@media (max-width: 700px) {
+
+  /* Filtros uno debajo de otro */
+  #pq,
+  #pcategory,
+  #pstock {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  #productTable .table-wrap {
+    overflow: visible;
+  }
+
+  #productTable table,
+  #productTable tbody {
+    display: block;
+    width: 100%;
+  }
+
+  /* Ocultamos cabecera de tabla */
+  #productTable thead {
+    display: none;
+  }
+
+  /* Cada producto se convierte en tarjeta */
+  #productTable tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+
+    margin-bottom: 14px;
+    padding: 16px;
+
+    background: #fff;
+    border: 1px solid #e3e8f0;
+    border-radius: 16px;
+  }
+
+  #productTable td {
+    display: block;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  /* Nombre producto */
+  #productTable td:nth-child(1) {
+    grid-column: 1 / -1;
+    font-size: 17px;
+  }
+
+  /* SKU */
+  #productTable td:nth-child(2) {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    color: #667085;
+  }
+
+  #productTable td:nth-child(2)::before {
+    content: "SKU: ";
+    font-weight: 700;
+  }
+
+  /* Talla */
+  #productTable td:nth-child(3)::before {
+    content: "Talla: ";
+    font-weight: 700;
+  }
+
+  /* Color */
+  #productTable td:nth-child(4)::before {
+    content: "Color: ";
+    font-weight: 700;
+  }
+
+  /* Stock */
+  #productTable td:nth-child(5)::before {
+    content: "Stock: ";
+    font-weight: 700;
+    color: #17233c;
+  }
+
+  /* Precio */
+  #productTable td:nth-child(6) {
+    text-align: right;
+  }
+
+  #productTable td:nth-child(6)::before {
+    content: "Venta: ";
+    font-weight: 700;
+  }
+
+  /* Visibilidad */
+  #productTable td:nth-child(7) {
+    grid-column: 1 / -1;
+    padding-top: 4px;
+  }
+
+  #productTable td:nth-child(7)::before {
+    content: "Visibilidad: ";
+    font-weight: 700;
+  }
+
+  /* Botones */
+  #productTable td:nth-child(8) {
+    grid-column: 1 / -1;
+    margin-top: 6px;
+  }
+
+  #productTable td:nth-child(8) .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  #productTable td:nth-child(8) button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
