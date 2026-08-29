@@ -236,7 +236,78 @@ function drawProducts(){
   const cont = $('#productTable');
 
   if(!cont) return;
+const esMovil = window.innerWidth <= 700;
 
+if(esMovil){
+
+  cont.innerHTML = lista.length ? lista.map(p => {
+
+    const stock = Number(p.stock || 0);
+
+    const visibilidad = {
+      destacado:'⭐ Destacado',
+      prioritario:'🔥 Prioritario',
+      normal:'Normal',
+      baja:'Baja',
+      oculto:'🙈 Oculto'
+    }[p.commercial_visibility || 'normal'];
+
+    return `
+      <div class="card" style="margin-bottom:12px;">
+
+        <div style="font-size:17px;font-weight:800;margin-bottom:4px;">
+          ${esc(p.model || 'Sin nombre')}
+        </div>
+
+        <div class="muted" style="margin-bottom:10px;">
+          ${esc(p.category || '')}
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:13px;">
+
+          <div><b>SKU:</b> ${esc(p.sku || '—')}</div>
+          <div><b>Talla:</b> ${esc(p.size || '—')}</div>
+
+          <div><b>Color:</b> ${esc(p.color || '—')}</div>
+          <div>
+            <b>Stock:</b>
+            <span class="${stock <= 3 ? 'red' : 'green'}">${stock}</span>
+          </div>
+
+          <div><b>Venta:</b> ${money(p.sale_price)}</div>
+          <div><b>${visibilidad}</b></div>
+
+        </div>
+
+        <div class="actions" style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;">
+
+          <button
+            class="primary small"
+            onclick="productForm('${p.id}')"
+          >
+            ✏️ Editar
+          </button>
+
+          <button
+            class="secondary small"
+            onclick="addStock('${p.id}')"
+          >
+            ＋ Stock
+          </button>
+
+        </div>
+
+      </div>
+    `;
+
+  }).join('') : `
+    <div class="empty">
+      No se encontraron productos.
+    </div>
+  `;
+
+  return;
+}
 
   cont.innerHTML = lista.length ? `
 
