@@ -165,13 +165,13 @@ function productsView(c){
 
         <div style="
           display:grid;
-         grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); 
+         grid-template-columns:1fr 1fr;
           gap:10px;
           margin-bottom:16px;
         ">
 
           <input
-            class="search"
+            class="search" style="grid-column:1 / -1;max-width:none;"
             id="pq"
             placeholder="🔎 Buscar producto, SKU, talla..."
             oninput="drawProducts()"
