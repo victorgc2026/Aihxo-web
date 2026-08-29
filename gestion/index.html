@@ -20,10 +20,18 @@ document.write('<link rel="stylesheet" href="styles.css?v=' + Date.now() + '">')
 <script>
 document.write('<script src="app.js?v=' + Date.now() + '"><\/script>');
 </script>
-<script src="presupuestos-facturas.js?v=1"></script>
-<script src="memories.js?v=2"></script>
-  <script src="memories-detail.js?v=1"></script>
-  <script src="disenos-propios.js?v=1"></script>
-  <script src="cupones.js?v=1"></script>
+<script>
+const archivosAIHXO = [
+  'presupuestos-facturas.js',
+  'memories.js',
+  'memories-detail.js',
+  'disenos-propios.js',
+  'cupones.js'
+];
+
+archivosAIHXO.forEach(archivo => {
+  document.write('<script src="' + archivo + '?v=' + Date.now() + '"><\/script>');
+});
+</script>
 </body>
 </html>
