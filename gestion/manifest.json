@@ -1,7 +1,7 @@
 {
   "name": "AIHXO Gestión",
   "short_name": "AIHXO",
-  "start_url": "./?v=25",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#07152f",
   "theme_color": "#07152f",
