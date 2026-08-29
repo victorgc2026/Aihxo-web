@@ -201,7 +201,26 @@ function productsView(c){
 
   drawProducts();
 }
+function formatCategory(category){
+  let texto = String(category || '')
+    .replace(/\|/g, ' ')
+    .replace(/\bpublicado\b/gi, '')
+    .replace(/\bnovedad\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
+  texto = texto.replace(/diseno propio/gi, 'Diseño propio');
+
+  const partes = [];
+
+  if(/diseño propio/i.test(texto)) partes.push('Diseño propio');
+  if(/camiseta/i.test(texto)) partes.push('Camiseta');
+  if(/infantil/i.test(texto)) partes.push('Infantil');
+  if(/adulto/i.test(texto)) partes.push('Adulto');
+  if(/bolso/i.test(texto)) partes.push('Bolso');
+
+  return partes.length ? [...new Set(partes)].join(' · ') : texto;
+}
 
 function drawProducts(){
 
