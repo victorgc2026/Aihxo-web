@@ -279,11 +279,7 @@ if(esMovil){
         </div>
 
         <div class="muted" style="margin-bottom:10px;">
-         ${esc((p.category || '')
-  .split('|')
-  .filter(x => !['publicado','novedad'].includes(x.toLowerCase()))
-  .map(x => x.toLowerCase() === 'diseno propio' ? 'Diseño propio' : x.charAt(0).toUpperCase() + x.slice(1))
-  .join(' · '))} 
+${esc(formatCategory(p.category))}
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:13px;">
