@@ -165,7 +165,7 @@ function productsView(c){
 
         <div style="
           display:grid;
-          grid-template-columns:minmax(200px,1fr) 180px 180px;
+         grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); 
           gap:10px;
           margin-bottom:16px;
         ">
