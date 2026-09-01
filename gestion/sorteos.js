@@ -569,6 +569,53 @@ async function eliminarParticipanteSorteo(
 
 async function elegirGanadorSorteo(sorteoId) {
 
+  const { data: existentes, error: errorExistentes } = await supabaseClient
+    .from('ganadores_sorteo')
+    .select(`
+      *,
+      participantes_sorteo (
+        nombre,
+        usuario_red
+      )
+    `)
+    .eq('sorteo_id', sorteoId)
+    .order('posicion', { ascending: true });
+
+  if (errorExistentes) {
+    console.error(errorExistentes);
+    toast('Error comprobando ganador');
+    return;
+  }
+
+  if (existentes && existentes.length > 0) {
+
+    const texto = existentes.map(g => {
+      const p = g.participantes_sorteo;
+      return `${g.posicion}. ${p?.nombre || 'Ganador'}${p?.usuario_red ? ' - ' + p.usuario_red : ''}`;
+    }).join('\n');
+
+    alert(
+      '🏆 ESTE SORTEO YA ESTÁ REALIZADO\n\n' +
+      texto
+    );
+
+    return;
+  }
+
+
+  const { data: sorteo, error: errorSorteo } = await supabaseClient
+    .from('sorteos')
+    .select('numero_ganadores')
+    .eq('id', sorteoId)
+    .single();
+
+  if (errorSorteo) {
+    console.error(errorSorteo);
+    toast('Error cargando el sorteo');
+    return;
+  }
+
+
   const { data: participantes, error } = await supabaseClient
     .from('participantes_sorteo')
     .select('*')
@@ -585,31 +632,55 @@ async function elegirGanadorSorteo(sorteoId) {
     return;
   }
 
-  const indice = Math.floor(Math.random() * participantes.length);
-  const ganador = participantes[indice];
+
+  const numeroGanadores = Math.min(
+    Number(sorteo.numero_ganadores || 1),
+    participantes.length
+  );
+
+
+  const mezclados = [...participantes];
+
+  for (let i = mezclados.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [mezclados[i], mezclados[j]] = [mezclados[j], mezclados[i]];
+  }
+
+  const ganadores = mezclados.slice(0, numeroGanadores);
+
+
+  const registros = ganadores.map((ganador, index) => ({
+    sorteo_id: sorteoId,
+    participante_id: ganador.id,
+    posicion: index + 1,
+    es_suplente: false
+  }));
+
 
   const { error: errorGuardar } = await supabaseClient
     .from('ganadores_sorteo')
-    .insert({
-      sorteo_id: sorteoId,
-      participante_id: ganador.id,
-      posicion: 1,
-      es_suplente: false
-    });
+    .insert(registros);
 
   if (errorGuardar) {
     console.error(errorGuardar);
-    toast('Error guardando ganador');
+    toast('Error guardando ganadores');
     return;
   }
 
+
+  const textoGanadores = ganadores.map((g, index) =>
+    `${index + 1}. ${g.nombre}${g.usuario_red ? ' - ' + g.usuario_red : ''}`
+  ).join('\n');
+
+
   alert(
-    '🏆 GANADOR DEL SORTEO\n\n' +
-    ganador.nombre +
-    (ganador.usuario_red ? '\n' + ganador.usuario_red : '')
+    '🏆 GANADOR' +
+    (ganadores.length > 1 ? 'ES' : '') +
+    ' DEL SORTEO\n\n' +
+    textoGanadores
   );
 
-  toast('Ganador guardado');
+  toast('Resultado guardado');
 }
 // ==========================================
 // EXPONER FUNCIONES
