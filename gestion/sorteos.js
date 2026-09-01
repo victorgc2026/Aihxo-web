@@ -389,12 +389,17 @@ const textoGanador = ganadores.length
           </div>
 
           <div style="
-            font-size:12px;
-            font-weight:800;
-            text-transform:uppercase;
-          ">
-            ${s.estado}
-          </div>
+  font-size:12px;
+  font-weight:800;
+  text-transform:uppercase;
+  padding:6px 10px;
+  border-radius:20px;
+  background:#e8f8ee;
+  color:#16803c;
+  margin-left:auto;
+">
+  ${s.estado}
+</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
 
   <button
@@ -408,7 +413,7 @@ const textoGanador = ganadores.length
     class="secondary"
     onclick="elegirGanadorSorteo('${s.id}')"
   >
-    🏆 Elegir ganador
+    ${ganadores.length ? '🏆 Ver resultado' : '🏆 Elegir ganador'}
   </button>
 
 </div>
