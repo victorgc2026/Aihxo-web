@@ -164,16 +164,16 @@ function sorteosView() {
   `;
 }
 
-
 // ==========================================
 // EVENTOS DEL MÓDULO
 // ==========================================
 
-function iniciarSorteos() {
+async function iniciarSorteos() {
 
   const nuevo = document.getElementById('btnNuevoSorteo');
   const formulario = document.getElementById('formNuevoSorteo');
   const cerrar = document.getElementById('cerrarNuevoSorteo');
+  const guardar = document.getElementById('guardarSorteo');
 
   if (nuevo) {
     nuevo.onclick = () => {
@@ -191,9 +191,172 @@ function iniciarSorteos() {
     };
   }
 
+  if (guardar) {
+    guardar.onclick = guardarSorteo;
+  }
+
+  await cargarSorteos();
 }
 
 
-// Dejamos disponible el módulo para AIHXO Gestión
+// ==========================================
+// GUARDAR SORTEO
+// ==========================================
+
+async function guardarSorteo() {
+
+  const nombre = document.getElementById('sorteoNombre').value.trim();
+  const premio = document.getElementById('sorteoPremio').value.trim();
+  const fecha_inicio = document.getElementById('sorteoInicio').value || null;
+  const fecha_fin = document.getElementById('sorteoFin').value || null;
+  const numero_ganadores = Number(
+    document.getElementById('sorteoGanadores').value || 1
+  );
+  const estado = document.getElementById('sorteoEstado').value;
+  const texto_promocional =
+    document.getElementById('sorteoTexto').value.trim();
+  const condiciones =
+    document.getElementById('sorteoCondiciones').value.trim();
+
+  if (!nombre || !premio) {
+    toast('Completa nombre y premio');
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from('sorteos')
+    .insert({
+      nombre,
+      premio,
+      fecha_inicio,
+      fecha_fin,
+      numero_ganadores,
+      estado,
+      texto_promocional,
+      condiciones
+    });
+
+  if (error) {
+    console.error(error);
+    toast('Error al guardar el sorteo');
+    return;
+  }
+
+  toast('Sorteo guardado');
+
+  document.getElementById('sorteoNombre').value = '';
+  document.getElementById('sorteoPremio').value = '';
+  document.getElementById('sorteoInicio').value = '';
+  document.getElementById('sorteoFin').value = '';
+  document.getElementById('sorteoGanadores').value = '1';
+  document.getElementById('sorteoEstado').value = 'programado';
+  document.getElementById('sorteoTexto').value = '';
+  document.getElementById('sorteoCondiciones').value = '';
+
+  document.getElementById('formNuevoSorteo').style.display = 'none';
+
+  await cargarSorteos();
+}
+
+
+// ==========================================
+// CARGAR SORTEOS
+// ==========================================
+
+async function cargarSorteos() {
+
+  const { data, error } = await supabaseClient
+    .from('sorteos')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    toast('Error cargando sorteos');
+    return;
+  }
+
+  const sorteos = data || [];
+
+  const activos =
+    sorteos.filter(s => s.estado === 'activo').length;
+
+  const programados =
+    sorteos.filter(s => s.estado === 'programado').length;
+
+  const finalizados =
+    sorteos.filter(s => s.estado === 'finalizado').length;
+
+  document.getElementById('sorteosActivos').textContent = activos;
+  document.getElementById('sorteosProgramados').textContent = programados;
+  document.getElementById('sorteosFinalizados').textContent = finalizados;
+
+  const lista = document.getElementById('listaSorteos');
+
+  if (!lista) return;
+
+  if (!sorteos.length) {
+    lista.innerHTML = `
+      <div class="muted" style="padding:25px;text-align:center;">
+        Todavía no has creado ningún sorteo.
+      </div>
+    `;
+    return;
+  }
+
+  lista.innerHTML = sorteos.map(s => {
+
+    let icono = '🗓';
+
+    if (s.estado === 'activo') icono = '🟢';
+    if (s.estado === 'finalizado') icono = '🏁';
+
+    return `
+      <div class="card" style="padding:16px;margin-bottom:12px;">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:12px;
+          align-items:flex-start;
+          flex-wrap:wrap;
+        ">
+
+          <div>
+            <div style="font-size:18px;font-weight:800;">
+              ${icono} ${s.nombre}
+            </div>
+
+            <div class="muted" style="margin-top:5px;">
+              Premio: ${s.premio}
+            </div>
+
+            <div class="muted" style="margin-top:5px;">
+              ${s.fecha_inicio || '—'} → ${s.fecha_fin || '—'}
+            </div>
+          </div>
+
+          <div style="
+            font-size:12px;
+            font-weight:800;
+            text-transform:uppercase;
+          ">
+            ${s.estado}
+          </div>
+
+        </div>
+
+      </div>
+    `;
+
+  }).join('');
+}
+
+
+// ==========================================
+// EXPONER FUNCIONES
+// ==========================================
+
 window.sorteosView = sorteosView;
 window.iniciarSorteos = iniciarSorteos;
+window.cargarSorteos = cargarSorteos;
