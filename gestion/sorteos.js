@@ -266,9 +266,22 @@ async function guardarSorteo() {
 async function cargarSorteos() {
 
   const { data, error } = await supabaseClient
-    .from('sorteos')
-    .select('*')
-    .order('created_at', { ascending: false });
+  .from('sorteos')
+  .select(`
+    *,
+    participantes_sorteo (
+      id
+    ),
+    ganadores_sorteo (
+      posicion,
+      es_suplente,
+      participantes_sorteo (
+        nombre,
+        usuario_red
+      )
+    )
+  `)
+  .order('created_at', { ascending: false });
 
   if (error) {
     console.error(error);
@@ -310,7 +323,20 @@ async function cargarSorteos() {
 
     if (s.estado === 'activo') icono = '🟢';
     if (s.estado === 'finalizado') icono = '🏁';
+const participantesTotal =
+  s.participantes_sorteo?.length || 0;
 
+const ganadores =
+  (s.ganadores_sorteo || [])
+    .filter(g => !g.es_suplente)
+    .sort((a, b) => a.posicion - b.posicion);
+
+const textoGanador = ganadores.length
+  ? ganadores.map(g => {
+      const p = g.participantes_sorteo;
+      return `${p?.nombre || 'Ganador'}${p?.usuario_red ? ' · ' + p.usuario_red : ''}`;
+    }).join('<br>')
+  : 'Todavía sin ganador';
     return `
       <div class="card" style="padding:16px;margin-bottom:12px;">
 
@@ -333,6 +359,32 @@ async function cargarSorteos() {
 
             <div class="muted" style="margin-top:5px;">
               ${s.fecha_inicio || '—'} → ${s.fecha_fin || '—'}
+              </div>
+              
+              <div style="
+  display:flex;
+  gap:18px;
+  flex-wrap:wrap;
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid #e8edf3;
+">
+
+  <div>
+    <div class="muted" style="font-size:12px;">
+      👥 Participantes
+    </div>
+    <b>${participantesTotal}</b>
+  </div>
+
+  <div>
+    <div class="muted" style="font-size:12px;">
+      🏆 Ganador
+    </div>
+    <b>${textoGanador}</b>
+  </div>
+
+</div>
             </div>
           </div>
 
