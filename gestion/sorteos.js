@@ -385,7 +385,7 @@ const textoGanador = ganadores.length
   </div>
 
 </div>
-            </div>
+            
           </div>
 
           <div style="
