@@ -343,7 +343,23 @@ async function cargarSorteos() {
           ">
             ${s.estado}
           </div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
 
+  <button
+    class="secondary"
+    onclick="abrirParticipantesSorteo('${s.id}','${(s.nombre || '').replace(/'/g, "\\'")}')"
+  >
+    👥 Participantes
+  </button>
+
+  <button
+    class="secondary"
+    onclick="elegirGanadorSorteo('${s.id}')"
+  >
+    🏆 Elegir ganador
+  </button>
+
+</div>
         </div>
 
       </div>
@@ -351,8 +367,250 @@ async function cargarSorteos() {
 
   }).join('');
 }
+// ==========================================
+// PARTICIPANTES DEL SORTEO
+// ==========================================
+
+async function abrirParticipantesSorteo(sorteoId, sorteoNombre) {
+
+  const { data, error } = await supabaseClient
+    .from('participantes_sorteo')
+    .select('*')
+    .eq('sorteo_id', sorteoId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    toast('Error cargando participantes');
+    return;
+  }
+
+  const participantes = data || [];
+
+  const contenedor = document.getElementById('listaSorteos');
+
+  contenedor.innerHTML = `
+    <div style="margin-bottom:16px;">
+      <button class="secondary" onclick="cargarSorteos()">
+        ← Volver a sorteos
+      </button>
+    </div>
+
+    <div class="card" style="padding:18px;">
+
+      <h3 style="margin-top:0;">
+        👥 Participantes
+      </h3>
+
+      <div class="muted" style="margin-bottom:18px;">
+        ${sorteoNombre}
+      </div>
+
+      <div style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+        gap:10px;
+        margin-bottom:14px;
+      ">
+
+        <input
+          id="participanteNombre"
+          placeholder="Nombre"
+        >
+
+        <input
+          id="participanteUsuario"
+          placeholder="@usuario Instagram/TikTok"
+        >
+
+        <input
+          id="participanteContacto"
+          placeholder="Contacto (opcional)"
+        >
+
+      </div>
+
+      <button
+        class="primary"
+        onclick="guardarParticipanteSorteo('${sorteoId}','${sorteoNombre.replace(/'/g, "\\'")}')"
+      >
+        ＋ Añadir participante
+      </button>
+
+      <div style="margin-top:22px;">
+
+        <b>
+          ${participantes.length} participante${participantes.length === 1 ? '' : 's'}
+        </b>
+
+        <div style="margin-top:12px;">
+
+          ${
+            participantes.length
+            ? participantes.map(p => `
+                <div
+                  class="card"
+                  style="
+                    padding:12px;
+                    margin-bottom:8px;
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    gap:10px;
+                  "
+                >
+
+                  <div>
+                    <b>${p.nombre}</b>
+
+                    ${
+                      p.usuario_red
+                      ? `<div class="muted">${p.usuario_red}</div>`
+                      : ''
+                    }
+                  </div>
+
+                  <button
+                    class="secondary"
+                    onclick="eliminarParticipanteSorteo(
+                      '${p.id}',
+                      '${sorteoId}',
+                      '${sorteoNombre.replace(/'/g, "\\'")}'
+                    )"
+                  >
+                    🗑
+                  </button>
+
+                </div>
+              `).join('')
+            : `
+              <div class="muted">
+                Todavía no hay participantes.
+              </div>
+            `
+          }
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
 
 
+async function guardarParticipanteSorteo(sorteoId, sorteoNombre) {
+
+  const nombre =
+    document.getElementById('participanteNombre').value.trim();
+
+  const usuario_red =
+    document.getElementById('participanteUsuario').value.trim();
+
+  const contacto =
+    document.getElementById('participanteContacto').value.trim();
+
+  if (!nombre) {
+    toast('Introduce el nombre del participante');
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from('participantes_sorteo')
+    .insert({
+      sorteo_id: sorteoId,
+      nombre,
+      usuario_red,
+      contacto
+    });
+
+  if (error) {
+    console.error(error);
+    toast('Error al añadir participante');
+    return;
+  }
+
+  toast('Participante añadido');
+
+  await abrirParticipantesSorteo(
+    sorteoId,
+    sorteoNombre
+  );
+}
+
+
+async function eliminarParticipanteSorteo(
+  participanteId,
+  sorteoId,
+  sorteoNombre
+) {
+
+  const { error } = await supabaseClient
+    .from('participantes_sorteo')
+    .delete()
+    .eq('id', participanteId);
+
+  if (error) {
+    console.error(error);
+    toast('Error eliminando participante');
+    return;
+  }
+
+  toast('Participante eliminado');
+
+  await abrirParticipantesSorteo(
+    sorteoId,
+    sorteoNombre
+  );
+}
+// ==========================================
+// ELEGIR GANADOR
+// ==========================================
+
+async function elegirGanadorSorteo(sorteoId) {
+
+  const { data: participantes, error } = await supabaseClient
+    .from('participantes_sorteo')
+    .select('*')
+    .eq('sorteo_id', sorteoId);
+
+  if (error) {
+    console.error(error);
+    toast('Error cargando participantes');
+    return;
+  }
+
+  if (!participantes || participantes.length === 0) {
+    toast('No hay participantes');
+    return;
+  }
+
+  const indice = Math.floor(Math.random() * participantes.length);
+  const ganador = participantes[indice];
+
+  const { error: errorGuardar } = await supabaseClient
+    .from('ganadores_sorteo')
+    .insert({
+      sorteo_id: sorteoId,
+      participante_id: ganador.id,
+      posicion: 1,
+      es_suplente: false
+    });
+
+  if (errorGuardar) {
+    console.error(errorGuardar);
+    toast('Error guardando ganador');
+    return;
+  }
+
+  alert(
+    '🏆 GANADOR DEL SORTEO\n\n' +
+    ganador.nombre +
+    (ganador.usuario_red ? '\n' + ganador.usuario_red : '')
+  );
+
+  toast('Ganador guardado');
+}
 // ==========================================
 // EXPONER FUNCIONES
 // ==========================================
@@ -360,3 +618,7 @@ async function cargarSorteos() {
 window.sorteosView = sorteosView;
 window.iniciarSorteos = iniciarSorteos;
 window.cargarSorteos = cargarSorteos;
+window.abrirParticipantesSorteo = abrirParticipantesSorteo;
+window.guardarParticipanteSorteo = guardarParticipanteSorteo;
+window.eliminarParticipanteSorteo = eliminarParticipanteSorteo;
+window.elegirGanadorSorteo = elegirGanadorSorteo;
