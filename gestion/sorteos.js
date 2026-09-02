@@ -212,6 +212,9 @@ async function guardarSorteo() {
   const numero_ganadores = Number(
     document.getElementById('sorteoGanadores').value || 1
   );
+  const numero_suplentes = Number(
+  document.getElementById('sorteoSuplentes').value
+);
   const estado = document.getElementById('sorteoEstado').value;
   const texto_promocional =
     document.getElementById('sorteoTexto').value.trim();
@@ -231,6 +234,7 @@ async function guardarSorteo() {
       fecha_inicio,
       fecha_fin,
       numero_ganadores,
+      numero_suplentes,
       estado,
       texto_promocional,
       condiciones
@@ -644,25 +648,42 @@ async function elegirGanadorSorteo(sorteoId) {
     return;
   }
 
-  if (existentes && existentes.length > 0) {
+ if (existentes && existentes.length > 0) {
 
-    const texto = existentes.map(g => {
-      const p = g.participantes_sorteo;
-      return `${g.posicion}. ${p?.nombre || 'Ganador'}${p?.usuario_red ? ' - ' + p.usuario_red : ''}`;
-    }).join('\n');
+  const ganadoresExistentes = existentes.filter(g => !g.es_suplente);
+  const suplentesExistentes = existentes.filter(g => g.es_suplente);
 
-    alert(
-      '🏆 ESTE SORTEO YA ESTÁ REALIZADO\n\n' +
-      texto
-    );
+  const textoGanadoresExistentes = ganadoresExistentes.map(g => {
+    const p = g.participantes_sorteo;
+    return `${g.posicion}. ${p?.nombre || 'Ganador'}${p?.usuario_red ? ' - ' + p.usuario_red : ''}`;
+  }).join('\n');
 
-    return;
-  }
+  const textoSuplentesExistentes = suplentesExistentes.map(g => {
+    const p = g.participantes_sorteo;
+    return `${g.posicion}. ${p?.nombre || 'Suplente'}${p?.usuario_red ? ' - ' + p.usuario_red : ''}`;
+  }).join('\n');
+
+  alert(
+    '🏆 ESTE SORTEO YA ESTÁ REALIZADO\n\n' +
+    'GANADOR' +
+    (ganadoresExistentes.length > 1 ? 'ES' : '') +
+    '\n\n' +
+    textoGanadoresExistentes +
+    (suplentesExistentes.length
+      ? '\n\n🔄 SUPLENTE' +
+        (suplentesExistentes.length > 1 ? 'S' : '') +
+        '\n\n' +
+        textoSuplentesExistentes
+      : '')
+  );
+
+  return;
+} 
 
 
   const { data: sorteo, error: errorSorteo } = await supabaseClient
     .from('sorteos')
-    .select('numero_ganadores')
+    .select('numero_ganadores, numero_suplentes')
     .eq('id', sorteoId)
     .single();
 
@@ -694,7 +715,10 @@ async function elegirGanadorSorteo(sorteoId) {
     Number(sorteo.numero_ganadores || 1),
     participantes.length
   );
-
+const numeroSuplentes = Math.min(
+  Number(sorteo.numero_suplentes || 0),
+  Math.max(0, participantes.length - numeroGanadores)
+);
 
   const mezclados = [...participantes];
 
@@ -705,13 +729,30 @@ async function elegirGanadorSorteo(sorteoId) {
 
   const ganadores = mezclados.slice(0, numeroGanadores);
 
+const suplentes = mezclados.slice(
+  numeroGanadores,
+  numeroGanadores + numeroSuplentes
+);
 
-  const registros = ganadores.map((ganador, index) => ({
-    sorteo_id: sorteoId,
-    participante_id: ganador.id,
-    posicion: index + 1,
-    es_suplente: false
-  }));
+
+ const registrosGanadores = ganadores.map((ganador, index) => ({
+  sorteo_id: sorteoId,
+  participante_id: ganador.id,
+  posicion: index + 1,
+  es_suplente: false
+}));
+
+const registrosSuplentes = suplentes.map((suplente, index) => ({
+  sorteo_id: sorteoId,
+  participante_id: suplente.id,
+  posicion: index + 1,
+  es_suplente: true
+}));
+
+const registros = [
+  ...registrosGanadores,
+  ...registrosSuplentes
+]; 
 
 
   const { error: errorGuardar } = await supabaseClient
@@ -728,14 +769,22 @@ async function elegirGanadorSorteo(sorteoId) {
   const textoGanadores = ganadores.map((g, index) =>
     `${index + 1}. ${g.nombre}${g.usuario_red ? ' - ' + g.usuario_red : ''}`
   ).join('\n');
-
+const textoSuplentes = suplentes.map((s, index) =>
+  `${index + 1}. ${s.nombre}${s.usuario_red ? ' - ' + s.usuario_red : ''}`
+).join('\n');
 
   alert(
-    '🏆 GANADOR' +
-    (ganadores.length > 1 ? 'ES' : '') +
-    ' DEL SORTEO\n\n' +
-    textoGanadores
-  );
+  '🏆 GANADOR' +
+  (ganadores.length > 1 ? 'ES' : '') +
+  ' DEL SORTEO\n\n' +
+  textoGanadores +
+  (suplentes.length
+    ? '\n\n🔄 SUPLENTE' +
+      (suplentes.length > 1 ? 'S' : '') +
+      '\n\n' +
+      textoSuplentes
+    : '')
+);
 
   toast('Resultado guardado');
 }
