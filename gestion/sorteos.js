@@ -113,7 +113,13 @@ function sorteosView() {
                      min="1"
                      value="1">
             </label>
-
+<label>
+  Número de suplentes
+  <input id="sorteoSuplentes"
+         type="number"
+         min="0"
+         value="2">
+</label>
             <label>
               Estado
               <select id="sorteoEstado">
