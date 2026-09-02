@@ -427,7 +427,12 @@ const textoGanador = ganadores.length
   >
     ${ganadores.length ? '🏆 Ver resultado' : '🏆 Elegir ganador'}
   </button>
-
+<button
+  class="secondary"
+  onclick="generarCartelDesdeSorteo('${s.id}')"
+>
+  🎨 Cartel
+</button>
 </div>
         </div>
 
@@ -1005,6 +1010,34 @@ function generarCartelSorteo() {
 
   ventana.document.close();
 }
+async function generarCartelDesdeSorteo(sorteoId) {
+
+  const { data: sorteo, error } = await supabaseClient
+    .from('sorteos')
+    .select('*')
+    .eq('id', sorteoId)
+    .single();
+
+  if (error || !sorteo) {
+    console.error(error);
+    toast('Error cargando el sorteo');
+    return;
+  }
+const formulario = document.getElementById('formNuevoSorteo');
+
+if (!formulario) {
+  toast('No se pudo preparar el cartel');
+  return;
+}
+  document.getElementById('sorteoNombre').value = sorteo.nombre || '';
+  document.getElementById('sorteoPremio').value = sorteo.premio || '';
+  document.getElementById('sorteoInicio').value = sorteo.fecha_inicio || '';
+  document.getElementById('sorteoFin').value = sorteo.fecha_fin || '';
+  document.getElementById('sorteoTexto').value = sorteo.texto_promocional || '';
+  document.getElementById('sorteoCondiciones').value = sorteo.condiciones || '';
+
+  generarCartelSorteo();
+}
 // ==========================================
 // EXPONER FUNCIONES
 // ==========================================
@@ -1017,3 +1050,4 @@ window.guardarParticipanteSorteo = guardarParticipanteSorteo;
 window.eliminarParticipanteSorteo = eliminarParticipanteSorteo;
 window.elegirGanadorSorteo = elegirGanadorSorteo;
 window.generarCartelSorteo = generarCartelSorteo;
+window.generarCartelDesdeSorteo = generarCartelDesdeSorteo;
