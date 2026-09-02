@@ -180,7 +180,7 @@ async function iniciarSorteos() {
   const formulario = document.getElementById('formNuevoSorteo');
   const cerrar = document.getElementById('cerrarNuevoSorteo');
   const guardar = document.getElementById('guardarSorteo');
-
+const generarCartel = document.getElementById('generarCartelSorteo');
   if (nuevo) {
     nuevo.onclick = () => {
       formulario.style.display = 'block';
@@ -200,7 +200,9 @@ async function iniciarSorteos() {
   if (guardar) {
     guardar.onclick = guardarSorteo;
   }
-
+if (generarCartel) {
+  generarCartel.onclick = generarCartelSorteo;
+}
   await cargarSorteos();
 }
 
@@ -794,6 +796,215 @@ const textoSuplentes = suplentes.map((s, index) =>
 
   toast('Resultado guardado');
 }
+function generarCartelSorteo() {
+
+  const nombre = document.getElementById('sorteoNombre').value.trim();
+  const premio = document.getElementById('sorteoPremio').value.trim();
+  const fecha_inicio = document.getElementById('sorteoInicio').value || '';
+  const fecha_fin = document.getElementById('sorteoFin').value || '';
+  const texto = document.getElementById('sorteoTexto').value.trim();
+  const condiciones = document.getElementById('sorteoCondiciones').value.trim();
+
+  if (!nombre || !premio) {
+    toast('Completa nombre y premio');
+    return;
+  }
+
+  const ventana = window.open('', '_blank');
+
+  ventana.document.write(`
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${nombre}</title>
+      <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    </head>
+
+    <body style="
+      margin:0;
+      background:#eef4fb;
+      font-family:Arial,Helvetica,sans-serif;
+      display:flex;
+      justify-content:center;
+      padding:30px;
+    ">
+
+      <div id="cartelAIHXO" style="
+  width:1080px;
+        max-width:100%;
+        min-height:1350px;
+        background:white;
+        border-radius:35px;
+        padding:80px;
+        box-sizing:border-box;
+        text-align:center;
+        box-shadow:0 10px 40px rgba(0,0,0,.12);
+      ">
+
+        <div style="
+          font-size:78px;
+          font-weight:900;
+          color:#1683ff;
+          letter-spacing:2px;
+        ">
+          AIHXO
+        </div>
+
+        <div style="
+          font-size:26px;
+          letter-spacing:8px;
+          color:#64748b;
+          margin-bottom:70px;
+        ">
+          GESTIÓN ONLINE
+        </div>
+
+        <div style="
+          font-size:34px;
+          font-weight:800;
+          color:#1683ff;
+          margin-bottom:20px;
+        ">
+          🎁 SORTEO
+        </div>
+
+        <div style="
+          font-size:64px;
+          font-weight:900;
+          color:#14233c;
+          line-height:1.1;
+        ">
+          ${nombre}
+        </div>
+
+        <div style="
+          margin-top:55px;
+          font-size:28px;
+          color:#64748b;
+        ">
+          PREMIO
+        </div>
+
+        <div style="
+          margin-top:10px;
+          font-size:50px;
+          font-weight:900;
+          color:#14233c;
+        ">
+          ${premio}
+        </div>
+
+        ${
+          fecha_inicio || fecha_fin
+            ? `
+              <div style="
+                margin-top:55px;
+                font-size:28px;
+                color:#64748b;
+              ">
+                📅 ${fecha_inicio || '—'} → ${fecha_fin || '—'}
+              </div>
+            `
+            : ''
+        }
+
+        ${
+          texto
+            ? `
+              <div style="
+                margin-top:60px;
+                font-size:32px;
+                line-height:1.5;
+                color:#334155;
+              ">
+                ${texto}
+              </div>
+            `
+            : ''
+        }
+
+        ${
+          condiciones
+            ? `
+              <div style="
+                margin-top:60px;
+                padding:35px;
+                border-radius:25px;
+                background:#f1f5f9;
+                text-align:left;
+              ">
+                <div style="
+                  font-size:26px;
+                  font-weight:800;
+                  margin-bottom:15px;
+                  color:#14233c;
+                ">
+                  Cómo participar
+                </div>
+
+                <div style="
+                  font-size:28px;
+                  line-height:1.5;
+                  color:#475569;
+                ">
+                  ${condiciones}
+                </div>
+              </div>
+            `
+            : ''
+        }
+
+        <div style="
+          margin-top:80px;
+          font-size:28px;
+          font-weight:700;
+          color:#1683ff;
+        ">
+          @aihxo.camisetas
+        </div>
+         </div>
+<button
+  id="guardarPNG"
+  style="
+    margin-top:40px;
+    padding:16px 24px;
+    border:none;
+    border-radius:14px;
+    background:#1683ff;
+    color:white;
+    font-size:24px;
+    font-weight:800;
+    cursor:pointer;
+  "
+>
+  📥 Guardar PNG
+</button>
+
+<script>
+  document.getElementById('guardarPNG').onclick = async () => {
+    const cartel = document.getElementById('cartelAIHXO');
+
+    const canvas = await html2canvas(cartel, {
+      scale: 2,
+      backgroundColor: '#ffffff'
+    });
+
+    const enlace = document.createElement('a');
+    enlace.download = 'cartel-sorteo-aihxo.png';
+    enlace.href = canvas.toDataURL('image/png');
+    enlace.click();
+  };
+</script>
+     
+
+    </body>
+    </html>
+  `);
+
+  ventana.document.close();
+}
 // ==========================================
 // EXPONER FUNCIONES
 // ==========================================
@@ -805,3 +1016,4 @@ window.abrirParticipantesSorteo = abrirParticipantesSorteo;
 window.guardarParticipanteSorteo = guardarParticipanteSorteo;
 window.eliminarParticipanteSorteo = eliminarParticipanteSorteo;
 window.elegirGanadorSorteo = elegirGanadorSorteo;
+window.generarCartelSorteo = generarCartelSorteo;
