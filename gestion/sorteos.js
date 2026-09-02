@@ -1022,7 +1022,7 @@ nuevaVentana.document.write(
   '<body style="margin:0;background:#111;text-align:center;font-family:Arial,Helvetica,sans-serif;">' +
 
   '<div style="position:sticky;top:0;z-index:10;background:#111;padding:14px;text-align:left;">' +
-  '<button onclick="history.back()" style="padding:12px 18px;border:none;border-radius:12px;background:#1683ff;color:white;font-size:18px;font-weight:800;">' +
+  '<button onclick="window.close()" style="padding:12px 18px;border:none;border-radius:12px;background:#1683ff;color:white;font-size:18px;font-weight:800;">' +
   '← Volver a Sorteos' +
   '</button>' +
   '</div>' +
