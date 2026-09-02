@@ -1011,10 +1011,21 @@ cartel.style.transform = 'none';
       backgroundColor: '#ffffff'
     });
 cartel.style.transform = transformOriginal;
-    const enlace = document.createElement('a');
-    enlace.download = 'cartel-sorteo-aihxo.png';
-    enlace.href = canvas.toDataURL('image/png');
-    enlace.click();
+   const imagen = canvas.toDataURL('image/png');
+
+const nuevaVentana = window.open();
+nuevaVentana.document.write(`
+  <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Cartel AIHXO</title>
+    </head>
+    <body style="margin:0;background:#111;text-align:center;">
+      <img src="${imagen}" style="max-width:100%;height:auto;">
+    </body>
+  </html>
+`);
+nuevaVentana.document.close(); 
   };
 </script>
      
