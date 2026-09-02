@@ -1013,16 +1013,22 @@ cartel.style.transform = 'none';
 cartel.style.transform = transformOriginal;
    const imagen = canvas.toDataURL('image/png');
 
-const nuevaVentana = window.open();
-
 nuevaVentana.document.write(
   '<html>' +
   '<head>' +
   '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
   '<title>Cartel AIHXO</title>' +
   '</head>' +
-  '<body style="margin:0;background:#111;text-align:center;">' +
-  '<img src="' + imagen + '" style="max-width:100%;height:auto;">' +
+  '<body style="margin:0;background:#111;text-align:center;font-family:Arial,Helvetica,sans-serif;">' +
+
+  '<div style="position:sticky;top:0;z-index:10;background:#111;padding:14px;text-align:left;">' +
+  '<button onclick="window.close()" style="padding:12px 18px;border:none;border-radius:12px;background:#1683ff;color:white;font-size:18px;font-weight:800;">' +
+  '← Volver a Sorteos' +
+  '</button>' +
+  '</div>' +
+
+  '<img src="' + imagen + '" style="max-width:100%;height:auto;display:block;margin:0 auto;">' +
+
   '</body>' +
   '</html>'
 );
