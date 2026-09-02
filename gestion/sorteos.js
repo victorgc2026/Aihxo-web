@@ -838,7 +838,10 @@ function generarCartelSorteo() {
       <div id="cartelAIHXO" style="
   width:1080px;
         transform-origin:top left;
-        min-height:1350px;
+        height:1350px;
+display:flex;
+flex-direction:column;
+justify-content:center;
         background:white;
         border-radius:35px;
         padding:80px;
