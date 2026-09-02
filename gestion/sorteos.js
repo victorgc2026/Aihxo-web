@@ -828,17 +828,16 @@ function generarCartelSorteo() {
     </head>
 
     <body style="
-      margin:0;
-      background:#eef4fb;
-      font-family:Arial,Helvetica,sans-serif;
-      display:flex;
-      justify-content:center;
-      padding:30px;
-    ">
+  margin:0;
+  background:#eef4fb;
+  font-family:Arial,Helvetica,sans-serif;
+  padding:20px;
+  box-sizing:border-box;
+">
 
       <div id="cartelAIHXO" style="
   width:1080px;
-        max-width:100%;
+        transform-origin:top left;
         min-height:1350px;
         background:white;
         border-radius:35px;
@@ -970,10 +969,25 @@ function generarCartelSorteo() {
           @aihxo.camisetas
         </div>
          </div>
+        <script>
+  function ajustarCartel() {
+    const cartel = document.getElementById('cartelAIHXO');
+    const anchoDisponible = window.innerWidth - 40;
+    const escala = Math.min(1, anchoDisponible / 1080);
+
+    cartel.style.transform = 'scale(' + escala + ')';
+    cartel.style.marginBottom =
+      ((cartel.offsetHeight * escala) - cartel.offsetHeight) + 'px';
+  }
+
+  window.addEventListener('load', ajustarCartel);
+  window.addEventListener('resize', ajustarCartel);
+</script> 
 <button
   id="guardarPNG"
   style="
-    margin-top:40px;
+    display:block;
+margin:30px auto 0;
     padding:16px 24px;
     border:none;
     border-radius:14px;
@@ -990,12 +1004,13 @@ function generarCartelSorteo() {
 <script>
   document.getElementById('guardarPNG').onclick = async () => {
     const cartel = document.getElementById('cartelAIHXO');
-
+const transformOriginal = cartel.style.transform;
+cartel.style.transform = 'none';
     const canvas = await html2canvas(cartel, {
       scale: 2,
       backgroundColor: '#ffffff'
     });
-
+cartel.style.transform = transformOriginal;
     const enlace = document.createElement('a');
     enlace.download = 'cartel-sorteo-aihxo.png';
     enlace.href = canvas.toDataURL('image/png');
