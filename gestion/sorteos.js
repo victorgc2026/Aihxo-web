@@ -870,6 +870,7 @@ justify-content:center;
 
 <div style="
   display:inline-block;
+  align-self:center;
   padding:12px 28px;
   border-radius:999px;
   background:#e8f3ff;
@@ -983,6 +984,7 @@ ${
 <div style="
   margin-top:35px;
   display:inline-block;
+  align-self:center;
   padding:18px 45px;
   border-radius:999px;
   background:#14233c;
