@@ -984,6 +984,23 @@ function generarCartelSorteo() {
   window.addEventListener('resize', ajustarCartel);
 </script> 
 <button
+  onclick="window.close()"
+  style="
+    display:block;
+    margin:0 auto 18px;
+    padding:14px 22px;
+    border:none;
+    border-radius:14px;
+    background:#0f1f3a;
+    color:white;
+    font-size:20px;
+    font-weight:800;
+    cursor:pointer;
+  "
+>
+  ← Volver a Sorteos
+</button>
+<button
   id="guardarPNG"
   style="
     display:block;
