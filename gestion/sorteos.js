@@ -1012,7 +1012,7 @@ cartel.style.transform = 'none';
     });
 cartel.style.transform = transformOriginal;
    const imagen = canvas.toDataURL('image/png');
-
+const nuevaVentana = window.open('', '_blank');
 nuevaVentana.document.write(
   '<html>' +
   '<head>' +
