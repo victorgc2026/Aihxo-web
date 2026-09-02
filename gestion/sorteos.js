@@ -848,125 +848,164 @@ function generarCartelSorteo() {
       ">
 
         <div style="
-          font-size:78px;
+  font-size:72px;
+  font-weight:900;
+  color:#1683ff;
+  letter-spacing:3px;
+">
+  AIHXO
+</div>
+
+<div style="
+  font-size:24px;
+  letter-spacing:8px;
+  color:#64748b;
+  margin-bottom:45px;
+">
+  CAMISETAS PERSONALIZADAS
+</div>
+
+<div style="
+  display:inline-block;
+  padding:12px 28px;
+  border-radius:999px;
+  background:#e8f3ff;
+  color:#1683ff;
+  font-size:30px;
+  font-weight:900;
+  margin-bottom:28px;
+">
+  🎁 SORTEO AIHXO
+</div>
+
+<div style="
+  font-size:62px;
+  font-weight:900;
+  color:#14233c;
+  line-height:1.1;
+">
+  ${nombre}
+</div>
+
+<div style="
+  margin:40px auto 0;
+  padding:30px;
+  max-width:780px;
+  border-radius:28px;
+  background:#1683ff;
+  color:white;
+">
+  <div style="
+    font-size:24px;
+    font-weight:700;
+    letter-spacing:3px;
+    opacity:.9;
+  ">
+    PUEDES GANAR
+  </div>
+
+  <div style="
+    margin-top:10px;
+    font-size:48px;
+    font-weight:900;
+  ">
+    ${premio}
+  </div>
+</div>
+
+${
+  texto
+    ? `
+      <div style="
+        margin:35px auto 0;
+        max-width:800px;
+        font-size:30px;
+        line-height:1.4;
+        color:#334155;
+        font-weight:600;
+      ">
+        ${texto}
+      </div>
+    `
+    : ''
+}
+
+${
+  condiciones
+    ? `
+      <div style="
+        margin:35px auto 0;
+        max-width:800px;
+        padding:28px 34px;
+        border-radius:25px;
+        background:#f1f5f9;
+        text-align:left;
+      ">
+        <div style="
+          font-size:25px;
           font-weight:900;
           color:#1683ff;
-          letter-spacing:2px;
+          margin-bottom:12px;
         ">
-          AIHXO
+          ¿CÓMO PARTICIPAR?
         </div>
 
         <div style="
           font-size:26px;
-          letter-spacing:8px;
-          color:#64748b;
-          margin-bottom:70px;
+          line-height:1.4;
+          color:#334155;
         ">
-          GESTIÓN ONLINE
+          ${condiciones}
         </div>
+      </div>
+    `
+    : ''
+}
 
-        <div style="
-          font-size:34px;
-          font-weight:800;
-          color:#1683ff;
-          margin-bottom:20px;
-        ">
-          🎁 SORTEO
-        </div>
+${
+  fecha_inicio || fecha_fin
+    ? `
+      <div style="
+        margin-top:35px;
+        font-size:26px;
+        color:#64748b;
+        font-weight:700;
+      ">
+        📅 ${fecha_inicio || '—'} → ${fecha_fin || '—'}
+      </div>
+    `
+    : ''
+}
 
-        <div style="
-          font-size:64px;
-          font-weight:900;
-          color:#14233c;
-          line-height:1.1;
-        ">
-          ${nombre}
-        </div>
+<div style="
+  margin-top:35px;
+  display:inline-block;
+  padding:18px 45px;
+  border-radius:999px;
+  background:#14233c;
+  color:white;
+  font-size:30px;
+  font-weight:900;
+">
+  🎁 ¡PARTICIPA!
+</div>
 
-        <div style="
-          margin-top:55px;
-          font-size:28px;
-          color:#64748b;
-        ">
-          PREMIO
-        </div>
+<div style="
+  margin-top:30px;
+  font-size:27px;
+  font-weight:900;
+  color:#1683ff;
+">
+  @aihxo.camisetas
+</div>
 
-        <div style="
-          margin-top:10px;
-          font-size:50px;
-          font-weight:900;
-          color:#14233c;
-        ">
-          ${premio}
-        </div>
-
-        ${
-          fecha_inicio || fecha_fin
-            ? `
-              <div style="
-                margin-top:55px;
-                font-size:28px;
-                color:#64748b;
-              ">
-                📅 ${fecha_inicio || '—'} → ${fecha_fin || '—'}
-              </div>
-            `
-            : ''
-        }
-
-        ${
-          texto
-            ? `
-              <div style="
-                margin-top:60px;
-                font-size:32px;
-                line-height:1.5;
-                color:#334155;
-              ">
-                ${texto}
-              </div>
-            `
-            : ''
-        }
-
-        ${
-          condiciones
-            ? `
-              <div style="
-                margin-top:60px;
-                padding:35px;
-                border-radius:25px;
-                background:#f1f5f9;
-                text-align:left;
-              ">
-                <div style="
-                  font-size:26px;
-                  font-weight:800;
-                  margin-bottom:15px;
-                  color:#14233c;
-                ">
-                  Cómo participar
-                </div>
-
-                <div style="
-                  font-size:28px;
-                  line-height:1.5;
-                  color:#475569;
-                ">
-                  ${condiciones}
-                </div>
-              </div>
-            `
-            : ''
-        }
-
-        <div style="
-          margin-top:80px;
-          font-size:28px;
-          font-weight:700;
-          color:#1683ff;
-        ">
-          @aihxo.camisetas
+<div style="
+  margin-top:12px;
+  font-size:20px;
+  color:#94a3b8;
+">
+  Hecho en Oleiros · AIHXO
+</div>
         </div>
          </div>
         <script>
