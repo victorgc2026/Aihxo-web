@@ -842,7 +842,10 @@ function generarCartelSorteo() {
 display:flex;
 flex-direction:column;
 justify-content:center;
-        background:white;
+        background:
+  radial-gradient(circle at 8% 8%, rgba(22,131,255,.12) 0, transparent 22%),
+  radial-gradient(circle at 92% 92%, rgba(22,131,255,.10) 0, transparent 24%),
+  white;
         border-radius:35px;
         padding:80px;
         box-sizing:border-box;
