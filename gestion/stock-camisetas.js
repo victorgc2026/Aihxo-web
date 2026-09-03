@@ -575,7 +575,15 @@ window.editarCamiseta = async function (id) {
     return;
   }
 
-  openDrawer();
+  const drawer = document.getElementById("drawer");
+const body = document.getElementById("drawerBody");
+
+if (!drawer || !body) {
+  alert("No se pudo abrir la ficha.");
+  return;
+}
+
+drawer.classList.remove("hidden");
 
   document.getElementById("drawerBody").innerHTML = `
     <h2 style="margin-top:0">✏️ Editar camiseta base</h2>
