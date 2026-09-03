@@ -219,7 +219,12 @@ window.cargarStockCamisetas = async function () {
           <button onclick="editarCamiseta('${item.id}')">
   ✏️ Editar
 </button>
-
+<button
+  onclick="verHistorialCamiseta('${item.id}')"
+  style="grid-column:1 / -1"
+>
+  📋 Historial
+</button>
         </div>
 
       </div>
@@ -946,7 +951,161 @@ async function guardarMovimientoCamiseta(
     );
   }
 }
+/* =========================================================
+   HISTORIAL DE MOVIMIENTOS
+   ========================================================= */
 
+window.verHistorialCamiseta = async function (id) {
+
+  const drawer = document.getElementById("drawer");
+  const body = document.getElementById("drawerBody");
+
+  if (!drawer || !body) {
+    alert("No se pudo abrir el historial.");
+    return;
+  }
+
+  const { data: item, error: errorItem } = await supabaseClient
+    .from("base_stock_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (errorItem || !item) {
+    console.error(errorItem);
+    alert("No se pudo cargar la camiseta.");
+    return;
+  }
+
+  const { data: movimientos, error } = await supabaseClient
+    .from("base_stock_movements")
+    .select("*")
+    .eq("item_id", id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    alert("No se pudo cargar el historial.");
+    return;
+  }
+
+  drawer.classList.remove("hidden");
+
+  const lista = (movimientos || []).map(mov => {
+
+    const fecha = new Date(mov.created_at)
+      .toLocaleString("es-ES");
+
+    let icono = "🔄";
+    let tipo = "Ajuste";
+
+    if (mov.movement_type === "entrada") {
+      icono = "🟢";
+      tipo = "Entrada";
+    }
+
+    if (mov.movement_type === "salida") {
+      icono = "🔴";
+      tipo = "Salida";
+    }
+
+    const diferencia = Number(mov.quantity_delta || 0);
+
+    return `
+      <div style="
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:14px;
+        padding:12px;
+        margin-bottom:10px;
+      ">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:10px;
+        ">
+          <strong>
+            ${icono} ${tipo}
+          </strong>
+
+          <span style="font-weight:800">
+            ${diferencia > 0 ? "+" : ""}${diferencia}
+          </span>
+        </div>
+
+        <div style="
+          margin-top:6px;
+          font-size:13px;
+          opacity:.75;
+        ">
+          ${escapeStock(fecha)}
+        </div>
+
+        <div style="
+          margin-top:6px;
+          font-size:14px;
+        ">
+          Stock:
+          ${Number(mov.previous_quantity || 0)}
+          →
+          <strong>${Number(mov.new_quantity || 0)}</strong>
+        </div>
+
+        ${
+          mov.reason
+            ? `
+              <div style="
+                margin-top:6px;
+                font-size:13px;
+                opacity:.8;
+              ">
+                ${escapeStock(mov.reason)}
+              </div>
+            `
+            : ""
+        }
+
+      </div>
+    `;
+  }).join("");
+
+  body.innerHTML = `
+    <h2 style="margin-top:0">
+      📋 Historial
+    </h2>
+
+    <div style="
+      margin-bottom:18px;
+      opacity:.8;
+    ">
+      ${escapeStock(item.garment_type || "Camiseta")}
+      · ${escapeStock(item.color)}
+      · ${escapeStock(item.size)}
+    </div>
+
+    ${
+      lista ||
+      `
+        <div style="
+          padding:20px;
+          text-align:center;
+          opacity:.7;
+        ">
+          Todavía no hay movimientos registrados.
+        </div>
+      `
+    }
+
+    <button
+      class="secondary"
+      type="button"
+      onclick="closeDrawer()"
+      style="margin-top:10px"
+    >
+      Cerrar
+    </button>
+  `;
+};
 
 /* =========================================================
    FILTROS
