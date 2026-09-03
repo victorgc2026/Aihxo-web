@@ -60,7 +60,7 @@ window.renderStockCamisetas = async function () {
       </div>
 
       <div style="margin-top:20px">
-        <button onclick="home()">← Volver</button>
+        <button onclick="setView('dashboard')">← Volver</button>
       </div>
 
     </div>
