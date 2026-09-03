@@ -276,70 +276,196 @@ function tarjetaResumenStock(titulo, numero) {
    NUEVA CAMISETA
    ========================================================= */
 
-window.mostrarNuevaCamiseta = async function () {
+window.mostrarNuevaCamiseta = function () {
 
-  const proveedor =
-    prompt("Proveedor (ejemplo: Roly, Makito, etc.):");
+  const drawer = document.getElementById("drawer");
+  const body = document.getElementById("drawerBody");
 
-  if (proveedor === null) return;
-
-  const modelo =
-    prompt("Modelo del proveedor:");
-
-  if (modelo === null) return;
-
-  const color =
-    prompt("Color de la camiseta:");
-
-  if (!color) return;
-
-  const talla =
-    prompt("Talla:");
-
-  if (!talla) return;
-
-  const publico =
-    prompt(
-      "Tipo: Niño, Adulto o Unisex:",
-      "Unisex"
-    ) || "Unisex";
-
-  const cantidadTexto =
-    prompt("Cantidad inicial:", "0");
-
-  if (cantidadTexto === null) return;
-
-  const cantidad = Number(cantidadTexto);
-
-  if (!Number.isInteger(cantidad) || cantidad < 0) {
-    alert("La cantidad no es válida.");
+  if (!drawer || !body) {
+    alert("No se pudo abrir el formulario.");
     return;
   }
 
-  const minimoTexto =
-    prompt("Avisar cuando queden cuántas unidades:", "3");
+  drawer.classList.remove("hidden");
 
-  if (minimoTexto === null) return;
+  body.innerHTML = `
+    <h2>👕 Nueva camiseta base</h2>
 
-  const minimo = Number(minimoTexto);
+    <div class="muted" style="margin-bottom:18px">
+      Añade una referencia de stock por modelo, color y talla.
+    </div>
+
+    <form id="formNuevaCamiseta" class="form">
+
+      <div class="field">
+        <label>Proveedor</label>
+        <input
+          name="supplier"
+          placeholder="Ej. Mukua"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Modelo del proveedor</label>
+        <input
+          name="supplier_model"
+          placeholder="Ej. Melbourne Kids"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Tipo de prenda</label>
+        <select name="garment_type">
+          <option value="Camiseta">Camiseta</option>
+          <option value="Sudadera">Sudadera</option>
+          <option value="Polo">Polo</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Público</label>
+        <select name="audience">
+          <option value="Niño">Niño</option>
+          <option value="Adulto">Adulto</option>
+          <option value="Unisex">Unisex</option>
+        </select>
+      </div>
+
+      <div class="formgrid">
+
+        <div class="field">
+          <label>Color</label>
+          <input
+            name="color"
+            placeholder="Ej. Blanca"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label>Talla</label>
+          <input
+            name="size"
+            placeholder="Ej. 5/6"
+            required
+          >
+        </div>
+
+      </div>
+
+      <div class="formgrid">
+
+        <div class="field">
+          <label>Stock inicial</label>
+          <input
+            name="quantity"
+            type="number"
+            min="0"
+            step="1"
+            value="0"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label>Stock mínimo</label>
+          <input
+            name="min_stock"
+            type="number"
+            min="0"
+            step="1"
+            value="3"
+            required
+          >
+        </div>
+
+      </div>
+
+      <div class="field">
+        <label>Coste unitario €</label>
+        <input
+          name="unit_cost"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Ej. 3.50"
+          value="0"
+        >
+      </div>
+
+      <div class="field">
+        <label>Notas</label>
+        <textarea
+          name="notes"
+          rows="3"
+          placeholder="Referencia, detalles del proveedor, etc."
+        ></textarea>
+      </div>
+
+      <button class="primary" type="submit">
+        Guardar camiseta
+      </button>
+
+      <button
+        class="secondary"
+        type="button"
+        onclick="closeDrawer()"
+      >
+        Cancelar
+      </button>
+
+    </form>
+  `;
+
+  document.getElementById("formNuevaCamiseta").onsubmit =
+    guardarNuevaCamiseta;
+};
+
+
+async function guardarNuevaCamiseta(e) {
+
+  e.preventDefault();
+
+  const form = new FormData(e.target);
+
+  const cantidad = Number(form.get("quantity"));
+  const minimo = Number(form.get("min_stock"));
+  const coste = Number(form.get("unit_cost") || 0);
+
+  if (!Number.isInteger(cantidad) || cantidad < 0) {
+    alert("El stock inicial no es válido.");
+    return;
+  }
 
   if (!Number.isInteger(minimo) || minimo < 0) {
     alert("El stock mínimo no es válido.");
     return;
   }
 
+  if (coste < 0) {
+    alert("El coste no es válido.");
+    return;
+  }
+
+  const nueva = {
+    garment_type: form.get("garment_type").trim(),
+    supplier: form.get("supplier").trim(),
+    supplier_model: form.get("supplier_model").trim(),
+    audience: form.get("audience").trim(),
+    color: form.get("color").trim(),
+    size: form.get("size").trim(),
+    quantity: cantidad,
+    min_stock: minimo,
+    unit_cost: coste,
+    notes: form.get("notes").trim()
+  };
+
   const { data, error } = await supabaseClient
     .from("base_stock_items")
-    .insert({
-      garment_type: "Camiseta",
-      supplier: proveedor.trim(),
-      supplier_model: modelo.trim(),
-      audience: publico.trim(),
-      color: color.trim(),
-      size: talla.trim(),
-      quantity: cantidad,
-      min_stock: minimo
-    })
+    .insert(nueva)
     .select()
     .single();
 
@@ -351,7 +477,7 @@ window.mostrarNuevaCamiseta = async function () {
       );
     } else {
       console.error(error);
-      alert("No se pudo crear la camiseta.");
+      alert("No se pudo guardar la camiseta.");
     }
 
     return;
@@ -368,10 +494,13 @@ window.mostrarNuevaCamiseta = async function () {
     );
   }
 
+  closeDrawer();
+
   await cargarFiltrosCamisetas();
   await cargarStockCamisetas();
-};
 
+  toast("Camiseta añadida");
+}
 
 /* =========================================================
    ENTRADAS Y SALIDAS
