@@ -188,7 +188,7 @@ window.cargarStockCamisetas = async function () {
 
         <div style="
           display:grid;
-          grid-template-columns:1fr 1fr 1fr;
+          grid-template-columns:1fr 1fr;
           gap:7px;
           margin-top:14px;
         ">
@@ -215,6 +215,10 @@ window.cargarStockCamisetas = async function () {
           )">
             Ajustar
           </button>
+
+          <button onclick="editarCamiseta('${item.id}')">
+  ✏️ Editar
+</button>
 
         </div>
 
@@ -553,7 +557,223 @@ async function guardarNuevaCamiseta(e) {
       : `${tallas.length} tallas añadidas`
   );
 }
+/* =========================================================
+   EDITAR CAMISETA
+   ========================================================= */
 
+window.editarCamiseta = async function (id) {
+
+  const { data: item, error } = await supabaseClient
+    .from("base_stock_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !item) {
+    console.error(error);
+    alert("No se pudo cargar la ficha.");
+    return;
+  }
+
+  openDrawer();
+
+  document.getElementById("drawerBody").innerHTML = `
+    <h2 style="margin-top:0">✏️ Editar camiseta base</h2>
+
+    <form id="formEditarCamiseta">
+
+      <div class="field">
+        <label>Proveedor</label>
+        <input
+          name="supplier"
+          value="${escapeStock(item.supplier)}"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Modelo del proveedor</label>
+        <input
+          name="supplier_model"
+          value="${escapeStock(item.supplier_model)}"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Tipo de prenda</label>
+        <select name="garment_type">
+          <option value="Camiseta">Camiseta</option>
+          <option value="Sudadera">Sudadera</option>
+          <option value="Polo">Polo</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Público</label>
+        <select name="audience">
+          <option value="Niño">Niño</option>
+          <option value="Adulto">Adulto</option>
+          <option value="Unisex">Unisex</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Color</label>
+        <input
+          name="color"
+          value="${escapeStock(item.color)}"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Talla</label>
+        <input
+          name="size"
+          value="${escapeStock(item.size)}"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Stock mínimo</label>
+        <input
+          name="min_stock"
+          type="number"
+          min="0"
+          step="1"
+          value="${Number(item.min_stock ?? 3)}"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Coste unitario €</label>
+        <input
+          name="unit_cost"
+          type="number"
+          min="0"
+          step="0.01"
+          value="${Number(item.unit_cost || 0)}"
+        >
+      </div>
+
+      <div class="field">
+        <label>Notas</label>
+        <textarea
+          name="notes"
+          rows="3"
+        >${escapeStock(item.notes || "")}</textarea>
+      </div>
+
+      <button class="primary" type="submit">
+        Guardar cambios
+      </button>
+
+      <button
+        class="secondary"
+        type="button"
+        onclick="closeDrawer()"
+      >
+        Cancelar
+      </button>
+
+    </form>
+  `;
+
+  const formulario =
+    document.getElementById("formEditarCamiseta");
+
+  formulario.elements.garment_type.value =
+    item.garment_type || "Camiseta";
+
+  formulario.elements.audience.value =
+    item.audience || "Unisex";
+
+  formulario.onsubmit = function (e) {
+    guardarEdicionCamiseta(e, id);
+  };
+};
+
+async function guardarEdicionCamiseta(e, id) {
+
+  e.preventDefault();
+
+  const form = new FormData(e.target);
+
+  const minimo = Number(form.get("min_stock"));
+  const coste = Number(form.get("unit_cost") || 0);
+
+  if (!Number.isInteger(minimo) || minimo < 0) {
+    alert("El stock mínimo no es válido.");
+    return;
+  }
+
+  if (coste < 0) {
+    alert("El coste no es válido.");
+    return;
+  }
+
+  const cambios = {
+    supplier:
+      String(form.get("supplier") || "").trim(),
+
+    supplier_model:
+      String(form.get("supplier_model") || "").trim(),
+
+    garment_type:
+      String(form.get("garment_type") || "Camiseta").trim(),
+
+    audience:
+      String(form.get("audience") || "Unisex").trim(),
+
+    color:
+      String(form.get("color") || "").trim(),
+
+    size:
+      String(form.get("size") || "").trim(),
+
+    min_stock: minimo,
+
+    unit_cost: coste,
+
+    notes:
+      String(form.get("notes") || "").trim()
+  };
+
+  if (!cambios.color || !cambios.size) {
+    alert("Color y talla son obligatorios.");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("base_stock_items")
+    .update(cambios)
+    .eq("id", id);
+
+  if (error) {
+
+    if (error.code === "23505") {
+      alert(
+        "Ya existe una ficha con ese proveedor, modelo, público, color y talla."
+      );
+    } else {
+      console.error(error);
+      alert("No se pudieron guardar los cambios.");
+    }
+
+    return;
+  }
+
+  closeDrawer();
+
+  await cargarFiltrosCamisetas();
+  await cargarStockCamisetas();
+
+  toast("Ficha actualizada");
+}
 /* =========================================================
    ENTRADAS Y SALIDAS
    ========================================================= */
