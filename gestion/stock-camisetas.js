@@ -334,56 +334,57 @@ window.mostrarNuevaCamiseta = function () {
         </select>
       </div>
 
-      <div class="formgrid">
+     <div class="field">
+  <label>Color</label>
+  <input
+    name="color"
+    placeholder="Ej. Blanca"
+    required
+  >
+</div>
 
-        <div class="field">
-          <label>Color</label>
-          <input
-            name="color"
-            placeholder="Ej. Blanca"
-            required
-          >
-        </div>
+<div class="field">
+  <label>Tallas y stock inicial</label>
 
-        <div class="field">
-          <label>Talla</label>
-          <input
-            name="size"
-            placeholder="Ej. 5/6"
-            required
-          >
-        </div>
+  <div style="
+    display:grid;
+    grid-template-columns:1fr 90px;
+    gap:8px;
+    align-items:center;
+  ">
 
-      </div>
+    <div style="font-size:13px;opacity:.7">Talla</div>
+    <div style="font-size:13px;opacity:.7">Unidades</div>
 
-      <div class="formgrid">
+    <input name="size_1" placeholder="5/6">
+    <input name="qty_1" type="number" min="0" step="1" value="0">
 
-        <div class="field">
-          <label>Stock inicial</label>
-          <input
-            name="quantity"
-            type="number"
-            min="0"
-            step="1"
-            value="0"
-            required
-          >
-        </div>
+    <input name="size_2" placeholder="7/8">
+    <input name="qty_2" type="number" min="0" step="1" value="0">
 
-        <div class="field">
-          <label>Stock mínimo</label>
-          <input
-            name="min_stock"
-            type="number"
-            min="0"
-            step="1"
-            value="3"
-            required
-          >
-        </div>
+    <input name="size_3" placeholder="9/11">
+    <input name="qty_3" type="number" min="0" step="1" value="0">
 
-      </div>
+    <input name="size_4" placeholder="12/13">
+    <input name="qty_4" type="number" min="0" step="1" value="0">
 
+    <input name="size_5" placeholder="Otra talla">
+    <input name="qty_5" type="number" min="0" step="1" value="0">
+
+  </div>
+</div>
+
+<div class="field">
+  <label>Stock mínimo por talla</label>
+  <input
+    name="min_stock"
+    type="number"
+    min="0"
+    step="1"
+    value="3"
+    required
+  >
+</div>
       <div class="field">
         <label>Coste unitario €</label>
         <input
@@ -431,14 +432,8 @@ async function guardarNuevaCamiseta(e) {
 
   const form = new FormData(e.target);
 
-  const cantidad = Number(form.get("quantity"));
   const minimo = Number(form.get("min_stock"));
   const coste = Number(form.get("unit_cost") || 0);
-
-  if (!Number.isInteger(cantidad) || cantidad < 0) {
-    alert("El stock inicial no es válido.");
-    return;
-  }
 
   if (!Number.isInteger(minimo) || minimo < 0) {
     alert("El stock mínimo no es válido.");
@@ -450,48 +445,97 @@ async function guardarNuevaCamiseta(e) {
     return;
   }
 
-  const nueva = {
-    garment_type: form.get("garment_type").trim(),
-    supplier: form.get("supplier").trim(),
-    supplier_model: form.get("supplier_model").trim(),
-    audience: form.get("audience").trim(),
-    color: form.get("color").trim(),
-    size: form.get("size").trim(),
-    quantity: cantidad,
+  const tallas = [];
+
+  for (let i = 1; i <= 5; i++) {
+
+    const talla = String(form.get(`size_${i}`) || "").trim();
+    const cantidadTexto = form.get(`qty_${i}`);
+
+    if (!talla) continue;
+
+    const cantidad = Number(cantidadTexto || 0);
+
+    if (!Number.isInteger(cantidad) || cantidad < 0) {
+      alert(`El stock de la talla ${talla} no es válido.`);
+      return;
+    }
+
+    tallas.push({
+      talla,
+      cantidad
+    });
+  }
+
+  if (!tallas.length) {
+    alert("Introduce al menos una talla.");
+    return;
+  }
+
+  const proveedor =
+    String(form.get("supplier") || "").trim();
+
+  const modelo =
+    String(form.get("supplier_model") || "").trim();
+
+  const tipo =
+    String(form.get("garment_type") || "Camiseta").trim();
+
+  const publico =
+    String(form.get("audience") || "Unisex").trim();
+
+  const color =
+    String(form.get("color") || "").trim();
+
+  const notas =
+    String(form.get("notes") || "").trim();
+
+  const nuevas = tallas.map(x => ({
+    garment_type: tipo,
+    supplier: proveedor,
+    supplier_model: modelo,
+    audience: publico,
+    color: color,
+    size: x.talla,
+    quantity: x.cantidad,
     min_stock: minimo,
     unit_cost: coste,
-    notes: form.get("notes").trim()
-  };
+    notes: notas
+  }));
 
   const { data, error } = await supabaseClient
     .from("base_stock_items")
-    .insert(nueva)
-    .select()
-    .single();
+    .insert(nuevas)
+    .select();
 
   if (error) {
 
     if (error.code === "23505") {
       alert(
-        "Esa combinación de proveedor, modelo, color y talla ya existe."
+        "Alguna de esas tallas ya existe para ese proveedor, modelo y color."
       );
     } else {
       console.error(error);
-      alert("No se pudo guardar la camiseta.");
+      alert("No se pudieron guardar las camisetas.");
     }
 
     return;
   }
 
-  if (cantidad > 0) {
-    await guardarMovimientoCamiseta(
-      data.id,
-      "entrada",
-      cantidad,
-      0,
-      cantidad,
-      "Stock inicial"
-    );
+  for (const item of (data || [])) {
+
+    const cantidad = Number(item.quantity || 0);
+
+    if (cantidad > 0) {
+      await guardarMovimientoCamiseta(
+        item.id,
+        "entrada",
+        cantidad,
+        0,
+        cantidad,
+        "Stock inicial"
+      );
+    }
   }
 
   closeDrawer();
@@ -499,7 +543,11 @@ async function guardarNuevaCamiseta(e) {
   await cargarFiltrosCamisetas();
   await cargarStockCamisetas();
 
-  toast("Camiseta añadida");
+  toast(
+    tallas.length === 1
+      ? "Camiseta añadida"
+      : `${tallas.length} tallas añadidas`
+  );
 }
 
 /* =========================================================
