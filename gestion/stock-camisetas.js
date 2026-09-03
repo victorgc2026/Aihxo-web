@@ -326,13 +326,16 @@ window.mostrarNuevaCamiseta = function () {
       </div>
 
       <div class="field">
-        <label>Público</label>
-        <select name="audience">
-          <option value="Niño">Niño</option>
-          <option value="Adulto">Adulto</option>
-          <option value="Unisex">Unisex</option>
-        </select>
-      </div>
+  <label>Público</label>
+  <select
+    name="audience"
+    onchange="actualizarTallasPorPublico(this.value)"
+  >
+    <option value="Niño">Niño</option>
+    <option value="Adulto">Adulto</option>
+    <option value="Unisex">Unisex</option>
+  </select>
+</div>
 
      <div class="field">
   <label>Color</label>
@@ -423,6 +426,7 @@ window.mostrarNuevaCamiseta = function () {
 
   document.getElementById("formNuevaCamiseta").onsubmit =
     guardarNuevaCamiseta;
+     actualizarTallasPorPublico("Niño");
 };
 
 
@@ -767,7 +771,34 @@ window.cargarFiltrosCamisetas = async function () {
   }
 };
 
+/* =========================================================
+   TALLAS AUTOMÁTICAS SEGÚN PÚBLICO
+   ========================================================= */
 
+window.actualizarTallasPorPublico = function (publico) {
+
+  const tallas =
+    publico === "Niño"
+      ? ["5/6", "7/8", "9/11", "12/13", ""]
+      : ["S", "M", "L", "XL", "2XL"];
+
+  for (let i = 1; i <= 5; i++) {
+
+    const campo = document.querySelector(
+      `[name="size_${i}"]`
+    );
+
+    if (!campo) continue;
+
+    campo.value = tallas[i - 1];
+
+    if (i === 5 && publico === "Niño") {
+      campo.placeholder = "Otra talla";
+    } else {
+      campo.placeholder = "";
+    }
+  }
+};
 /* =========================================================
    SEGURIDAD TEXTO
    ========================================================= */
