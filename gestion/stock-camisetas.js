@@ -32,7 +32,7 @@ window.renderStockCamisetas = async function () {
       <div id="resumenStockCamisetas"
            style="
              display:grid;
-             grid-template-columns:repeat(3,1fr);
+             grid-template-columns:repeat(2,1fr);
              gap:8px;
              margin-bottom:15px;
            ">
@@ -254,11 +254,26 @@ window.pintarResumenCamisetas = function (items) {
       Number(x.quantity || 0) <= Number(x.min_stock ?? 3)
     ).length;
 
-  el.innerHTML = `
-    ${tarjetaResumenStock("Unidades", total)}
-    ${tarjetaResumenStock("Stock bajo", bajo)}
-    ${tarjetaResumenStock("Agotadas", sinStock)}
-  `;
+const valorStock = items.reduce(
+  (s, x) =>
+    s +
+    Number(x.quantity || 0) *
+    Number(x.unit_cost || 0),
+  0
+);
+   
+ el.innerHTML = `
+  ${tarjetaResumenStock("Unidades", total)}
+  ${tarjetaResumenStock("Stock bajo", bajo)}
+  ${tarjetaResumenStock("Agotadas", sinStock)}
+  ${tarjetaResumenStock(
+    "Valor stock",
+    valorStock.toLocaleString("es-ES", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }) + " €"
+  )}
+`; 
 };
 
 
