@@ -144,8 +144,348 @@ function drawOrders(){
   `;
 }
 async function status(id,s){const {error}=await supabaseClient.from('orders').update({status:s}).eq('id',id);if(error)toast(error.message);else{toast('Estado actualizado');await loadAll();drawOrders()}}
-function orderForm(){$('#drawer').classList.remove('hidden');$('#drawerBody').innerHTML=`<h2>Nuevo pedido</h2><form class="form" id="of"><div class="formgrid"><div class="field"><label>Cliente</label><input name="customer" required></div><div class="field"><label>Contacto</label><input name="contact"></div></div><div class="field"><label>Producto</label><select name="sku" id="osku">${products.map(p=>`<option value="${p.id}">${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)} — ${money(p.sale_price)}</option>`).join('')}</select></div><div class="formgrid"><div class="field"><label>Diseño</label><input name="design" placeholder="Nombre del diseño"></div><div class="field"><label>Cantidad</label><input name="qty" type="number" min="1" value="1"></div></div><div class="formgrid"><div class="field"><label>Precio unitario</label><input name="price" id="oprice" type="number" step=".01"></div><div class="field"><label>Envío cobrado</label><input name="shipping" type="number" step=".01" value="0"></div></div><button class="primary">Guardar pedido</button></form>`;$('#oprice').value=products[0]?.sale_price||0;$('#osku').onchange=e=>$('#oprice').value=products.find(p=>p.id===e.target.value)?.sale_price||0;$('#of').onsubmit=createOrder}
-async function createOrder(e){e.preventDefault();const f=new FormData(e.target),p=products.find(x=>x.id===f.get('sku')),qty=+f.get('qty');if(!p||p.stock<qty){toast('Stock insuficiente');return}const price=+f.get('price'),shipping=+f.get('shipping')||0;let customer=customers.find(x=>x.name===f.get('customer'));if(!customer){const r=await supabaseClient.from('customers').insert({name:f.get('customer'),contact:f.get('contact')}).select().single();if(r.error){toast(r.error.message);return}customer=r.data}const order={order_number:'AIHXO-'+String(orders.length+1).padStart(4,'0'),customer_id:customer.id,customer_name:customer.name,contact:f.get('contact'),product_id:p.id,product_name:p.model,size:p.size,color:p.color,design:f.get('design'),quantity:qty,unit_price:price,shipping,total:qty*price+shipping,product_cost:qty*cost(p),status:'Pendiente'};const r=await supabaseClient.from('orders').insert(order);if(r.error){toast(r.error.message);return}await supabaseClient.from('products').update({stock:p.stock-qty}).eq('id',p.id);closeDrawer();await loadAll();setView('orders');toast('Pedido guardado en Supabase')}
+async function orderForm(){
+
+  const { data: camisetasBase, error } = await supabaseClient
+    .from('base_stock_items')
+    .select('*')
+    .gt('quantity', 0)
+    .order('color')
+    .order('size');
+
+  if (error) {
+    console.error(error);
+    toast('No se pudo cargar el stock de camisetas');
+    return;
+  }
+
+  $('#drawer').classList.remove('hidden');
+
+  $('#drawerBody').innerHTML = `
+    <h2>Nuevo pedido</h2>
+
+    <form class="form" id="of">
+
+      <div class="formgrid">
+        <div class="field">
+          <label>Cliente</label>
+          <input name="customer" required>
+        </div>
+
+        <div class="field">
+          <label>Contacto</label>
+          <input name="contact">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Producto</label>
+
+        <select name="sku" id="osku">
+          ${products.map(p => `
+            <option value="${p.id}">
+              ${esc(p.model)} ·
+              ${esc(p.size)} ·
+              ${esc(p.color)}
+              — ${money(p.sale_price)}
+            </option>
+          `).join('')}
+        </select>
+      </div>
+
+      <div class="field">
+        <label>👕 Camiseta base utilizada</label>
+
+        <select name="base_stock_id" id="obase">
+          <option value="">
+            No descontar camiseta base
+          </option>
+
+          ${(camisetasBase || []).map(x => `
+            <option value="${x.id}">
+              ${esc(x.supplier || '')}
+              ${esc(x.supplier_model || '')}
+              · ${esc(x.color)}
+              · ${esc(x.size)}
+              · Stock ${Number(x.quantity || 0)}
+            </option>
+          `).join('')}
+        </select>
+      </div>
+
+      <div class="formgrid">
+
+        <div class="field">
+          <label>Diseño</label>
+          <input
+            name="design"
+            placeholder="Nombre del diseño"
+          >
+        </div>
+
+        <div class="field">
+          <label>Cantidad</label>
+          <input
+            name="qty"
+            type="number"
+            min="1"
+            value="1"
+          >
+        </div>
+
+      </div>
+
+      <div class="formgrid">
+
+        <div class="field">
+          <label>Precio unitario</label>
+          <input
+            name="price"
+            id="oprice"
+            type="number"
+            step=".01"
+          >
+        </div>
+
+        <div class="field">
+          <label>Envío cobrado</label>
+          <input
+            name="shipping"
+            type="number"
+            step=".01"
+            value="0"
+          >
+        </div>
+
+      </div>
+
+      <button class="primary">
+        Guardar pedido
+      </button>
+
+    </form>
+  `;
+
+  $('#oprice').value =
+    products[0]?.sale_price || 0;
+
+  $('#osku').onchange = e => {
+    $('#oprice').value =
+      products.find(
+        p => p.id === e.target.value
+      )?.sale_price || 0;
+  };
+
+  $('#of').onsubmit = createOrder;
+}
+async function createOrder(e){
+
+  e.preventDefault();
+
+  const f = new FormData(e.target);
+
+  const p = products.find(
+    x => x.id === f.get('sku')
+  );
+
+  const qty = Number(f.get('qty') || 0);
+
+  if (!p || qty < 1) {
+    toast('Pedido no válido');
+    return;
+  }
+
+  if (p.stock < qty) {
+    toast('Stock de producto insuficiente');
+    return;
+  }
+
+  const baseStockId =
+    String(f.get('base_stock_id') || '').trim();
+
+  let camisetaBase = null;
+
+  if (baseStockId) {
+
+    const { data, error } = await supabaseClient
+      .from('base_stock_items')
+      .select('*')
+      .eq('id', baseStockId)
+      .single();
+
+    if (error || !data) {
+      console.error(error);
+      toast('No se pudo comprobar la camiseta base');
+      return;
+    }
+
+    camisetaBase = data;
+
+    if (Number(camisetaBase.quantity || 0) < qty) {
+      toast(
+        `Stock insuficiente de camiseta base. Disponible: ${
+          Number(camisetaBase.quantity || 0)
+        }`
+      );
+      return;
+    }
+  }
+
+  const price =
+    Number(f.get('price') || 0);
+
+  const shipping =
+    Number(f.get('shipping') || 0);
+
+  let customer = customers.find(
+    x => x.name === f.get('customer')
+  );
+
+  if (!customer) {
+
+    const r = await supabaseClient
+      .from('customers')
+      .insert({
+        name: f.get('customer'),
+        contact: f.get('contact')
+      })
+      .select()
+      .single();
+
+    if (r.error) {
+      toast(r.error.message);
+      return;
+    }
+
+    customer = r.data;
+  }
+
+  const orderNumber =
+    'AIHXO-' +
+    String(orders.length + 1).padStart(4, '0');
+
+  const order = {
+
+    order_number: orderNumber,
+
+    customer_id: customer.id,
+    customer_name: customer.name,
+    contact: f.get('contact'),
+
+    product_id: p.id,
+    product_name: p.model,
+    size: p.size,
+    color: p.color,
+
+    design: f.get('design'),
+
+    quantity: qty,
+
+    unit_price: price,
+    shipping: shipping,
+
+    total:
+      qty * price + shipping,
+
+    product_cost:
+      qty * cost(p),
+
+    status: 'Pendiente',
+
+    base_stock_item_id:
+      camisetaBase ? camisetaBase.id : null,
+
+    base_stock_quantity:
+      camisetaBase ? qty : 0
+  };
+
+  const r = await supabaseClient
+    .from('orders')
+    .insert(order)
+    .select()
+    .single();
+
+  if (r.error) {
+    console.error(r.error);
+    toast(r.error.message);
+    return;
+  }
+
+  /* DESCONTAR STOCK DEL PRODUCTO */
+
+  const nuevoStockProducto =
+    Number(p.stock || 0) - qty;
+
+  const { error: errorProducto } =
+    await supabaseClient
+      .from('products')
+      .update({
+        stock: nuevoStockProducto
+      })
+      .eq('id', p.id);
+
+  if (errorProducto) {
+    console.error(errorProducto);
+    toast('Pedido creado, pero hubo un error en stock producto');
+    return;
+  }
+
+  /* DESCONTAR CAMISETA BASE */
+
+  if (camisetaBase) {
+
+    const stockAnterior =
+      Number(camisetaBase.quantity || 0);
+
+    const nuevoStockBase =
+      stockAnterior - qty;
+
+    const { error: errorStockBase } =
+      await supabaseClient
+        .from('base_stock_items')
+        .update({
+          quantity: nuevoStockBase
+        })
+        .eq('id', camisetaBase.id);
+
+    if (errorStockBase) {
+      console.error(errorStockBase);
+      toast(
+        'Pedido creado, pero no se pudo descontar la camiseta base'
+      );
+      return;
+    }
+
+    /* REGISTRAR MOVIMIENTO */
+
+    const { error: errorMovimiento } =
+      await supabaseClient
+        .from('base_stock_movements')
+        .insert({
+          item_id: camisetaBase.id,
+          movement_type: 'salida',
+          quantity_delta: -qty,
+          previous_quantity: stockAnterior,
+          new_quantity: nuevoStockBase,
+          reason: `Pedido ${orderNumber}`
+        });
+
+    if (errorMovimiento) {
+      console.error(errorMovimiento);
+      toast(
+        'Stock descontado, pero no se pudo guardar el historial'
+      );
+    }
+  }
+
+  closeDrawer();
+
+  await loadAllr();
+
+  setView('orders');
+
+  toast(`Pedido ${orderNumber} guardado`);
+}
 function productsView(c){
   c.innerHTML=`
     <div class="page">
