@@ -4,7 +4,7 @@
 
 window.renderStockCamisetas = async function () {
 
-  const app = document.getElementById("app");
+  const app = document.getElementById("view");
 
   app.innerHTML = `
     <div style="padding:16px;max-width:1100px;margin:auto">
@@ -86,7 +86,7 @@ window.cargarStockCamisetas = async function () {
   const talla =
     document.getElementById("filtroTallaCamisetas")?.value || "";
 
-  let consulta = sb
+  let consulta = supabaseClient
     .from("base_stock_items")
     .select("*")
     .order("color")
@@ -328,7 +328,7 @@ window.mostrarNuevaCamiseta = async function () {
     return;
   }
 
-  const { data, error } = await sb
+  const { data, error } = await supabaseClient
     .from("base_stock_items")
     .insert({
       garment_type: "Camiseta",
@@ -421,7 +421,7 @@ window.movimientoCamiseta = async function (
         : "Uso en pedido"
     ) || "";
 
-  const { error } = await sb
+  const { error } = await supabaseClient
     .from("base_stock_items")
     .update({
       quantity: nuevoStock,
@@ -479,7 +479,7 @@ window.ajustarCamiseta = async function (
       "Recuento manual"
     ) || "Recuento manual";
 
-  const { error } = await sb
+  const { error } = await supabaseClient
     .from("base_stock_items")
     .update({
       quantity: nuevoStock,
@@ -519,7 +519,7 @@ async function guardarMovimientoCamiseta(
   motivo
 ) {
 
-  const { error } = await sb
+  const { error } = await supabaseClient
     .from("base_stock_movements")
     .insert({
       item_id: itemId,
@@ -545,7 +545,7 @@ async function guardarMovimientoCamiseta(
 
 window.cargarFiltrosCamisetas = async function () {
 
-  const { data, error } = await sb
+  const { data, error } = await supabaseClient
     .from("base_stock_items")
     .select("color,size");
 
