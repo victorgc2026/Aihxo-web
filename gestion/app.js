@@ -1,4 +1,4 @@
-const SUPABASE_URL='https://zoiesxtchnesrilpuqek.supabase.co';
+mlconst SUPABASE_URL='https://zoiesxtchnesrilpuqek.supabase.co';
 const SUPABASE_KEY='sb_publishable_-DyRFQxtVvvwiPlvkZyUtA_upKb2W7T';
 const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY); window.supabaseClient=supabaseClient;
 let products=[],orders=[],customers=[],expenses=[],designs=[];
@@ -1535,10 +1535,7 @@ window.orderForm = function() {
   $('#drawer').classList.remove('hidden');
 
   $('#drawerBody').innerHTML = `
-    <h2 id="tituloPedido">Nuevo pedido</h2>
-<div id="tipoPedido" class="muted" style="margin-bottom:18px;font-weight:700;"></div>
-
-    <form class="form" id="of">
+    Unificar tipos de pedido
 
       <div class="formgrid">
         <div class="field">
@@ -1676,17 +1673,9 @@ window.orderForm = function() {
   const tituloPedido = document.getElementById('tituloPedido');
 const tipoPedido = document.getElementById('tipoPedido');
 
-if (tituloPedido) {
-  tituloPedido.textContent = esPersonalizable
-    ? 'Nuevo pedido personalizado'
-    : 'Pedido diseño propio';
-}
 
-if (tipoPedido) {
-  tipoPedido.textContent = esPersonalizable
-    ? 'PERSONALIZACIÓN AIHXO'
-    : 'DISEÑO PROPIO AIHXO';
-}
+
+
 
   if (bloquePersonalizacion) {
     bloquePersonalizacion.style.display =
