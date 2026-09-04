@@ -1,4 +1,4 @@
-mlconst SUPABASE_URL='https://zoiesxtchnesrilpuqek.supabase.co';
+const SUPABASE_URL='https://zoiesxtchnesrilpuqek.supabase.co';
 const SUPABASE_KEY='sb_publishable_-DyRFQxtVvvwiPlvkZyUtA_upKb2W7T';
 const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY); window.supabaseClient=supabaseClient;
 let products=[],orders=[],customers=[],expenses=[],designs=[];
