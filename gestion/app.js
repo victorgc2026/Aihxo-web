@@ -224,7 +224,16 @@ async function orderForm(){
   $('#drawer').classList.remove('hidden');
 
   $('#drawerBody').innerHTML = `
-    <h2>Nuevo pedido</h2>
+   <h2>Nuevo pedido AIHXO</h2>
+
+<div class="field">
+  <label>Tipo de pedido</label>
+  <select name="order_type" id="orderType">
+    <option value="personalizado">✏️ Personalizado</option>
+    <option value="diseno_aihxo">🎨 Diseño AIHXO</option>
+    <option value="catalogo">📦 Producto catálogo</option>
+  </select>
+</div> 
 
     <form class="form" id="of">
 
@@ -427,6 +436,7 @@ async function createOrder(e){
     String(orders.length + 1).padStart(4, '0');
 
   const order = {
+   order_type: f.get('order_type'),
 
     order_number: orderNumber,
 
