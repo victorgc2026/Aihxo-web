@@ -1535,7 +1535,18 @@ window.orderForm = function() {
   $('#drawer').classList.remove('hidden');
 
   $('#drawerBody').innerHTML = `
-    Unificar tipos de pedido
+    <h2>Nuevo pedido AIHXO</h2>
+
+<form class="form" id="of">
+
+  <div class="field">
+    <label>Tipo de pedido</label>
+    <select name="order_type" id="orderType">
+      <option value="personalizado">✏️ Personalizado</option>
+      <option value="diseno_aihxo">🎨 Diseño AIHXO</option>
+      <option value="catalogo">📦 Producto catálogo</option>
+    </select>
+  </div>
 
       <div class="formgrid">
         <div class="field">
