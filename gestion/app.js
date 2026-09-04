@@ -1541,7 +1541,9 @@ window.orderForm = function() {
 
   <div class="field">
     <label>Tipo de pedido</label>
-    <select name="order_type" id="orderType">
+    <select name="order_type" id="orderType"><div id="tipoPedidoAyuda" class="muted" style="margin-top:6px;margin-bottom:16px;">
+  Personalización creada a medida para el cliente.
+</div>
       <option value="personalizado">✏️ Personalizado</option>
       <option value="diseno_aihxo">🎨 Diseño AIHXO</option>
       <option value="catalogo">📦 Producto catálogo</option>
@@ -1763,7 +1765,18 @@ if (inputDiseno) {
       </div>
     `;
   };
+$('#orderType').onchange = () => {
+  const tipo = $('#orderType').value;
+  const ayuda = $('#tipoPedidoAyuda');
 
+  if (tipo === 'personalizado') {
+    ayuda.textContent = 'Personalización creada a medida para el cliente.';
+  } else if (tipo === 'diseno_aihxo') {
+    ayuda.textContent = 'Pedido de un diseño propio de AIHXO.';
+  } else {
+    ayuda.textContent = 'Venta directa de un producto del catálogo.';
+  }
+};
   $('#osku').onchange = actualizarPedido;
   $('#opersonalization').onchange = actualizarPedido;
   $('#oqty').oninput = actualizarResumenPedido;
