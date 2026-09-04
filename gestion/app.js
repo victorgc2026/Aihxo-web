@@ -1309,7 +1309,11 @@ function stockHub(c){
 }
 function stockProductos(c = $('#view')){
  const total=products.reduce((a,p)=>a+p.stock,0),value=products.reduce((a,p)=>a+p.stock*cost(p),0),low=products.filter(p=>p.stock<=3);
- c.innerHTML=`<div class="page"><div class="section"><div><h2>Stock</h2><div class="muted">Control de stock por producto</div></div><button class="primary small" onclick="setView('products')">Gestionar productos</button></div>
+ c.innerHTML=`<div class="page">
+<div style="margin-bottom:14px">
+  <button class="secondary" onclick="setView('stock')">← Stock</button>
+</div>
+<div class="section"><div><h2>Stock</h2><div class="muted">Control de stock por producto</div></div><button class="primary small" onclick="setView('products')">Gestionar productos</button></div>
  <div class="grid four stock-summary">${kpi('Productos',products.length,'Total')}${kpi('Stock total',total,'Unidades')}${kpi('Valor stock',money(value),'Coste total')}${kpi('Stock bajo',low.length,'Reponer')}</div>
  <div class="card"><div class="mobile-search"><input id="stockQ" placeholder="🔍  Buscar producto…" oninput="drawStock()"><button class="secondary" onclick="$('#stockQ').value='';drawStock()">Filtros</button></div><div id="stockTable" class="table-wrap stock-table"></div></div></div>`;drawStock()}
 function drawStock(){const q=($('#stockQ')?.value||'').toLowerCase();const a=products.filter(p=>[p.sku,p.model,p.size,p.color].join(' ').toLowerCase().includes(q));$('#stockTable').innerHTML=`<table><thead><tr><th>SKU</th><th>Producto</th><th>Talla</th><th>Color</th><th>Coste</th><th>Stock</th><th>Acción</th></tr></thead><tbody>${a.map(p=>`<tr><td>${esc(p.sku)}</td><td><div class="stock-product">${esc(p.model)}</div><div class="stock-meta">${esc(p.sku)}</div></td><td>${esc(p.size||'—')}</td><td>◯ ${esc(p.color||'—')}</td><td>${money(cost(p))}</td><td><b class="${p.stock<=3?'red':'green'}">${p.stock}</b></td><td><button class="secondary" onclick="addStock('${p.id}')">＋</button></td></tr>`).join('')}</tbody></table>`}
