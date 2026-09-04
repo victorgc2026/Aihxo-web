@@ -1541,13 +1541,15 @@ window.orderForm = function() {
 
   <div class="field">
     <label>Tipo de pedido</label>
-    <select name="order_type" id="orderType"><div id="tipoPedidoAyuda" class="muted" style="margin-top:6px;margin-bottom:16px;">
+    <select name="order_type" id="orderType">
+  <option value="personalizado">✏️ Personalizado</option>
+  <option value="diseno_aihxo">🎨 Diseño AIHXO</option>
+  <option value="catalogo">📦 Producto catálogo</option>
+</select>
+
+<div id="tipoPedidoAyuda" class="muted" style="margin-top:6px;margin-bottom:16px;">
   Personalización creada a medida para el cliente.
 </div>
-      <option value="personalizado">✏️ Personalizado</option>
-      <option value="diseno_aihxo">🎨 Diseño AIHXO</option>
-      <option value="catalogo">📦 Producto catálogo</option>
-    </select>
   </div>
 
       <div class="formgrid">
