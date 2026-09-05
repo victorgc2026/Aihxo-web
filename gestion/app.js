@@ -1845,7 +1845,7 @@ $('#orderType').onchange = () => {
     designLibre.style.display = 'none';
     designAihxo.style.display = 'none';
   }
-};};
+};
   $('#osku').onchange = actualizarPedido;
   $('#opersonalization').onchange = actualizarPedido;
   $('#oqty').oninput = actualizarResumenPedido;
