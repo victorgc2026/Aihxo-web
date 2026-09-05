@@ -1531,7 +1531,20 @@ productsView = function(c) {
     actions.appendChild(btn);
   });
 };
-window.orderForm = function() {
+window.orderForm = async function() {
+   const { data: baseStockItems, error: baseStockError } =
+    await supabaseClient
+      .from('base_stock_items')
+      .select('*')
+      .gt('quantity', 0)
+      .order('garment_type')
+      .order('color')
+      .order('size');
+
+  if (baseStockError) {
+    toast('No se pudo cargar el stock de camisetas');
+    return;
+  }
   $('#drawer').classList.remove('hidden');
 
   $('#drawerBody').innerHTML = `
@@ -1574,7 +1587,22 @@ window.orderForm = function() {
           `).join('')}
         </select>
       </div>
+<div class="field">
+  <label>Camiseta base utilizada</label>
+  <select name="base_stock_item_id" id="obaseStock">
+    <option value="">— No descontar camiseta base —</option>
 
+    ${baseStockItems.map(item => `
+      <option value="${item.id}">
+        ${esc(item.garment_type || 'Camiseta')}
+        · ${esc(item.supplier_model || item.supplier || '')}
+        · ${esc(item.color || '')}
+        · ${esc(item.size || '')}
+        · Stock ${item.quantity}
+      </option>
+    `).join('')}
+  </select>
+</div>
   <div id="personalizacionPedido">
   <div class="field">
     <label>Personalización</label>
@@ -1807,6 +1835,25 @@ $('#orderType').onchange = () => {
     );
 
     const qty = Number(f.get('qty') || 1);
+   const baseStockId = f.get('base_stock_item_id');
+
+let baseStockItem = null;
+
+if (baseStockId) {
+  baseStockItem = baseStockItems.find(
+    x => String(x.id) === String(baseStockId)
+  );
+
+  if (!baseStockItem) {
+    toast('Camiseta base no válida');
+    return;
+  }
+
+  if (Number(baseStockItem.quantity || 0) < qty) {
+    toast('Stock insuficiente de camiseta base');
+    return;
+  }
+}
 
     if (!p) {
       toast('Producto no válido');
@@ -1885,7 +1932,8 @@ const tipo =
       order_number:
         'AIHXO-' +
         String(orders.length + 1).padStart(4, '0'),
-
+base_stock_item_id: baseStockId || null,
+base_stock_quantity: baseStockId ? qty : 0,
       customer_id: customer.id,
       customer_name: customer.name,
       contact: f.get('contact'),
@@ -1922,6 +1970,35 @@ const tipo =
         stock: p.stock - qty
       })
       .eq('id', p.id);
+   if (baseStockItem) {
+  const newBaseStock = Number(baseStockItem.quantity) - qty;
+
+  const baseUpdate = await supabaseClient
+    .from('base_stock_items')
+    .update({
+      quantity: newBaseStock
+    })
+    .eq('id', baseStockItem.id);
+
+  if (baseUpdate.error) {
+    toast('Error al descontar la camiseta base');
+    return;
+  }
+      const movement = await supabaseClient
+    .from('base_stock_movements')
+    .insert({
+      item_id: baseStockItem.id,
+      movement_type: 'salida',
+      quantity_delta: -qty,
+      previous_quantity: Number(baseStockItem.quantity),
+      new_quantity: newBaseStock,
+      reason: `Pedido ${order.order_number}`
+    });
+
+  if (movement.error) {
+    toast('Pedido guardado, pero no se pudo registrar el movimiento de stock');
+  }
+}
 
     closeDrawer();
 
