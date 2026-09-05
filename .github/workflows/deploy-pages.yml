@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "Web/**"
+      - "gestion/**"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
@@ -33,10 +34,17 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload Web folder
+      - name: Prepare site
+        run: |
+          mkdir -p _site
+          cp -a Web/. _site/
+          mkdir -p _site/gestion
+          cp -a gestion/. _site/gestion/
+
+      - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./Web
+          path: ./_site
 
       - name: Deploy to GitHub Pages
         id: deployment
