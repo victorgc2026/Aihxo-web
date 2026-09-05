@@ -1587,7 +1587,7 @@ window.orderForm = async function() {
           `).join('')}
         </select>
       </div>
-<div class="field">
+<div class="field" id="baseStockPedidoField">
   <label>Camiseta base utilizada</label>
   <select name="base_stock_item_id" id="obaseStock">
     <option value="">— No descontar camiseta base —</option>
@@ -1818,6 +1818,8 @@ $('#orderType').onchange = () => {
   const diseno = $('#designPedidoField');
   const designLibre = $('#designLibre');
   const designAihxo = $('#designAihxo');
+ const baseStockField = $('#baseStockPedidoField');
+const baseStockSelect = $('#obaseStock');
 
   if (tipo === 'personalizado') {
     ayuda.textContent = 'Personalización creada a medida para el cliente.';
@@ -1826,6 +1828,7 @@ $('#orderType').onchange = () => {
 
     designLibre.style.display = 'block';
     designAihxo.style.display = 'none';
+   baseStockField.style.display = 'block';
   }
 
   if (tipo === 'diseno_aihxo') {
@@ -1835,6 +1838,7 @@ $('#orderType').onchange = () => {
 
     designLibre.style.display = 'none';
     designAihxo.style.display = 'block';
+  baseStockField.style.display = 'block'; 
   }
 
   if (tipo === 'catalogo') {
@@ -1844,6 +1848,8 @@ $('#orderType').onchange = () => {
 
     designLibre.style.display = 'none';
     designAihxo.style.display = 'none';
+   baseStockField.style.display = 'none';
+baseStockSelect.value = '';
   }
 };
   $('#osku').onchange = actualizarPedido;
