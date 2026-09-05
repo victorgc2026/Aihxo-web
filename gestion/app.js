@@ -1631,13 +1631,29 @@ window.orderForm = async function() {
   </div>
 </div> 
 
-      <div class="field" id="designPedidoField">
-        <label>Diseño</label>
-        <input
-          name="design"
-          placeholder="Nombre o descripción del diseño"
-        >
-      </div>
+     <div class="field" id="designPedidoField">
+  <label>Diseño</label>
+
+  <input
+    name="design"
+    id="designLibre"
+    placeholder="Nombre o descripción del diseño"
+  >
+
+  <select
+    name="design_aihxo"
+    id="designAihxo"
+    style="display:none;"
+  >
+    <option value="">— Selecciona diseño AIHXO —</option>
+
+    ${designs.map(d => `
+      <option value="${esc(d.name)}">
+        ${esc(d.name)}
+      </option>
+    `).join('')}
+  </select>
+</div>
 
       <div class="field">
         <label>Notas del cliente</label>
@@ -1800,25 +1816,36 @@ $('#orderType').onchange = () => {
   const ayuda = $('#tipoPedidoAyuda');
   const personalizacion = $('#personalizacionPedido');
   const diseno = $('#designPedidoField');
+  const designLibre = $('#designLibre');
+  const designAihxo = $('#designAihxo');
 
   if (tipo === 'personalizado') {
     ayuda.textContent = 'Personalización creada a medida para el cliente.';
     personalizacion.style.display = 'block';
     diseno.style.display = 'block';
+
+    designLibre.style.display = 'block';
+    designAihxo.style.display = 'none';
   }
 
   if (tipo === 'diseno_aihxo') {
     ayuda.textContent = 'Pedido de un diseño propio de AIHXO.';
     personalizacion.style.display = 'none';
-    diseno.style.display = 'none';
+    diseno.style.display = 'block';
+
+    designLibre.style.display = 'none';
+    designAihxo.style.display = 'block';
   }
 
   if (tipo === 'catalogo') {
     ayuda.textContent = 'Venta directa de un producto del catálogo.';
     personalizacion.style.display = 'none';
     diseno.style.display = 'none';
+
+    designLibre.style.display = 'none';
+    designAihxo.style.display = 'none';
   }
-};
+};};
   $('#osku').onchange = actualizarPedido;
   $('#opersonalization').onchange = actualizarPedido;
   $('#oqty').oninput = actualizarResumenPedido;
@@ -1879,29 +1906,40 @@ const tipo =
     ? f.get('personalization')
     : '';
 
-    const detalleDiseno = [
-      f.get('design')
-        ? `Diseño: ${f.get('design')}`
-        : '',
+  const tipoPedido = f.get('order_type');
 
-      esPersonalizable
-  ? `Personalización: ${tipo} impresión${tipo === '2' ? 'es' : ''}`
-  : '',
+const nombreDiseno =
+  tipoPedido === 'diseno_aihxo'
+    ? f.get('design_aihxo')
+    : tipoPedido === 'personalizado'
+      ? f.get('design')
+      : '';
 
-      f.get('position1')
-        ? `Ubicación 1: ${f.get('position1')}`
-        : '',
+const detalleDiseno = [
+  nombreDiseno
+    ? `Diseño: ${nombreDiseno}`
+    : '',
 
-      tipo === '2' && f.get('position2')
-        ? `Ubicación 2: ${f.get('position2')}`
-        : '',
+  tipoPedido === 'personalizado' && esPersonalizable
+    ? `Personalización: ${tipo} impresión${tipo === '2' ? 'es' : ''}`
+    : '',
 
-      f.get('notes')
-        ? `Notas: ${f.get('notes')}`
-        : ''
-    ]
-    .filter(Boolean)
-    .join(' | ');
+  tipoPedido === 'personalizado' && f.get('position1')
+    ? `Ubicación 1: ${f.get('position1')}`
+    : '',
+
+  tipoPedido === 'personalizado' &&
+  tipo === '2' &&
+  f.get('position2')
+    ? `Ubicación 2: ${f.get('position2')}`
+    : '',
+
+  f.get('notes')
+    ? `Notas: ${f.get('notes')}`
+    : ''
+]
+.filter(Boolean)
+.join(' | ');
 
     const price = Number(f.get('price') || 0);
     const shipping = Number(f.get('shipping') || 0);
@@ -1932,6 +1970,7 @@ const tipo =
       order_number:
         'AIHXO-' +
         String(orders.length + 1).padStart(4, '0'),
+     order_type: f.get('order_type'),
 base_stock_item_id: baseStockId || null,
 base_stock_quantity: baseStockId ? qty : 0,
       customer_id: customer.id,
