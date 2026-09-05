@@ -1770,13 +1770,25 @@ if (inputDiseno) {
 $('#orderType').onchange = () => {
   const tipo = $('#orderType').value;
   const ayuda = $('#tipoPedidoAyuda');
+  const personalizacion = $('#personalizacionPedido');
+  const diseno = $('#designPedidoField');
 
   if (tipo === 'personalizado') {
     ayuda.textContent = 'Personalización creada a medida para el cliente.';
-  } else if (tipo === 'diseno_aihxo') {
+    personalizacion.style.display = 'block';
+    diseno.style.display = 'block';
+  }
+
+  if (tipo === 'diseno_aihxo') {
     ayuda.textContent = 'Pedido de un diseño propio de AIHXO.';
-  } else {
+    personalizacion.style.display = 'none';
+    diseno.style.display = 'none';
+  }
+
+  if (tipo === 'catalogo') {
     ayuda.textContent = 'Venta directa de un producto del catálogo.';
+    personalizacion.style.display = 'none';
+    diseno.style.display = 'none';
   }
 };
   $('#osku').onchange = actualizarPedido;
