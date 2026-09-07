@@ -1736,17 +1736,7 @@ const tipoPedido = document.getElementById('tipoPedido');
 
 
 
-  if (bloquePersonalizacion) {
-    bloquePersonalizacion.style.display =
-      esPersonalizable ? 'block' : 'none';
-  }
-const campoDiseno =
-  document.getElementById('designPedidoField');
-
-if (campoDiseno) {
-  campoDiseno.style.display =
-    esPersonalizable ? 'block' : 'none';
-}
+  
   const inputDiseno = document.querySelector('input[name="design"]');
 
 if (inputDiseno) {
@@ -1852,7 +1842,10 @@ const baseStockSelect = $('#obaseStock');
 baseStockSelect.value = '';
   }
 };
-  $('#osku').onchange = actualizarPedido;
+  $('#osku').onchange = () => {
+  actualizarPedido();
+  $('#orderType').onchange();
+};
   $('#opersonalization').onchange = actualizarPedido;
   $('#oqty').oninput = actualizarResumenPedido;
   $('#oprice').oninput = actualizarResumenPedido;
