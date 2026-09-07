@@ -1781,22 +1781,25 @@ if (inputDiseno) {
 
   $('#oprice').value = precio || 0;
 
-  actualizarResumenPedido();
-};
-
   window.actualizarResumenPedido = function() {
-    const p = products.find(
-      x => x.id === $('#osku').value
-    );
+  const tipoPedido = $('#orderType').value;
 
-    if (!p) return;
+  const p = tipoPedido === 'diseno_aihxo'
+    ? null
+    : products.find(
+        x => x.id === $('#osku').value
+      );
+
+  if (tipoPedido !== 'diseno_aihxo' && !p) return;
 
     const qty = Number($('#oqty').value || 1);
     const price = Number($('#oprice').value || 0);
     const shipping = Number($('#oshipping').value || 0);
 
     const total = (qty * price) + shipping;
-    const coste = qty * cost(p);
+    const coste = tipoPedido === 'diseno_aihxo'
+  ? 0
+  : qty * cost(p);
     const beneficio = total - coste;
 
     $('#orderSummary').innerHTML = `
@@ -1845,10 +1848,10 @@ productoDisenoAihxo.value = '';
   if (tipo === 'diseno_aihxo') {
     ayuda.textContent = 'Pedido de un diseño propio de AIHXO.';
     personalizacion.style.display = 'none';
-    diseno.style.display = 'block';
+    diseno.style.display = 'none';
 
-    designLibre.style.display = 'none';
-    designAihxo.style.display = 'block';
+designLibre.style.display = 'none';
+designAihxo.style.display = 'none';
   baseStockField.style.display = 'block'; 
 
    productoNormal.style.display = 'none';
@@ -1885,9 +1888,19 @@ productoDisenoAihxo.value = '';
 
     const f = new FormData(e.target);
 
-    const p = products.find(
+    const tipoPedido = f.get('order_type');
+
+const p = tipoPedido === 'diseno_aihxo'
+  ? null
+  : products.find(
       x => x.id === f.get('sku')
     );
+
+const disenoSeleccionado = tipoPedido === 'diseno_aihxo'
+  ? designs.find(
+      d => String(d.id) === String(f.get('producto_diseno_aihxo'))
+    )
+  : null;
 
     const qty = Number(f.get('qty') || 1);
    const baseStockId = f.get('base_stock_item_id');
@@ -1910,21 +1923,21 @@ if (baseStockId) {
   }
 }
 
-    if (!p) {
-      toast('Producto no válido');
-      return;
-    }
+    if (tipoPedido !== 'diseno_aihxo' && !p) {
+  toast('Producto no válido');
+  return;
+}
 
-    if (p.stock < qty) {
-      toast('Stock insuficiente');
-      return;
-    }
+if (tipoPedido !== 'diseno_aihxo' && p.stock < qty) {
+  toast('Stock insuficiente');
+  return;
+}
 
     const tienePrecioUno =
-  Number(p.price_one_print || 0) > 0;
+  p && Number(p.price_one_print || 0) > 0;
 
 const tienePrecioDos =
-  Number(p.price_two_print || 0) > 0;
+  p && Number(p.price_two_print || 0) > 0;
 
 const esPersonalizable =
   tienePrecioUno || tienePrecioDos;
@@ -1934,15 +1947,15 @@ const tipo =
     ? f.get('personalization')
     : '';
 
-  const tipoPedido = f.get('order_type');
-   if (tipoPedido === 'diseno_aihxo' && !f.get('design_aihxo')) {
+  
+   if (tipoPedido === 'diseno_aihxo' && !disenoSeleccionado) {
   toast('Selecciona un diseño AIHXO');
   return;
 }
 
 const nombreDiseno =
   tipoPedido === 'diseno_aihxo'
-    ? f.get('design_aihxo')
+    ? disenoSeleccionado.name
     : tipoPedido === 'personalizado'
       ? f.get('design')
       : '';
@@ -2009,10 +2022,16 @@ base_stock_quantity: baseStockId ? qty : 0,
       customer_name: customer.name,
       contact: f.get('contact'),
 
-      product_id: p.id,
-      product_name: p.model,
-      size: p.size,
-      color: p.color,
+      product_id: tipoPedido === 'diseno_aihxo' ? null : p.id,
+product_name: tipoPedido === 'diseno_aihxo'
+  ? disenoSeleccionado.name
+  : p.model,
+size: tipoPedido === 'diseno_aihxo'
+  ? (baseStockItem?.size || null)
+  : p.size,
+color: tipoPedido === 'diseno_aihxo'
+  ? (baseStockItem?.color || null)
+  : p.color,
 
       design: detalleDiseno,
 
@@ -2021,7 +2040,9 @@ base_stock_quantity: baseStockId ? qty : 0,
       shipping: shipping,
       total: qty * price + shipping,
 
-      product_cost: qty * cost(p),
+      product_cost: tipoPedido === 'diseno_aihxo'
+  ? qty * Number(baseStockItem?.unit_cost || 0)
+  : qty * cost(p),
 
       status: 'Pendiente'
     };
@@ -2035,12 +2056,14 @@ base_stock_quantity: baseStockId ? qty : 0,
       return;
     }
 
-    await supabaseClient
-      .from('products')
-      .update({
-        stock: p.stock - qty
-      })
-      .eq('id', p.id);
+    if (tipoPedido !== 'diseno_aihxo' && p) {
+  await supabaseClient
+    .from('products')
+    .update({
+      stock: p.stock - qty
+    })
+    .eq('id', p.id);
+}
    if (baseStockItem) {
   const newBaseStock = Number(baseStockItem.quantity) - qty;
 
