@@ -7,6 +7,7 @@ on:
     paths:
       - "Web/**"
       - "gestion/**"
+      - "recuerdos/**"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
@@ -40,7 +41,9 @@ jobs:
           cp -a Web/. _site/
           mkdir -p _site/gestion
           cp -a gestion/. _site/gestion/
-
+          mkdir -p _site/recuerdos
+          
+          cp -a recuerdos/. _site/recuerdos/
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
