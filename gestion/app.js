@@ -1577,16 +1577,29 @@ window.orderForm = async function() {
         </div>
       </div>
 
-      <div class="field">
-        <label>Producto</label>
-        <select name="sku" id="osku">
-          ${products.map(p => `
-            <option value="${p.id}">
-              ${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)}
-            </option>
-          `).join('')}
-        </select>
-      </div>
+      <div class="field" id="productoPedidoField">
+  <label>Producto</label>
+
+  <select name="sku" id="osku">
+    ${products.map(p => `
+      <option value="${p.id}">
+        ${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)}
+      </option>
+    `).join('')}
+  </select>
+
+  <select name="producto_diseno_aihxo" id="oproductoDisenoAihxo" style="display:none;">
+    <option value="">— Selecciona diseño AIHXO —</option>
+
+    ${designs
+      .filter(d => d.active === true)
+      .map(d => `
+        <option value="${d.id}">
+          ${esc(d.name)}
+        </option>
+      `).join('')}
+  </select>
+</div>
 <div class="field" id="baseStockPedidoField">
   <label>Camiseta base utilizada</label>
   <select name="base_stock_item_id" id="obaseStock">
@@ -1812,6 +1825,8 @@ $('#orderType').onchange = () => {
   const designAihxo = $('#designAihxo');
  const baseStockField = $('#baseStockPedidoField');
 const baseStockSelect = $('#obaseStock');
+ const productoNormal = $('#osku');
+const productoDisenoAihxo = $('#oproductoDisenoAihxo');
 
   if (tipo === 'personalizado') {
     ayuda.textContent = 'Personalización creada a medida para el cliente.';
@@ -1821,6 +1836,10 @@ const baseStockSelect = $('#obaseStock');
     designLibre.style.display = 'block';
     designAihxo.style.display = 'none';
    baseStockField.style.display = 'block';
+
+   productoNormal.style.display = 'block';
+productoDisenoAihxo.style.display = 'none';
+productoDisenoAihxo.value = '';
   }
 
   if (tipo === 'diseno_aihxo') {
@@ -1831,6 +1850,10 @@ const baseStockSelect = $('#obaseStock');
     designLibre.style.display = 'none';
     designAihxo.style.display = 'block';
   baseStockField.style.display = 'block'; 
+
+   productoNormal.style.display = 'none';
+productoDisenoAihxo.style.display = 'block';
+productoNormal.value = '';
   }
 
   if (tipo === 'catalogo') {
@@ -1842,6 +1865,10 @@ const baseStockSelect = $('#obaseStock');
     designAihxo.style.display = 'none';
    baseStockField.style.display = 'none';
 baseStockSelect.value = '';
+
+   productoNormal.style.display = 'block';
+productoDisenoAihxo.style.display = 'none';
+productoDisenoAihxo.value = '';
   }
 };
   $('#osku').onchange = () => {
