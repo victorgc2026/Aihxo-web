@@ -1906,6 +1906,10 @@ const tipo =
     : '';
 
   const tipoPedido = f.get('order_type');
+   if (tipoPedido === 'diseno_aihxo' && !f.get('design_aihxo')) {
+  toast('Selecciona un diseño AIHXO');
+  return;
+}
 
 const nombreDiseno =
   tipoPedido === 'diseno_aihxo'
