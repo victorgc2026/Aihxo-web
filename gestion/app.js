@@ -1797,8 +1797,14 @@ if (inputDiseno) {
     const shipping = Number($('#oshipping').value || 0);
 
     const total = (qty * price) + shipping;
-    const coste = tipoPedido === 'diseno_aihxo'
-  ? 0
+    const baseStockId = $('#obaseStock').value;
+
+const baseStockItem = baseStockItems.find(
+  x => String(x.id) === String(baseStockId)
+);
+
+const coste = tipoPedido === 'diseno_aihxo'
+  ? qty * Number(baseStockItem?.unit_cost || 0)
   : qty * cost(p);
     const beneficio = total - coste;
 
@@ -1882,6 +1888,7 @@ productoDisenoAihxo.value = '';
   $('#oqty').oninput = actualizarResumenPedido;
   $('#oprice').oninput = actualizarResumenPedido;
   $('#oshipping').oninput = actualizarResumenPedido;
+  $('#obaseStock').onchange = actualizarResumenPedido;
 
   $('#of').onsubmit = async function(e) {
     e.preventDefault();
