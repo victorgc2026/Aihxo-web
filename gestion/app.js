@@ -1647,7 +1647,9 @@ window.orderForm = async function() {
   >
     <option value="">— Selecciona diseño AIHXO —</option>
 
-    ${designs.map(d => `
+    ${designs
+  .filter(d => d.active === true)
+  .map(d => ` 
       <option value="${esc(d.name)}">
         ${esc(d.name)}
       </option>
