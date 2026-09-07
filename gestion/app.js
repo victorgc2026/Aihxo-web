@@ -1752,7 +1752,7 @@ if (inputDiseno) {
 }
   let precio = Number(p.sale_price || 0);
 
-  if (esPersonalizable) {
+  if (esPersonalizable && $('#orderType').value === 'personalizado') {
     const tipo = $('#opersonalization').value;
 
     precio =
