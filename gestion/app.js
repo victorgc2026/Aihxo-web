@@ -126,7 +126,9 @@ function dashboard(c){
   const units=activeOrders.reduce((a,o)=>a+(+o.quantity||0),0);
   const stock=products.reduce((a,p)=>a+(+p.stock||0),0);
   const profit=sales-costs;
-  const low=products.filter(p=>p.stock<=3);
+  const low=products
+  .filter(p=>(+p.stock||0)<=3)
+  .sort((a,b)=>(+a.stock||0)-(+b.stock||0));
 
 c.innerHTML=`
   <div class="page">
@@ -227,9 +229,14 @@ c.innerHTML=`
                 .map(p=>`
                   <div class="statline">
                     <span>
-                      ${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)}
-                    </span>
-                    <b class="red">${p.stock}</b>
+  ${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)}
+</span>
+<b class="red">
+  ${(+p.stock||0)===0
+    ? 'AGOTADO'
+    : `${+p.stock||0} ${(+p.stock||0)===1 ? 'unidad' : 'unidades'}`
+  }
+</b>
                   </div>
                 `)
                 .join('')
