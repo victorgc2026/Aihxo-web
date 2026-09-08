@@ -219,6 +219,9 @@ window.cargarStockCamisetas = async function () {
           <button onclick="editarCamiseta('${item.id}')">
   ✏️ Editar
 </button>
+<button onclick="eliminarCamiseta('${item.id}')">
+  🗑️ Eliminar
+</button>
 <button
   onclick="verHistorialCamiseta('${item.id}')"
   style="grid-column:1 / -1"
@@ -1213,3 +1216,46 @@ function escapeStock(valor) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+window.eliminarCamiseta = async function (id) {
+
+  const { data, error } = await supabaseClient
+    .from('base_stock_items')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error || !data) {
+    alert('No se pudo cargar la ficha.');
+    return;
+  }
+
+  const stock = Number(data.quantity || 0);
+
+  if (stock > 0) {
+    alert(
+      `No puedes eliminar esta ficha porque todavía tiene ${stock} unidades en stock.`
+    );
+    return;
+  }
+
+  const confirmar = confirm(
+    `¿Eliminar esta ficha?\n\n` +
+    `${data.supplier || ''} · ${data.supplier_model || ''}\n` +
+    `${data.size || ''} · ${data.color || ''}\n\n` +
+    `Esta acción no se puede deshacer.`
+  );
+
+  if (!confirmar) return;
+
+  const { error: deleteError } = await supabaseClient
+    .from('base_stock_items')
+    .delete()
+    .eq('id', id);
+
+  if (deleteError) {
+    alert('No se pudo eliminar la ficha.');
+    return;
+  }
+
+  await cargarStockCamisetas();
+};
