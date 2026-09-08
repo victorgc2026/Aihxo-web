@@ -366,11 +366,17 @@ window.mostrarNuevaCamiseta = function () {
 
      <div class="field">
   <label>Color</label>
-  <input
-    name="color"
-    placeholder="Ej. Blanca"
-    required
-  >
+  <select name="color" required>
+    <option value="">Selecciona color</option>
+    <option value="Blanco">Blanco</option>
+    <option value="Negro">Negro</option>
+    <option value="Arena">Arena</option>
+    <option value="Dark Grey">Dark Grey</option>
+    <option value="Lila">Lila</option>
+    <option value="Azul Marino">Azul Marino</option>
+    <option value="Verde Agua">Verde Agua</option>
+    
+  </select>
 </div>
 
 <div class="field">
@@ -650,14 +656,19 @@ drawer.classList.remove("hidden");
         </select>
       </div>
 
-      <div class="field">
-        <label>Color</label>
-        <input
-          name="color"
-          value="${escapeStock(item.color)}"
-          required
-        >
-      </div>
+     <div class="field">
+  <label>Color</label>
+  <select name="color" required>
+    <option value="Blanco" ${item.color === 'Blanco' ? 'selected' : ''}>Blanco</option>
+    <option value="Negro" ${item.color === 'Negro' ? 'selected' : ''}>Negro</option>
+    <option value="Arena" ${item.color === 'Arena' ? 'selected' : ''}>Arena</option>
+    <option value="Dark Grey" ${item.color === 'Dark Grey' ? 'selected' : ''}>Dark Grey</option>
+    <option value="Lila" ${item.color === 'Lila' ? 'selected' : ''}>Lila</option>
+    <option value="Azul Marino" ${item.color === 'Azul Marino' ? 'selected' : ''}>Azul Marino</option>
+    <option value="Verde Agua" ${item.color === 'Verde Agua' ? 'selected' : ''}>Verde Agua</option>
+    
+  </select>
+</div>
 
       <div class="field">
         <label>Talla</label>
