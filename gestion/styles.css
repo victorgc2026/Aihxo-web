@@ -10,7 +10,7 @@ body{min-height:100vh}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 #app{min-height:100vh;display:flex}
-.sidebar{position:fixed;left:0;top:0;bottom:0;width:250px;background:linear-gradient(180deg,#06142d 0%,#0b1d3d 100%);color:#fff;padding:26px 16px;display:flex;flex-direction:column;z-index:30}
+overflow-y:auto;-webkit-overflow-scrolling:touch
 .brand{padding:4px 12px 24px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:18px}
 .brandmark{font-family:Georgia,serif;font-size:34px;font-weight:800;letter-spacing:1px;color:#1687ff}
 .brand small{font-size:11px;letter-spacing:2px;color:#aebbd0}
