@@ -118,7 +118,7 @@ function showApp(session){document.body.innerHTML=`<div id="app"><aside class="s
 
 </nav><div class="sidebar-foot">${session.user.email}<br><button class="secondary" style="margin-top:8px" id="logout">Cerrar sesión</button></div></aside><div class="menu-overlay" id="menuOverlay"></div><main><header class="topbar"><button class="hamb" id="hamb">☰</button><h1 id="title">Inicio</h1><button class="primary small" id="quickOrder">＋ Pedido</button></header><div id="view"></div></main></div><div id="drawer" class="drawer hidden"><div class="drawer-card"><button class="x" id="closeDrawer">×</button><div id="drawerBody"></div></div></div><div id="toast"></div>`;document.querySelectorAll('#nav button[data-view]').forEach(b=>b.onclick=()=>{setView(b.dataset.view);closeMobileMenu()});$('#hamb').setAttribute('aria-label','Abrir menú');$('#hamb').onclick=()=>toggleMobileMenu();$('#menuOverlay').onclick=()=>closeMobileMenu();$('#logout').onclick=()=>supabaseClient.auth.signOut();$('#quickOrder').onclick=orderForm;$('#closeDrawer').onclick=closeDrawer;loadAll().then(()=>setView('dashboard'))}
 function toggleMobileMenu(){document.querySelector('.sidebar')?.classList.toggle('open');document.querySelector('#menuOverlay')?.classList.toggle('open')}function closeMobileMenu(){document.querySelector('.sidebar')?.classList.remove('open');document.querySelector('#menuOverlay')?.classList.remove('open')}function setView(v){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Inicio',orders:'Pedidos',products:'Productos',stock:'Stock',customers:'Clientes',expenses:'Gastos',coupons:'Cupones',sorteos:'Sorteos',reports:'Informes'};const views={dashboard,orders:ordersView,products:productsView,stock:stockHub,customers:customersView,expenses:expensesView,coupons:cuponesView,sorteos:(c)=>{c.innerHTML=sorteosView();iniciarSorteos()},reports};;$('#title').textContent=titles[v]||'AIHXO';const render=views[v];if(typeof render==='function'){render($('#view'));closeMobileMenu()}else{console.error('Vista no disponible:',v);toast('No se pudo abrir esta sección')}}
-function dashboard(c){
+async function dashboard(c){
   const activeOrders=orders.filter(o=>String(o.status||'').toLowerCase()!=='cancelado');
   const sales=activeOrders.reduce((a,o)=>a+(+o.total||0),0);
   const costs=activeOrders.reduce((a,o)=>a+(+o.product_cost||0),0);
@@ -126,9 +126,19 @@ function dashboard(c){
   const units=activeOrders.reduce((a,o)=>a+(+o.quantity||0),0);
   const stock=products.reduce((a,p)=>a+(+p.stock||0),0);
   const profit=sales-costs;
-  const low=products
-  .filter(p=>(+p.stock||0)<=3)
-  .sort((a,b)=>(+a.stock||0)-(+b.stock||0));
+  const { data: baseStockData } = await supabaseClient
+  .from('base_stock_items')
+  .select('*');
+
+const baseStock = baseStockData || [];
+
+const low = baseStock
+  .filter(item =>
+    (+item.quantity || 0) <= Number(item.min_stock ?? 3)
+  )
+  .sort((a,b) =>
+    (+a.quantity || 0) - (+b.quantity || 0)
+  );
 
 c.innerHTML=`
   <div class="page">
@@ -229,12 +239,14 @@ c.innerHTML=`
                 .map(p=>`
                   <div class="statline">
                     <span>
-  ${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)}
+  ${esc(p.garment_type || 'Camiseta')} · ${esc(p.size)} · ${esc(p.color)}
+  ${p.supplier_model ? ` · ${esc(p.supplier_model)}` : ''}
 </span>
+
 <b class="red">
-  ${(+p.stock||0)===0
+  ${(+p.quantity||0)===0
     ? 'AGOTADO'
-    : `${+p.stock||0} ${(+p.stock||0)===1 ? 'unidad' : 'unidades'}`
+    : `${+p.quantity||0} ${(+p.quantity||0)===1 ? 'unidad' : 'unidades'}`
   }
 </b>
                   </div>
