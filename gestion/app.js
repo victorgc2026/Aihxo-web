@@ -2273,3 +2273,4 @@ window.verDetallePedido = function(id) {
     </div>
   `;
 };
+auth();
