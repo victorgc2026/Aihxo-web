@@ -1781,6 +1781,9 @@ if (inputDiseno) {
 
   $('#oprice').value = precio || 0;
 
+  actualizarResumenPedido();
+};
+
   window.actualizarResumenPedido = function() {
   const tipoPedido = $('#orderType').value;
 
