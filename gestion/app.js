@@ -238,16 +238,16 @@ c.innerHTML=`
                 .slice(0,8)
                 .map(p=>`
                   <div class="statline">
-                    <span>
-  ${esc(p.garment_type || 'Camiseta')} · ${esc(p.size)} · ${esc(p.color)}
+                   <span>
+  ${esc(p.size)} · ${esc(p.color)}
   ${p.supplier_model ? ` · ${esc(p.supplier_model)}` : ''}
 </span>
 
 <b class="red">
   ${(+p.quantity||0)===0
-    ? 'AGOTADO'
-    : `${+p.quantity||0} ${(+p.quantity||0)===1 ? 'unidad' : 'unidades'}`
-  }
+  ? 'AGOTADO'
+  : `${+p.quantity||0} ud.`
+}
 </b>
                   </div>
                 `)
