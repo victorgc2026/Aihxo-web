@@ -1810,7 +1810,39 @@ window.orderForm = async function() {
     `).join('')}
   </select>
 </div>
+<div class="card" id="imagenesDisenoPedido" style="padding:16px;margin-bottom:16px;">
+  <h3 style="margin-top:0;">Imágenes del diseño</h3>
 
+  <div class="formgrid">
+
+    <div class="field">
+      <label>Diseño delantero</label>
+      <input
+        type="file"
+        name="design_front"
+        id="designFront"
+        accept="image/png,image/jpeg,image/webp"
+      >
+      <div class="muted" style="margin-top:6px;">
+        PNG, JPG o WEBP
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Diseño trasero</label>
+      <input
+        type="file"
+        name="design_back"
+        id="designBack"
+        accept="image/png,image/jpeg,image/webp"
+      >
+      <div class="muted" style="margin-top:6px;">
+        PNG, JPG o WEBP
+      </div>
+    </div>
+
+  </div>
+</div>
       <div class="field">
         <label>Notas del cliente</label>
         <textarea
