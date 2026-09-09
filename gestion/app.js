@@ -2468,7 +2468,13 @@ window.verDetallePedido = function(id) {
         ${esc(o.design || 'Sin instrucciones de diseño')}
       </div>
     </div>
+<div class="card" style="padding:16px;margin-bottom:16px;">
+  <h3 style="margin-top:0;">Imágenes del diseño</h3>
 
+  <div id="pedidoImagenesDiseno">
+    <div class="muted">Cargando imágenes...</div>
+  </div>
+</div>
     <div class="card" style="padding:16px;">
       <div class="row">
         <span>Precio unitario</span>
@@ -2496,5 +2502,53 @@ window.verDetallePedido = function(id) {
       </div>
     </div>
   `;
+(async () => {
+  const contenedor = document.getElementById('pedidoImagenesDiseno');
+  if (!contenedor) return;
+
+  const crearUrl = async (path) => {
+    if (!path) return null;
+
+    const { data, error } = await supabaseClient.storage
+      .from('order-designs')
+      .createSignedUrl(path, 3600);
+
+    if (error) {
+      console.error(error);
+      return null;
+    }
+
+    return data?.signedUrl || null;
+  };
+
+  const [frontUrl, backUrl] = await Promise.all([
+    crearUrl(o.design_front_path),
+    crearUrl(o.design_back_path)
+  ]);
+
+  contenedor.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+
+      <div class="card" style="padding:12px;">
+        <b>DELANTERO</b>
+        ${
+          frontUrl
+            ? `<img src="${frontUrl}" style="width:100%;margin-top:10px;border-radius:8px;object-fit:contain;max-height:220px;">`
+            : `<div class="muted" style="margin-top:10px;">Sin imagen</div>`
+        }
+      </div>
+
+      <div class="card" style="padding:12px;">
+        <b>TRASERO</b>
+        ${
+          backUrl
+            ? `<img src="${backUrl}" style="width:100%;margin-top:10px;border-radius:8px;object-fit:contain;max-height:220px;">`
+            : `<div class="muted" style="margin-top:10px;">Sin imagen</div>`
+        }
+      </div>
+
+    </div>
+  `;
+})(); 
 };
 auth();
