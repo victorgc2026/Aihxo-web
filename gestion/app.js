@@ -2231,14 +2231,62 @@ color: tipoPedido === 'diseno_aihxo'
     };
 
     const r = await supabaseClient
-      .from('orders')
-      .insert(order);
+  .from('orders')
+  .insert(order)
+  .select()
+  .single();
 
     if (r.error) {
       toast(r.error.message);
       return;
     }
+const orderId = r.data.id;
 
+const frontFile = f.get('design_front');
+const backFile = f.get('design_back');
+
+async function subirImagenPedido(file, side) {
+  if (!(file instanceof File) || !file.size) return null;
+
+  const extension =
+    file.type === 'image/png' ? 'png' :
+    file.type === 'image/webp' ? 'webp' : 'jpg';
+
+  const path = `${orderId}/${side}-${Date.now()}.${extension}`;
+
+  const { error } = await supabaseClient.storage
+    .from('order-designs')
+    .upload(path, file, {
+      contentType: file.type,
+      upsert: false
+    });
+
+  if (error) throw error;
+
+  return path;
+}
+
+try {
+  const frontPath = await subirImagenPedido(frontFile, 'front');
+  const backPath = await subirImagenPedido(backFile, 'back');
+
+  if (frontPath || backPath) {
+    const imagenes = {};
+
+    if (frontPath) imagenes.design_front_path = frontPath;
+    if (backPath) imagenes.design_back_path = backPath;
+
+    const { error: imageUpdateError } = await supabaseClient
+      .from('orders')
+      .update(imagenes)
+      .eq('id', orderId);
+
+    if (imageUpdateError) throw imageUpdateError;
+  }
+} catch (err) {
+  console.error(err);
+  toast('El pedido se guardó, pero hubo un problema con las imágenes');
+}
     if (tipoPedido !== 'diseno_aihxo' && p) {
   await supabaseClient
     .from('products')
