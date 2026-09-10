@@ -179,3 +179,32 @@
     padding-bottom:46px;
   }
 }
+/* Ajuste móvil Kids / Streetwear */
+#kids,
+#streetwear{
+  width:100%;
+}
+
+#streetwear{
+  padding-left:20px !important;
+  padding-right:20px !important;
+}
+
+#streetwear .heading{
+  width:100%;
+  max-width:1060px;
+  margin:0 auto;
+}
+
+@media(max-width:600px){
+  #streetwear{
+    padding-left:20px !important;
+    padding-right:20px !important;
+  }
+
+  #streetwear .heading h2{
+    font-size:42px;
+    line-height:1.02;
+    letter-spacing:-2px;
+  }
+}
