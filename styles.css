@@ -232,3 +232,11 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted
     grid-template-columns:1fr 1fr;
   }
 }
+/* AIHXO · ajuste logo portada móvil */
+@media(max-width:600px){
+  .aihxo-v33 .logo-box{
+    width:88% !important;
+    max-width:460px !important;
+    margin:0 auto 20px !important;
+  }
+}
