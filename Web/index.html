@@ -91,7 +91,7 @@
     <span>KIDS WEAR</span>
     <h2>Diseños para pequeños con mucha personalidad</h2>
     <p>Camisetas y prendas infantiles AIHXO con diseños propios y propuestas pensadas para ellos.</p>
-    <a class="btn primary" href="#coleccion">Ver colección infantil</a>
+    <a class="btn primary" href="#coleccion" data-auto-filter="infantil">Ver colección infantil</a>
   </div>
 </section>
 
@@ -100,7 +100,7 @@
     <span>STREETWEAR</span>
     <h2>Diseños con actitud propia</h2>
     <p>La línea más urbana de AIHXO para jóvenes y adultos. Diseño, calle y personalidad.</p>
-    <a class="btn primary" href="#coleccion">Ver Streetwear</a>
+    <a class="btn primary" href="#coleccion" data-auto-filter="adulto">Ver Streetwear</a>
   </div>
 </section>
 <section id="coleccion" class="section">
@@ -1928,6 +1928,23 @@ window.confirmarPedidoConCupon = confirmarPedidoConCupon;
       Cancelar
     </button>
   </div>
-</div>  
+</div> 
+ <script>
+document.querySelectorAll('[data-auto-filter]').forEach(link => {
+  link.addEventListener('click', () => {
+    const filtro = link.dataset.autoFilter;
+
+    setTimeout(() => {
+      const botonFiltro = document.querySelector(
+        `[data-collection-filter="${filtro}"]`
+      );
+
+      if (botonFiltro) {
+        botonFiltro.click();
+      }
+    }, 150);
+  });
+});
+</script>
 </body>
 </html>
