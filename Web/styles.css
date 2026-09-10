@@ -75,3 +75,66 @@
     box-shadow:0 14px 32px rgba(7,21,47,.14);
   }
 }
+/* ===== AIHXO · ACCESOS DE MARCA ===== */
+
+.brand-paths{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  max-width:1100px;
+  margin:0 auto;
+  padding:28px 5% 42px;
+  background:#071a3a;
+}
+
+.brand-path{
+  min-height:150px;
+  padding:24px 20px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:18px;
+  background:rgba(255,255,255,.06);
+  color:#fff;
+  text-decoration:none;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  transition:.25s ease;
+}
+
+.brand-path strong{
+  font-size:22px;
+  font-weight:900;
+  letter-spacing:1.5px;
+}
+
+.brand-path span{
+  margin-top:7px;
+  font-size:14px;
+  opacity:.78;
+}
+
+.brand-path:hover{
+  transform:translateY(-4px);
+  border-color:#dfff00;
+}
+
+.brand-path:nth-child(2){
+  border-color:#dfff00;
+}
+
+@media(max-width:700px){
+  .brand-paths{
+    grid-template-columns:1fr;
+    gap:12px;
+    padding:20px 5% 32px;
+  }
+
+  .brand-path{
+    min-height:105px;
+    padding:18px 20px;
+  }
+
+  .brand-path strong{
+    font-size:20px;
+  }
+}
