@@ -208,3 +208,20 @@
     letter-spacing:-2px;
   }
 }
+/* AIHXO · nueva identidad visual HERO */
+.hero .mini{
+  color:#DFFF00 !important;
+}
+
+.hero h1 span{
+  color:#DFFF00 !important;
+}
+
+.hero .btn.primary{
+  background:#DFFF00 !important;
+  color:#07152f !important;
+}
+
+.hero .btn.primary:hover{
+  background:#ecff4a !important;
+}
