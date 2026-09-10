@@ -138,3 +138,44 @@
     font-size:20px;
   }
 }
+/* ===== AIHXO · SECCIONES KIDS / STREETWEAR ===== */
+
+#kids,
+#streetwear{
+  border-top:1px solid rgba(19,33,58,.08);
+}
+
+#kids{
+  background:#ffffff;
+}
+
+#streetwear{
+  background:#07152f;
+  color:#ffffff;
+}
+
+#streetwear .heading p{
+  color:#c7d2e3;
+}
+
+#streetwear .heading>span{
+  color:#dfff00;
+}
+
+#streetwear .btn.primary{
+  background:#dfff00;
+  color:#07152f;
+}
+
+#kids .heading h2,
+#streetwear .heading h2{
+  max-width:760px;
+}
+
+@media(max-width:600px){
+  #kids,
+  #streetwear{
+    padding-top:46px;
+    padding-bottom:46px;
+  }
+}
