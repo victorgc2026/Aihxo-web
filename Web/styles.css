@@ -612,3 +612,40 @@
     overflow-wrap:anywhere;
   }
 }
+/* AIHXO · footer final */
+
+footer{
+  background:#07152f !important;
+  color:#ffffff !important;
+  text-align:center !important;
+  padding:28px 20px 30px !important;
+}
+
+footer p{
+  margin:0 0 8px !important;
+  color:#ffffff !important;
+  font-size:13px !important;
+  font-weight:700 !important;
+  letter-spacing:.4px !important;
+}
+
+footer small{
+  color:#DFFF00 !important;
+  font-size:13px !important;
+  font-weight:800 !important;
+  letter-spacing:1px !important;
+}
+
+@media(max-width:600px){
+  footer{
+    padding:24px 18px 26px !important;
+  }
+
+  footer p{
+    font-size:12px !important;
+  }
+
+  footer small{
+    font-size:12px !important;
+  }
+}
