@@ -988,7 +988,22 @@ data-price-two="${p.variants.find(v => Number(v.price_two_print || 0) > 0)?.pric
             </strong>
           </p>
         ` : ''}
+<details class="aihxo-personaliza-details">
+  <summary style="
+    cursor:pointer;
+    margin:12px 0 0;
+    padding:11px 16px;
+    border-radius:12px;
+    background:#07152f;
+    color:#DFFF00;
+    font-weight:900;
+    text-align:center;
+    list-style:none;
+  ">
+    PERSONALIZAR ↓
+  </summary>
 
+  <div class="aihxo-personaliza-expanded">
         ${sizes.length ? `
           <div style="margin:16px 0;">
             <b>Selecciona talla:</b>
@@ -1156,6 +1171,8 @@ data-price-two="${p.variants.find(v => Number(v.price_two_print || 0) > 0)?.pric
         >
           Personalizar esta prenda →
         </a>
+          </div>
+</details>
 
       </div>
     </article>
