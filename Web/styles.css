@@ -269,3 +269,20 @@
 #coleccion .heading > span{
   color:#DFFF00 !important;
 }
+/* AIHXO · filtros nueva identidad */
+
+#coleccion .filters button{
+  color:#07152f !important;
+  background:#ffffff !important;
+  border:1px solid #dce2eb !important;
+}
+
+#coleccion .filters button.active{
+  background:#07152f !important;
+  color:#DFFF00 !important;
+  border-color:#07152f !important;
+}
+
+#coleccion .filters button:hover{
+  border-color:#DFFF00 !important;
+}
