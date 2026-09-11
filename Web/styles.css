@@ -305,3 +305,22 @@
   }
 
 }
+/* AIHXO · ficha compacta móvil */
+@media(max-width:600px){
+
+  #disenosPropiosAutomaticos .product .info{
+    padding:16px 18px !important;
+  }
+
+  #disenosPropiosAutomaticos .product .info h3{
+    margin:9px 0 5px !important;
+    line-height:1.1 !important;
+  }
+
+  #disenosPropiosAutomaticos .aihxo-product-details summary{
+    margin:10px 0 0 !important;
+    padding:10px 14px !important;
+    min-height:0 !important;
+  }
+
+}
