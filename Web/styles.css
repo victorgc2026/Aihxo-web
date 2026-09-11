@@ -225,3 +225,43 @@
 .hero .btn.primary:hover{
   background:#ecff4a !important;
 }
+/* AIHXO · contraste definitivo tarjetas */
+
+.brand-kids{
+  background:linear-gradient(135deg,#f7f9fc,#e7edf5) !important;
+  border-color:#ffffff !important;
+  color:#07152f !important;
+}
+
+.brand-kids strong{
+  color:#07152f !important;
+}
+
+.brand-kids span{
+  color:#5f6c82 !important;
+}
+
+
+.brand-street{
+  background:linear-gradient(135deg,#050b17,#0a1730) !important;
+  border-color:#DFFF00 !important;
+}
+
+.brand-street strong{
+  color:#ffffff !important;
+}
+
+
+.brand-personaliza{
+  background:#ffffff !important;
+  border-color:#ffffff !important;
+  color:#07152f !important;
+}
+
+.brand-personaliza strong{
+  color:#07152f !important;
+}
+
+.brand-personaliza span{
+  color:#637089 !important;
+}
