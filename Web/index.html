@@ -289,6 +289,28 @@ document.querySelectorAll('[data-personal-filter]').forEach(btn => {
     });
   });
 });
+ document.querySelectorAll('[data-personal-jump]').forEach(card => {
+  card.addEventListener('click', () => {
+    const filtro = card.dataset.personalJump;
+
+    const botonFiltro = document.querySelector(
+      `[data-personal-filter="${filtro}"]`
+    );
+
+    if (botonFiltro) {
+      botonFiltro.click();
+    }
+
+    const grid = document.getElementById('productsGrid');
+
+    if (grid) {
+      grid.scrollIntoView({
+        behavior:'smooth',
+        block:'start'
+      });
+    }
+  });
+});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
