@@ -286,3 +286,22 @@
 #coleccion .filters button:hover{
   border-color:#DFFF00 !important;
 }
+/* AIHXO · catálogo compacto móvil */
+@media(max-width:600px){
+
+  #disenosPropiosAutomaticos .product .ph{
+    max-height:430px !important;
+    overflow:hidden !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    background:#f4f6f9;
+  }
+
+  #disenosPropiosAutomaticos .product .ph img{
+    width:100% !important;
+    height:430px !important;
+    object-fit:contain !important;
+  }
+
+}
