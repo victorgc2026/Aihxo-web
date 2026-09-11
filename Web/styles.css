@@ -366,3 +366,52 @@
 #catalogo .personal-filters button:hover{
   border-color:#DFFF00 !important;
 }
+/* AIHXO · accesos categorías personalización */
+
+.personal-category-access{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin:22px 0 18px;
+}
+
+.personal-category-card{
+  appearance:none;
+  border:1px solid #dce2eb;
+  border-radius:16px;
+  background:#fff;
+  padding:18px 16px;
+  text-align:left;
+  cursor:pointer;
+  color:#07152f;
+}
+
+.personal-category-card strong{
+  display:block;
+  font-size:18px;
+  font-weight:950;
+  letter-spacing:1px;
+}
+
+.personal-category-card span{
+  display:block;
+  margin-top:5px;
+  font-size:13px;
+  line-height:1.35;
+  color:#68758a;
+}
+
+.personal-category-card:hover{
+  border-color:#DFFF00;
+}
+
+@media(max-width:600px){
+  .personal-category-access{
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+
+  .personal-category-card{
+    padding:15px 17px;
+  }
+}
