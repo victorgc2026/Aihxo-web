@@ -299,3 +299,18 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted
     min-height:118px;
   }
 }
+/* AIHXO · toque final KIDS WEAR */
+.brand-kids{
+  background:linear-gradient(135deg,#f8fafc 0%,#e8eef5 65%,#e3ebf4 100%) !important;
+}
+
+.brand-kids::after{
+  content:"";
+  position:absolute;
+  width:90px;
+  height:90px;
+  right:-25px;
+  top:-30px;
+  border-radius:50%;
+  background:rgba(223,255,0,.13);
+}
