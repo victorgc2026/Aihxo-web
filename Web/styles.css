@@ -345,3 +345,24 @@
 #personaliza .btn.primary:hover{
   background:#ecff4a !important;
 }
+/* AIHXO · prendas para personalizar */
+
+#catalogo .heading > span{
+  color:#07152f !important;
+}
+
+#catalogo .personal-filters button{
+  color:#07152f !important;
+  background:#ffffff !important;
+  border:1px solid #dce2eb !important;
+}
+
+#catalogo .personal-filters button.active{
+  background:#07152f !important;
+  color:#DFFF00 !important;
+  border-color:#07152f !important;
+}
+
+#catalogo .personal-filters button:hover{
+  border-color:#DFFF00 !important;
+}
