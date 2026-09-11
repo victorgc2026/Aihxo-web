@@ -290,7 +290,7 @@
 @media(max-width:600px){
 
   #disenosPropiosAutomaticos .product .ph{
-    max-height:430px !important;
+    max-height:330px !important;
     overflow:hidden !important;
     display:flex !important;
     align-items:center !important;
@@ -300,7 +300,7 @@
 
   #disenosPropiosAutomaticos .product .ph img{
     width:100% !important;
-    height:430px !important;
+    height:330px !important;
     object-fit:contain !important;
   }
 
