@@ -649,3 +649,28 @@ footer small{
     font-size:12px !important;
   }
 }
+/* AIHXO · identidad interior diseños */
+
+#disenosPropiosAutomaticos .size-option{
+  color:#07152f !important;
+  border-color:#dce2eb !important;
+}
+
+#disenosPropiosAutomaticos .color-option{
+  color:#07152f !important;
+  border-color:#dce2eb !important;
+}
+
+#disenosPropiosAutomaticos .price-offer{
+  color:#07152f !important;
+}
+
+#disenosPropiosAutomaticos .qty-btn{
+  color:#07152f !important;
+  border-color:#dce2eb !important;
+}
+
+#disenosPropiosAutomaticos .buy-design-btn{
+  background:#07152f !important;
+  color:#DFFF00 !important;
+}
