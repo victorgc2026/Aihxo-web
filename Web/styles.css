@@ -415,3 +415,7 @@
     padding:15px 17px;
   }
 }
+/* AIHXO · ocultar filtros antiguos personalización */
+#catalogo .personal-filters{
+  display:none !important;
+}
