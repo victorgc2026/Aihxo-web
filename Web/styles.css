@@ -493,3 +493,38 @@
     font-size:13px !important;
   }
 }
+/* AIHXO · Memories desplegable compacto */
+
+.memories-details{
+  margin-top:18px;
+}
+
+.memories-details summary{
+  cursor:pointer;
+  list-style:none;
+  background:#DFFF00;
+  color:#07152f;
+  font-weight:900;
+  text-align:center;
+  padding:13px 18px;
+  border-radius:12px;
+}
+
+.memories-details summary::-webkit-details-marker{
+  display:none;
+}
+
+.memories-details-content{
+  margin-top:18px;
+}
+
+@media(max-width:600px){
+  .memories-details{
+    margin-top:14px;
+  }
+
+  .memories-details summary{
+    padding:11px 14px;
+    font-size:13px;
+  }
+}
