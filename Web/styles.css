@@ -426,3 +426,8 @@
   color:#DFFF00 !important;
   border-color:#07152f !important;
 }
+/* AIHXO · precio fichas personalización */
+
+#productsGrid .product .info > p strong{
+  color:#07152f !important;
+}
