@@ -431,3 +431,43 @@
 #productsGrid .product .info > p strong{
   color:#07152f !important;
 }
+/* AIHXO · identidad accesos personalización */
+
+.personal-category-card[data-personal-jump="adulto"]{
+  background:#07152f !important;
+  border-color:#07152f !important;
+}
+
+.personal-category-card[data-personal-jump="adulto"] strong{
+  color:#DFFF00 !important;
+}
+
+.personal-category-card[data-personal-jump="adulto"] span{
+  color:#ffffff !important;
+}
+
+.personal-category-card[data-personal-jump="nino"]{
+  background:#ffffff !important;
+  border:1px solid #dce2eb !important;
+}
+
+.personal-category-card[data-personal-jump="nino"] strong{
+  color:#07152f !important;
+}
+
+.personal-category-card[data-personal-jump="nino"] span{
+  color:#68758a !important;
+}
+
+.personal-category-card[data-personal-jump="tote"]{
+  background:#ffffff !important;
+  border:2px solid #DFFF00 !important;
+}
+
+.personal-category-card[data-personal-jump="tote"] strong{
+  color:#07152f !important;
+}
+
+.personal-category-card[data-personal-jump="tote"] span{
+  color:#68758a !important;
+}
