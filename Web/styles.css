@@ -330,3 +330,18 @@
   color:#DFFF00 !important;
   border-color:#07152f !important;
 }
+/* AIHXO · nueva identidad PERSONALIZACIÓN */
+
+#personaliza > div > span{
+  color:#DFFF00 !important;
+}
+
+#personaliza .btn.primary{
+  background:#DFFF00 !important;
+  color:#07152f !important;
+  border-color:#DFFF00 !important;
+}
+
+#personaliza .btn.primary:hover{
+  background:#ecff4a !important;
+}
