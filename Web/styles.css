@@ -324,3 +324,9 @@
   }
 
 }
+/* AIHXO · identidad etiquetas productos */
+#disenosPropiosAutomaticos .product .info > em{
+  background:#07152f !important;
+  color:#DFFF00 !important;
+  border-color:#07152f !important;
+}
