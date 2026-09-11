@@ -528,3 +528,30 @@
     font-size:13px;
   }
 }
+/* AIHXO · nueva identidad CONTACTO */
+
+#contacto .heading > span{
+  color:#DFFF00 !important;
+}
+
+#contacto .heading h2{
+  color:#07152f !important;
+}
+
+#contacto .contacts a{
+  border-color:#dce2eb !important;
+  background:#ffffff !important;
+  color:#07152f !important;
+}
+
+#contacto .contacts a b{
+  color:#07152f !important;
+}
+
+#contacto .contacts a small{
+  color:#68758a !important;
+}
+
+#contacto .contacts a:hover{
+  border-color:#DFFF00 !important;
+}
