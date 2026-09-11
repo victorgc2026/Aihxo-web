@@ -419,3 +419,10 @@
 #catalogo .personal-filters{
   display:none !important;
 }
+/* AIHXO · identidad fichas personalización */
+
+#productsGrid .product .info > em{
+  background:#07152f !important;
+  color:#DFFF00 !important;
+  border-color:#07152f !important;
+}
