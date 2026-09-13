@@ -1271,7 +1271,7 @@ const { data: garmentsForm, error: garmentsFormError } =
   await supabaseClient
     .from('garments')
     .select('*')
-    .eq('active', true)
+    
     .order('manufacturer')
     .order('model');
 
