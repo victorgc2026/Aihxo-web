@@ -2536,6 +2536,21 @@ window.verDetallePedido = function(id) {
             ? `<img src="${frontUrl}" style="width:100%;margin-top:10px;border-radius:8px;object-fit:contain;max-height:220px;">`
             : `<div class="muted" style="margin-top:10px;">Sin imagen</div>`
         }
+        <input
+  type="file"
+  id="cambiarFront-${o.id}"
+  accept="image/png,image/jpeg,image/webp"
+  style="display:none;"
+>
+
+<button
+  type="button"
+  class="secondary"
+  style="margin-top:10px;"
+  onclick="document.getElementById('cambiarFront-${o.id}').click()"
+>
+  Cambiar imagen
+</button>
       </div>
 
       <div class="card" style="padding:12px;">
@@ -2550,5 +2565,71 @@ window.verDetallePedido = function(id) {
     </div>
   `;
 })(); 
+ const inputFront = document.getElementById(`cambiarFront-${o.id}`);
+
+if (inputFront) {
+  inputFront.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      toast('Formato no válido');
+      return;
+    }
+
+    if (file.size > 6 * 1024 * 1024) {
+      toast('La imagen supera los 6 MB');
+      return;
+    }
+
+    const ext =
+      file.type === 'image/png' ? 'png' :
+      file.type === 'image/webp' ? 'webp' : 'jpg';
+
+    const nuevoPath = `${o.id}/front-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabaseClient.storage
+      .from('order-designs')
+      .upload(nuevoPath, file, {
+        contentType: file.type,
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error(uploadError);
+      toast('No se pudo subir la nueva imagen');
+      return;
+    }
+
+    const anteriorPath = o.design_front_path;
+
+    const { error: updateError } = await supabaseClient
+      .from('orders')
+      .update({ design_front_path: nuevoPath })
+      .eq('id', o.id);
+
+    if (updateError) {
+      console.error(updateError);
+
+      await supabaseClient.storage
+        .from('order-designs')
+        .remove([nuevoPath]);
+
+      toast('No se pudo actualizar el pedido');
+      return;
+    }
+
+    if (anteriorPath) {
+      await supabaseClient.storage
+        .from('order-designs')
+        .remove([anteriorPath]);
+    }
+
+    o.design_front_path = nuevoPath;
+
+    toast('Imagen delantera actualizada');
+    window.verDetallePedido(o.id);
+  });
+}
 };
 auth();
