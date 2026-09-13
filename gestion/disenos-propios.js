@@ -35,7 +35,7 @@ function normalizarSKU(value) {
       .filter(Boolean);
   }
 
-  window.abrirNuevoDisenoPropio = function () {
+  window.abrirNuevoDisenoPropio = async function () {
 
     const app = document.getElementById('app');
 
@@ -133,6 +133,21 @@ function normalizarSKU(value) {
               >
             </label>
 
+<label class="dp-label">
+  Prenda base
+  <select id="dpGarment" class="dp-input">
+    <option value="">Sin asignar</option>
+  </select>
+</label>
+
+<div style="
+  font-size:12px;
+  color:#667085;
+  margin:-8px 0 18px;
+">
+  Selecciona el fabricante y modelo. Las tallas y colores se podrán ajustar después.
+</div>
+
             <div class="dp-grid">
 
               <label class="dp-label">
@@ -224,23 +239,7 @@ function normalizarSKU(value) {
               Separa las tallas con comas.
             </div>
 
-<label class="dp-label">
-  Guía de tallas (opcional)
-  <input
-    id="dpGuiaTallas"
-    class="dp-input"
-    type="file"
-    accept="image/*"
-  >
-</label>
 
-<div style="
-  font-size:12px;
-  color:#667085;
-  margin:-8px 0 18px;
-">
-  Puedes subir una foto o captura de la guía de tallas del fabricante.
-</div>
 
             <label class="dp-label">
               Colores disponibles
@@ -334,6 +333,82 @@ function normalizarSKU(value) {
     `;
 
     aplicarEstilosDisenoPropio();
+    const { data: prendasBase, error: errorPrendas } =
+  await supabaseClient
+    .from('garments')
+    .select('*')
+    .eq('active', true)
+    .order('manufacturer')
+    .order('model');
+
+if (errorPrendas) {
+  console.error(errorPrendas);
+} else {
+  const selectorPrenda =
+    document.getElementById('dpGarment');
+
+  (prendasBase || []).forEach(prenda => {
+    const opcion = document.createElement('option');
+
+    opcion.value = prenda.id;
+
+    opcion.textContent =
+      `${prenda.manufacturer} · ${prenda.model}`;
+
+    opcion.dataset.tipo =
+      prenda.garment_type || '';
+
+    opcion.dataset.publico =
+      prenda.audience || '';
+
+    opcion.dataset.tallas =
+      Array.isArray(prenda.sizes)
+        ? prenda.sizes.join(', ')
+        : '';
+
+    opcion.dataset.colores =
+      Array.isArray(prenda.colors)
+        ? prenda.colors.join(', ')
+        : '';
+
+    selectorPrenda.appendChild(opcion);
+  });
+
+  selectorPrenda.addEventListener('change', function () {
+    const opcion =
+      this.options[this.selectedIndex];
+
+    if (!this.value) return;
+
+    const tipo =
+      String(opcion.dataset.tipo || '').toLowerCase();
+
+    const publico =
+      String(opcion.dataset.publico || '').toLowerCase();
+
+    if (tipo.includes('camiseta')) {
+      document.getElementById('dpTipo').value = 'camiseta';
+    } else if (tipo.includes('sudadera')) {
+      document.getElementById('dpTipo').value = 'sudadera';
+    } else if (tipo.includes('tote')) {
+      document.getElementById('dpTipo').value = 'tote';
+    }
+
+    if (publico.includes('infantil')) {
+      document.getElementById('dpPublico').value = 'infantil';
+    } else if (publico.includes('unisex')) {
+      document.getElementById('dpPublico').value = 'unisex';
+    } else if (publico.includes('adulto')) {
+      document.getElementById('dpPublico').value = 'adulto';
+    }
+
+    document.getElementById('dpTallas').value =
+      opcion.dataset.tallas || '';
+
+    document.getElementById('dpColores').value =
+      opcion.dataset.colores || '';
+  });
+} 
 
     document
       .getElementById('formDisenoPropio')
@@ -439,6 +514,9 @@ async function guardarDisenoPropio(event) {
   const publico =
     document.getElementById('dpPublico').value;
 
+const garmentId =
+  document.getElementById('dpGarment').value || null;
+   
   const precio =
     Number(document.getElementById('dpPrecio').value || 0);
 
@@ -475,8 +553,6 @@ async function guardarDisenoPropio(event) {
   const fotoPrincipal =
     document.getElementById('dpFoto').files[0];
 
-   const guiaTallas =
-  document.getElementById('dpGuiaTallas').files[0] || null;
    
   const fotosGaleria =
     Array.from(
@@ -608,53 +684,6 @@ async function guardarDisenoPropio(event) {
     const urlPrincipal =
       publicPrincipal.publicUrl;
 
-/* =====================================================
-   2B. SUBIR GUÍA DE TALLAS
-   ===================================================== */
-
-let guiaTallasData = null;
-
-if (guiaTallas) {
-
-  boton.textContent = 'SUBIENDO GUÍA DE TALLAS...';
-
-  const extGuia =
-    (guiaTallas.name.split('.').pop() || 'jpg')
-      .toLowerCase();
-
-  const rutaGuia =
-    `disenos-propios/${sku}/guia-tallas-${Date.now()}.${extGuia}`;
-
-  const {
-    error: errorGuia
-  } = await supabaseClient
-    .storage
-    .from(AIHXO_DESIGN_BUCKET)
-    .upload(
-      rutaGuia,
-      guiaTallas,
-      {
-        cacheControl: '3600',
-        upsert: false
-      }
-    );
-
-  if (errorGuia) {
-    throw errorGuia;
-  }
-
-  const {
-    data: publicGuia
-  } = supabaseClient
-    .storage
-    .from(AIHXO_DESIGN_BUCKET)
-    .getPublicUrl(rutaGuia);
-
-  guiaTallasData = {
-    storage_path: rutaGuia,
-    public_url: publicGuia.publicUrl
-  };
-}
      
     /* =====================================================
        3. SUBIR GALERÍA
@@ -762,6 +791,8 @@ if (guiaTallas) {
 
       model: nombre,
 
+      garment_id: garmentId, 
+
       size: tallas.join(', '),
 
       color: colores.join(', '),
@@ -836,21 +867,7 @@ if (guiaTallas) {
 
       }
     );
-if (guiaTallasData) {
 
-  imagenesBD.push({
-
-    product_id: nuevoProducto.id,
-
-    storage_path: guiaTallasData.storage_path,
-
-    public_url: guiaTallasData.public_url,
-
-    is_primary: false,
-
-    sort_order: 999
-  });
-}
 
     const {
       error: errorImagenes
