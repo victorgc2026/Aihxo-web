@@ -16,12 +16,17 @@
       .replace(/'/g, '&#039;');
   }
 
-  function normalizarSKU(value) {
-    return String(value || '')
-      .trim()
-      .toUpperCase()
-      .replace(/\s+/g, '-');
-  }
+function normalizarSKU(value) {
+  return String(value || '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[’'"]/g, '-')
+    .replace(/[^A-Z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
   function listaDesdeTexto(value) {
     return String(value || '')
