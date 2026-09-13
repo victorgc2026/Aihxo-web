@@ -479,7 +479,36 @@ window.editarPrendaBase = async function (id) {
         <label>Gramaje</label>
         <input id="pbEditGramaje" value="${escPB(prenda.grammage || '')}">
       </div>
+${prenda.size_guide_url ? `
+  <div class="field">
+    <label>Guía de tallas actual</label>
 
+    <div style="
+      margin-top:8px;
+      padding:10px;
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      background:#fff;
+    ">
+      <img
+        src="${escPB(prenda.size_guide_url)}"
+        alt="Guía de tallas actual"
+        style="
+          width:100%;
+          max-width:420px;
+          height:auto;
+          display:block;
+          margin:0 auto;
+          border-radius:10px;
+        "
+      >
+    </div>
+  </div>
+` : `
+  <div class="muted" style="margin-bottom:14px;">
+    Esta prenda todavía no tiene guía de tallas.
+  </div>
+`}
       <div class="field">
         <label>Nueva guía de tallas</label>
         <input id="pbEditGuia" type="file" accept="image/*">
