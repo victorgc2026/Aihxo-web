@@ -715,7 +715,7 @@ if (errorPrendasBaseProductos) {
   console.error('Error cargando prendas base:', errorPrendasBaseProductos);
 }
 
-const prendasBaseLista = prendasBaseProductos || [];
+window.prendasBaseLista = prendasBaseProductos || [];
   c.innerHTML=`
     <div class="page">
 
@@ -898,7 +898,7 @@ ${esc(formatCategory(p.category))}
   >
     <option value="">Sin asignar</option>
 
-    ${prendasBaseLista.map(g => `
+    ${(window.prendasBaseLista || []).map(g => `
       <option
         value="${g.id}"
         ${p.garment_id === g.id ? 'selected' : ''}
