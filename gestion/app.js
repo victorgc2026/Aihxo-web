@@ -1016,7 +1016,7 @@ ${esc(formatCategory(p.category))}
   `;
 
 }
-function productForm(id){
+async function productForm(id){
  const p=id?products.find(x=>x.id===id):{
   sku:'',category:'Camiseta',model:'',size:'M',color:'Blanco',
   garment_cost:4,dtf_cost:3,extras_cost:.68,sale_price:16.9,stock:0,
@@ -1055,6 +1055,19 @@ function productForm(id){
    <label>Modelo</label>
    <input name="model" value="${esc(p.model||'')}" required>
   </div>
+
+<div class="field">
+  <label>Prenda base</label>
+
+  <select name="garment_id" id="pfGarment">
+    <option value="">Sin asignar</option>
+  </select>
+
+  <div class="muted" style="margin-top:6px;">
+    Asocia este producto a su fabricante y modelo base.
+  </div>
+</div>
+  
 <div class="field">
   <label>Visibilidad comercial</label>
   <select name="commercial_visibility">
@@ -1252,7 +1265,33 @@ ${id ? `
   </button>
 ` : ''}
  </form>`;
+const selectorGarment = document.getElementById('pfGarment');
 
+const { data: garmentsForm, error: garmentsFormError } =
+  await supabaseClient
+    .from('garments')
+    .select('*')
+    .eq('active', true)
+    .order('manufacturer')
+    .order('model');
+
+if (garmentsFormError) {
+  console.error(garmentsFormError);
+} else if (selectorGarment) {
+
+  (garmentsForm || []).forEach(g => {
+    const option = document.createElement('option');
+
+    option.value = g.id;
+    option.textContent = `${g.manufacturer} · ${g.model}`;
+
+    if (p.garment_id === g.id) {
+      option.selected = true;
+    }
+
+    selectorGarment.appendChild(option);
+  });
+}
  $('#pf').onsubmit=async e=>{
   e.preventDefault();
   const f=new FormData(e.target);
@@ -1309,6 +1348,7 @@ if(imageFile){
 
   const o={
    sku:String(f.get('sku')||'').trim(),
+   garment_id: f.get('garment_id') || null,
    category:
   String(p.category || '').toLowerCase().includes('diseno propio')
     ? p.category
