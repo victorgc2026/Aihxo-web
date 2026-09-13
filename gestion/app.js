@@ -2564,7 +2564,6 @@ window.verDetallePedido = function(id) {
 
     </div>
   `;
-})(); 
  const inputFront = document.getElementById(`cambiarFront-${o.id}`);
 
 if (inputFront) {
@@ -2631,5 +2630,7 @@ if (inputFront) {
     window.verDetallePedido(o.id);
   });
 }
-};
+
+})(); 
+ };
 auth();
