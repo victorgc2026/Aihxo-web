@@ -224,6 +224,24 @@ function normalizarSKU(value) {
               Separa las tallas con comas.
             </div>
 
+<label class="dp-label">
+  Guía de tallas (opcional)
+  <input
+    id="dpGuiaTallas"
+    class="dp-input"
+    type="file"
+    accept="image/*"
+  >
+</label>
+
+<div style="
+  font-size:12px;
+  color:#667085;
+  margin:-8px 0 18px;
+">
+  Puedes subir una foto o captura de la guía de tallas del fabricante.
+</div>
+
             <label class="dp-label">
               Colores disponibles
               <input
@@ -457,6 +475,9 @@ async function guardarDisenoPropio(event) {
   const fotoPrincipal =
     document.getElementById('dpFoto').files[0];
 
+   const guiaTallas =
+  document.getElementById('dpGuiaTallas').files[0] || null;
+   
   const fotosGaleria =
     Array.from(
       document.getElementById('dpGaleria').files || []
@@ -587,7 +608,54 @@ async function guardarDisenoPropio(event) {
     const urlPrincipal =
       publicPrincipal.publicUrl;
 
+/* =====================================================
+   2B. SUBIR GUÍA DE TALLAS
+   ===================================================== */
 
+let guiaTallasData = null;
+
+if (guiaTallas) {
+
+  boton.textContent = 'SUBIENDO GUÍA DE TALLAS...';
+
+  const extGuia =
+    (guiaTallas.name.split('.').pop() || 'jpg')
+      .toLowerCase();
+
+  const rutaGuia =
+    `disenos-propios/${sku}/guia-tallas-${Date.now()}.${extGuia}`;
+
+  const {
+    error: errorGuia
+  } = await supabaseClient
+    .storage
+    .from(AIHXO_DESIGN_BUCKET)
+    .upload(
+      rutaGuia,
+      guiaTallas,
+      {
+        cacheControl: '3600',
+        upsert: false
+      }
+    );
+
+  if (errorGuia) {
+    throw errorGuia;
+  }
+
+  const {
+    data: publicGuia
+  } = supabaseClient
+    .storage
+    .from(AIHXO_DESIGN_BUCKET)
+    .getPublicUrl(rutaGuia);
+
+  guiaTallasData = {
+    storage_path: rutaGuia,
+    public_url: publicGuia.publicUrl
+  };
+}
+     
     /* =====================================================
        3. SUBIR GALERÍA
        ===================================================== */
@@ -768,7 +836,21 @@ async function guardarDisenoPropio(event) {
 
       }
     );
+if (guiaTallasData) {
 
+  imagenesBD.push({
+
+    product_id: nuevoProducto.id,
+
+    storage_path: guiaTallasData.storage_path,
+
+    public_url: guiaTallasData.public_url,
+
+    is_primary: false,
+
+    sort_order: 999
+  });
+}
 
     const {
       error: errorImagenes
