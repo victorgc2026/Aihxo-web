@@ -703,7 +703,19 @@ async function createOrder(e){
 
   toast(`Pedido ${orderNumber} guardado`);
 }
-function productsView(c){
+async function productsView(c){
+ const { data: prendasBaseProductos, error: errorPrendasBaseProductos } =
+  await supabaseClient
+    .from('garments')
+    .select('id,manufacturer,model,active')
+    .order('manufacturer')
+    .order('model');
+
+if (errorPrendasBaseProductos) {
+  console.error('Error cargando prendas base:', errorPrendasBaseProductos);
+}
+
+const prendasBaseLista = prendasBaseProductos || [];
   c.innerHTML=`
     <div class="page">
 
@@ -870,7 +882,33 @@ ${esc(formatCategory(p.category))}
 
           <div><b>Venta:</b> ${money(p.sale_price)}</div>
           <div><b>${visibilidad}</b></div>
+<div style="grid-column:1 / -1;">
+  <b>Prenda base:</b>
 
+  <select
+    onchange="cambiarPrendaBaseRapida('${p.id}', this.value)"
+    style="
+      width:100%;
+      margin-top:6px;
+      padding:8px 10px;
+      border:1px solid #d0d5dd;
+      border-radius:10px;
+      background:#fff;
+    "
+  >
+    <option value="">Sin asignar</option>
+
+    ${prendasBaseLista.map(g => `
+      <option
+        value="${g.id}"
+        ${p.garment_id === g.id ? 'selected' : ''}
+        ${g.active === false && p.garment_id !== g.id ? 'disabled' : ''}
+      >
+        ${esc(g.manufacturer)} · ${esc(g.model)}${g.active ? '' : ' · INACTIVA'}
+      </option>
+    `).join('')}
+  </select>
+</div>
         </div>
 
         <div class="actions" style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;">
@@ -1016,6 +1054,30 @@ ${esc(formatCategory(p.category))}
   `;
 
 }
+window.cambiarPrendaBaseRapida = async function(productId, garmentId) {
+  try {
+    const { error } = await supabaseClient
+      .from('products')
+      .update({
+        garment_id: garmentId || null
+      })
+      .eq('id', productId);
+
+    if (error) throw error;
+
+    const producto = products.find(p => p.id === productId);
+
+    if (producto) {
+      producto.garment_id = garmentId || null;
+    }
+
+    toast('Prenda base actualizada');
+
+  } catch (error) {
+    console.error(error);
+    toast('No se pudo actualizar la prenda base');
+  }
+};
 async function productForm(id){
  const p=id?products.find(x=>x.id===id):{
   sku:'',category:'Camiseta',model:'',size:'M',color:'Blanco',
