@@ -1283,7 +1283,8 @@ if (garmentsFormError) {
     const option = document.createElement('option');
 
     option.value = g.id;
-    option.textContent = `${g.manufacturer} · ${g.model}`;
+    option.textContent =
+  `${g.manufacturer} · ${g.model}${g.active ? '' : ' · INACTIVA'}`;
 
     if (p.garment_id === g.id) {
       option.selected = true;
