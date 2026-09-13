@@ -90,6 +90,10 @@ function showApp(session){document.body.innerHTML=`<div id="app"><aside class="s
     🎨 <span>Diseños AIHXO</span>
   </button>
 
+<button data-view="garments">
+  👕 <span>Prendas base</span>
+</button>
+
   <div class="muted"
        style="padding:16px 12px 6px;font-size:11px;font-weight:900;">
     FINANZAS
@@ -117,7 +121,7 @@ function showApp(session){document.body.innerHTML=`<div id="app"><aside class="s
   </button>
 
 </nav><div class="sidebar-foot">${session.user.email}<br><button class="secondary" style="margin-top:8px" id="logout">Cerrar sesión</button></div></aside><div class="menu-overlay" id="menuOverlay"></div><main><header class="topbar"><button class="hamb" id="hamb">☰</button><h1 id="title">Inicio</h1><button class="primary small" id="quickOrder">＋ Pedido</button></header><div id="view"></div></main></div><div id="drawer" class="drawer hidden"><div class="drawer-card"><button class="x" id="closeDrawer">×</button><div id="drawerBody"></div></div></div><div id="toast"></div>`;document.querySelectorAll('#nav button[data-view]').forEach(b=>b.onclick=()=>{setView(b.dataset.view);closeMobileMenu()});$('#hamb').setAttribute('aria-label','Abrir menú');$('#hamb').onclick=()=>toggleMobileMenu();$('#menuOverlay').onclick=()=>closeMobileMenu();$('#logout').onclick=()=>supabaseClient.auth.signOut();$('#quickOrder').onclick=orderForm;$('#closeDrawer').onclick=closeDrawer;loadAll().then(()=>setView('dashboard'))}
-function toggleMobileMenu(){document.querySelector('.sidebar')?.classList.toggle('open');document.querySelector('#menuOverlay')?.classList.toggle('open')}function closeMobileMenu(){document.querySelector('.sidebar')?.classList.remove('open');document.querySelector('#menuOverlay')?.classList.remove('open')}function setView(v){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Inicio',orders:'Pedidos',products:'Productos',stock:'Stock',customers:'Clientes',expenses:'Gastos',coupons:'Cupones',sorteos:'Sorteos',reports:'Informes'};const views={dashboard,orders:ordersView,products:productsView,stock:stockHub,customers:customersView,expenses:expensesView,coupons:cuponesView,sorteos:(c)=>{c.innerHTML=sorteosView();iniciarSorteos()},reports};;$('#title').textContent=titles[v]||'AIHXO';const render=views[v];if(typeof render==='function'){render($('#view'));closeMobileMenu()}else{console.error('Vista no disponible:',v);toast('No se pudo abrir esta sección')}}
+function toggleMobileMenu(){document.querySelector('.sidebar')?.classList.toggle('open');document.querySelector('#menuOverlay')?.classList.toggle('open')}function closeMobileMenu(){document.querySelector('.sidebar')?.classList.remove('open');document.querySelector('#menuOverlay')?.classList.remove('open')}function setView(v){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Inicio',orders:'Pedidos',products:'Productos',stock:'Stock',customers:'Clientes',expenses:'Gastos',coupons:'Cupones',sorteos:'Sorteos',garments:'Prendas base',reports:'Informes'};const views={dashboard,orders:ordersView,products:productsView,stock:stockHub,customers:customersView,expenses:expensesView,coupons:cuponesView,sorteos:(c)=>{c.innerHTML=sorteosView();iniciarSorteos()},garments:prendasBaseView,reports};$('#title').textContent=titles[v]||'AIHXO';const render=views[v];if(typeof render==='function'){render($('#view'));closeMobileMenu()}else{console.error('Vista no disponible:',v);toast('No se pudo abrir esta sección')}}
 async function dashboard(c){
   const activeOrders=orders.filter(o=>String(o.status||'').toLowerCase()!=='cancelado');
   const sales=activeOrders.reduce((a,o)=>a+(+o.total||0),0);
