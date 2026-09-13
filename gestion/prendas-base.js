@@ -450,14 +450,36 @@ window.editarPrendaBase = async function (id) {
       </div>
 
       <div class="field">
-        <label>Tipo de prenda</label>
-        <input id="pbEditTipo" value="${escPB(prenda.garment_type || '')}">
-      </div>
+  <label>Tipo de prenda</label>
+  <select id="pbEditTipo">
+    <option value="">Seleccionar</option>
+    <option value="Camiseta" ${String(prenda.garment_type || '').toLowerCase() === 'camiseta' ? 'selected' : ''}>
+      Camiseta
+    </option>
+    <option value="Sudadera" ${String(prenda.garment_type || '').toLowerCase() === 'sudadera' ? 'selected' : ''}>
+      Sudadera
+    </option>
+    <option value="Tote bag" ${String(prenda.garment_type || '').toLowerCase() === 'tote bag' ? 'selected' : ''}>
+      Tote bag
+    </option>
+  </select>
+</div>
 
-      <div class="field">
-        <label>Público</label>
-        <input id="pbEditPublico" value="${escPB(prenda.audience || '')}">
-      </div>
+<div class="field">
+  <label>Público</label>
+  <select id="pbEditPublico">
+    <option value="">Seleccionar</option>
+    <option value="Infantil" ${String(prenda.audience || '').toLowerCase() === 'infantil' ? 'selected' : ''}>
+      Infantil
+    </option>
+    <option value="Adulto" ${String(prenda.audience || '').toLowerCase() === 'adulto' ? 'selected' : ''}>
+      Adulto
+    </option>
+    <option value="Unisex" ${String(prenda.audience || '').toLowerCase() === 'unisex' ? 'selected' : ''}>
+      Unisex
+    </option>
+  </select>
+</div>
 
       <div class="field">
         <label>Tallas</label>
