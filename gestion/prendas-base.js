@@ -152,7 +152,15 @@
                   : '—'}
               </b>
             </div>
-
+<div style="margin-top:14px;">
+  <button
+    class="secondary"
+    type="button"
+    onclick="editarPrendaBase('${p.id}')"
+  >
+    ✏️ Editar
+  </button>
+</div>
             ${p.size_guide_url ? `
               <div style="margin-top:14px;">
                 <a
@@ -404,3 +412,193 @@
   }
 
 })();
+window.editarPrendaBase = async function (id) {
+  const { data: prenda, error } = await supabaseClient
+    .from('garments')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error || !prenda) {
+    console.error(error);
+    toast('No se pudo cargar la prenda');
+    return;
+  }
+
+  const drawer = document.getElementById('drawer');
+  const body = document.getElementById('drawerBody');
+
+  if (!drawer || !body) return;
+
+  body.innerHTML = `
+    <h2>Editar prenda base</h2>
+
+    <div class="muted" style="margin-bottom:18px;">
+      Puedes corregir los datos y sustituir la guía de tallas.
+    </div>
+
+    <form id="pbEditForm" class="form">
+
+      <div class="field">
+        <label>Fabricante *</label>
+        <input id="pbEditFabricante" required value="${escPB(prenda.manufacturer)}">
+      </div>
+
+      <div class="field">
+        <label>Modelo *</label>
+        <input id="pbEditModelo" required value="${escPB(prenda.model)}">
+      </div>
+
+      <div class="field">
+        <label>Tipo de prenda</label>
+        <input id="pbEditTipo" value="${escPB(prenda.garment_type || '')}">
+      </div>
+
+      <div class="field">
+        <label>Público</label>
+        <input id="pbEditPublico" value="${escPB(prenda.audience || '')}">
+      </div>
+
+      <div class="field">
+        <label>Tallas</label>
+        <input
+          id="pbEditTallas"
+          value="${escPB((prenda.sizes || []).join(', '))}"
+        >
+      </div>
+
+      <div class="field">
+        <label>Colores disponibles</label>
+        <input
+          id="pbEditColores"
+          value="${escPB((prenda.colors || []).join(', '))}"
+        >
+      </div>
+
+      <div class="field">
+        <label>Gramaje</label>
+        <input id="pbEditGramaje" value="${escPB(prenda.grammage || '')}">
+      </div>
+
+      <div class="field">
+        <label>Nueva guía de tallas</label>
+        <input id="pbEditGuia" type="file" accept="image/*">
+        <div class="muted">
+          Déjalo vacío si quieres conservar la guía actual.
+        </div>
+      </div>
+
+      <div class="field">
+        <label>
+          <input
+            id="pbEditActiva"
+            type="checkbox"
+            ${prenda.active ? 'checked' : ''}
+          >
+          Prenda activa
+        </label>
+      </div>
+
+      <button class="primary" id="pbEditGuardar" type="submit">
+        Guardar cambios
+      </button>
+
+    </form>
+  `;
+
+  drawer.classList.remove('hidden');
+
+  document.getElementById('pbEditForm').onsubmit = async function (evento) {
+    evento.preventDefault();
+
+    const boton = document.getElementById('pbEditGuardar');
+    boton.disabled = true;
+    boton.textContent = 'GUARDANDO...';
+
+    try {
+      const fabricante =
+        document.getElementById('pbEditFabricante').value.trim();
+
+      const modelo =
+        document.getElementById('pbEditModelo').value.trim();
+
+      const guia =
+        document.getElementById('pbEditGuia').files[0] || null;
+
+      const cambios = {
+        manufacturer: fabricante,
+        model: modelo,
+        garment_type:
+          document.getElementById('pbEditTipo').value.trim() || null,
+        audience:
+          document.getElementById('pbEditPublico').value.trim() || null,
+        sizes:
+          listaPB(document.getElementById('pbEditTallas').value),
+        colors:
+          listaPB(document.getElementById('pbEditColores').value),
+        grammage:
+          document.getElementById('pbEditGramaje').value.trim() || null,
+        active:
+          document.getElementById('pbEditActiva').checked,
+        updated_at: new Date().toISOString()
+      };
+
+      if (guia) {
+        boton.textContent = 'SUBIENDO GUÍA...';
+
+        const extension =
+          (guia.name.split('.').pop() || 'jpg').toLowerCase();
+
+        const nombreSeguro =
+          `${slugPB(fabricante)}-${slugPB(modelo)}`;
+
+        const ruta =
+          `prendas-base/${nombreSeguro}/${prenda.id}/guia-tallas-${Date.now()}.${extension}`;
+
+        const { error: errorUpload } =
+          await supabaseClient
+            .storage
+            .from(BUCKET_PRENDAS)
+            .upload(ruta, guia, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+        if (errorUpload) throw errorUpload;
+
+        const { data: publica } =
+          supabaseClient
+            .storage
+            .from(BUCKET_PRENDAS)
+            .getPublicUrl(ruta);
+
+        cambios.size_guide_url = publica.publicUrl;
+        cambios.size_guide_storage_path = ruta;
+      }
+
+      const { error: errorUpdate } =
+        await supabaseClient
+          .from('garments')
+          .update(cambios)
+          .eq('id', prenda.id);
+
+      if (errorUpdate) throw errorUpdate;
+
+      toast('Prenda actualizada');
+
+      if (typeof closeDrawer === 'function') {
+        closeDrawer();
+      } else {
+        drawer.classList.add('hidden');
+      }
+
+      await cargarPrendasBase();
+
+    } catch (error) {
+      console.error(error);
+      toast('No se pudieron guardar los cambios');
+      boton.disabled = false;
+      boton.textContent = 'Guardar cambios';
+    }
+  };
+};
