@@ -1289,7 +1289,9 @@ if (garmentsFormError) {
     if (p.garment_id === g.id) {
       option.selected = true;
     }
-
+if (g.active === false && p.garment_id !== g.id) {
+  option.disabled = true;
+}
     selectorGarment.appendChild(option);
   });
 }
