@@ -356,7 +356,34 @@ const productos = (data || [])
     const pb = prioridad[b.commercial_visibility || 'normal'] || 3;
     return pa - pb;
   });
+const guiasPorPrenda = {};
 
+const idsPrendas = [
+  ...new Set(
+    productos
+      .map(p => p.garment_id)
+      .filter(Boolean)
+  )
+];
+
+if (idsPrendas.length) {
+  const { data: prendasConGuia, error: errorGuias } =
+    await catalogSB
+      .from('garments')
+      .select('id,size_guide_url')
+      .in('id', idsPrendas)
+      .eq('active', true);
+
+  if (errorGuias) {
+    console.error('Error cargando guías de tallas:', errorGuias);
+  } else {
+    (prendasConGuia || []).forEach(prenda => {
+      if (prenda.size_guide_url) {
+        guiasPorPrenda[prenda.id] = prenda.size_guide_url;
+      }
+    });
+  }
+}
     contenedor.innerHTML = productos.map(p => {
       const categoria = String(p.category || '').toLowerCase();
      const esDestacado = (p.commercial_visibility || 'normal') === 'destacado';
@@ -365,7 +392,10 @@ const productos = (data || [])
 
       if (categoria.includes('sudadera')) filtro = 'sudadera';
       else if (categoria.includes('tote')) filtro = 'tote';
-
+const guiaTallasUrl =
+  p.garment_id
+    ? (guiasPorPrenda[p.garment_id] || '')
+    : '';
       const esInfantil = categoria.includes('infantil');
       const esAdulto = categoria.includes('adulto');
       const esNovedad = categoria.includes('novedad');
@@ -500,7 +530,7 @@ onclick="seleccionarOpcionDiseno(this)"
   </div>
 ` : ''}
 
-${esInfantil ? `
+${guiaTallasUrl ? `
   <details style="margin:14px 0;">
     <summary style="
       cursor:pointer;
@@ -511,35 +541,20 @@ ${esInfantil ? `
       📏 Ver guía de tallas
     </summary>
 
-    <div style="overflow-x:auto;">
-      <table style="
-        width:100%;
-        border-collapse:collapse;
-        text-align:center;
-        font-size:15px;
-      ">
-        <thead>
-          <tr>
-            <th style="padding:8px;border-bottom:1px solid #ddd;">Talla</th>
-            <th style="padding:8px;border-bottom:1px solid #ddd;">Ancho</th>
-            <th style="padding:8px;border-bottom:1px solid #ddd;">Largo</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td style="padding:8px;">5/6</td><td>38 cm</td><td>48 cm</td></tr>
-          <tr><td style="padding:8px;">7/8</td><td>41 cm</td><td>52 cm</td></tr>
-          <tr><td style="padding:8px;">9/11</td><td>44 cm</td><td>56 cm</td></tr>
-          <tr><td style="padding:8px;">12/13</td><td>47 cm</td><td>60 cm</td></tr>
-        </tbody>
-      </table>
-
-      <div style="
-        margin-top:8px;
-        color:#8a94a6;
-        font-size:13px;
-      ">
-        Ancho × Largo de la prenda. Medidas aproximadas en cm.
-      </div>
+    <div style="margin-top:10px;">
+      <img
+        src="${escaparHTML(guiaTallasUrl)}"
+        alt="Guía de tallas"
+        loading="lazy"
+        style="
+          width:100%;
+          max-width:520px;
+          height:auto;
+          display:block;
+          border-radius:12px;
+          margin:0 auto;
+        "
+      >
     </div>
   </details>
 ` : ''}
