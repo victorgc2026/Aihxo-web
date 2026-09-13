@@ -612,7 +612,25 @@ ${prenda.size_guide_url ? `
           .eq('id', prenda.id);
 
       if (errorUpdate) throw errorUpdate;
+if (
+  guia &&
+  prenda.size_guide_storage_path &&
+  cambios.size_guide_storage_path &&
+  prenda.size_guide_storage_path !== cambios.size_guide_storage_path
+) {
+  const { error: errorBorrarGuiaAntigua } =
+    await supabaseClient
+      .storage
+      .from(BUCKET_PRENDAS)
+      .remove([prenda.size_guide_storage_path]);
 
+  if (errorBorrarGuiaAntigua) {
+    console.warn(
+      'No se pudo borrar la guía antigua:',
+      errorBorrarGuiaAntigua
+    );
+  }
+}
       toast('Prenda actualizada');
 
       if (typeof closeDrawer === 'function') {
