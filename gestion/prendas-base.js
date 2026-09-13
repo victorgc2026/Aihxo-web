@@ -411,7 +411,7 @@
     }
   }
 
-})();
+
 window.editarPrendaBase = async function (id) {
   const { data: prenda, error } = await supabaseClient
     .from('garments')
@@ -602,3 +602,4 @@ window.editarPrendaBase = async function (id) {
     }
   };
 };
+})();
