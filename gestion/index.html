@@ -3,23 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
- <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0"> 
+<meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#07152f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>AIHXO · Gestión</title>
 <link rel="manifest" href="manifest.json?v=2">
-<script>
-document.write('<link rel="stylesheet" href="styles.css?v=' + Date.now() + '">');
-</script>
+<script>document.write('<link rel="stylesheet" href="styles.css?v=' + Date.now() + '">');</script>
 </head>
 <body>
 <div id="app"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-document.write('<script src="app.js?v=' + Date.now() + '"><\/script>');
-</script>
+<script>document.write('<script src="app.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
 const archivosAIHXO = [
   'presupuestos-facturas.js',
@@ -30,9 +26,9 @@ const archivosAIHXO = [
   'disenos-propios.js',
   'cupones.js',
   'sorteos.js',
-  'stock-camisetas.js'
+  'stock-camisetas.js',
+  'dashboard-v2.js'
 ];
-
 archivosAIHXO.forEach(archivo => {
   document.write('<script src="' + archivo + '?v=' + Date.now() + '"><\/script>');
 });
