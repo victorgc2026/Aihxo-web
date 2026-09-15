@@ -15,7 +15,7 @@
   ];
  };
  const checklistSummary=o=>{const c=checklist(o),done=c.filter(x=>x.done).length;return {items:c,done,total:c.length,pct:Math.round(done/c.length*100)}};
- const checklistHtml=o=>checklist(o).map(x=>`<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid ${x.done?'#b7e4c7':'#e4e7ec'};background:${x.done?'#f0fff4':'#fff'};border-radius:12px;min-height:44px;box-sizing:border-box"><input ${x.manual?`id="pdChecklist_${x.key}" type="checkbox" ${x.done?'checked':''}`:`type="checkbox" ${x.done?'checked':''} disabled`}><span style="font-size:18px">${x.icon}</span><span style="flex:1"><b>${x.label}</b>${!x.manual?`<div class="muted" style="font-size:12px">Se actualiza automáticamente</div>`:''}</span><span>${x.done?'✅':'○'}</span></label>`).join('');
+ const checklistHtml=o=>checklist(o).map(x=>`<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid ${x.done?'#b7e4c7':'#e4e7ec'};background:${x.done?'#f0fff4':'#fff'};border-radius:12px;min-height:58px;box-sizing:border-box;overflow:hidden"><input style="width:20px!important;min-width:20px;max-width:20px;height:20px;flex:0 0 20px;margin:0" ${x.manual?`id="pdChecklist_${x.key}" type="checkbox" ${x.done?'checked':''}`:`type="checkbox" ${x.done?'checked':''} disabled`}><span style="font-size:18px;flex:0 0 auto">${x.icon}</span><span style="flex:1;min-width:0;line-height:1.2"><b style="display:block;overflow-wrap:anywhere">${x.label}</b>${!x.manual?`<div class="muted" style="font-size:12px;margin-top:2px;white-space:normal">Se actualiza automáticamente</div>`:''}</span><span style="flex:0 0 auto">${x.done?'✅':'○'}</span></label>`).join('');
 
  window.abrirFichaPedido=async function(id){
   try{
