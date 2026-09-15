@@ -13,9 +13,7 @@
       if(error) throw error;
       if(data?.error) throw new Error(data.error);
       return data?.text||'Sin respuesta';
-    }catch(err){
-      throw new Error(err?.message||'No se pudo consultar AIHXO IA');
-    }
+    }catch(err){throw new Error(err?.message||'No se pudo consultar AIHXO IA');}
   }
 
   function orderContext(o){
@@ -36,12 +34,32 @@
       const current=(orders||[]).filter(o=>norm(o.status)!=='cancelado'&&norm(o.status)!=='entregado');
       const delayed=current.filter(o=>{const raw=o.order_date||o.created_at;if(!raw)return false;const d=new Date(raw);return !Number.isNaN(d.getTime())&&((Date.now()-d.getTime())/86400000)>=3&&!['terminado','listo','finalizado'].includes(norm(o.production_status));});
       const unpaid=(orders||[]).filter(o=>norm(o.status)!=='cancelado'&&Number(o.total||0)>Number(o.amount_paid||0));
-      let low=[];
-      try{const r=await supabaseClient.from('base_stock_items').select('supplier,supplier_model,size,color,quantity,min_stock').order('quantity',{ascending:true});low=(r.data||[]).filter(x=>Number(x.quantity||0)<=Number(x.min_stock??3));}catch(_){ }
+      let low=[],stockRows=[];
+      try{
+        const r=await supabaseClient.from('base_stock_items').select('id,supplier,supplier_model,size,color,quantity,min_stock').order('quantity',{ascending:true});
+        stockRows=r.data||[];
+        low=stockRows.filter(x=>Number(x.quantity||0)<=Number(x.min_stock??3));
+      }catch(_){ }
       if(myToken!==dashboardRenderToken) return;
 
+      const demandByStock=new Map();
+      current.forEach(o=>{
+        if(!o.base_stock_item_id)return;
+        demandByStock.set(o.base_stock_item_id,(demandByStock.get(o.base_stock_item_id)||0)+Math.max(1,Number(o.base_stock_quantity||o.quantity||1)));
+      });
+      const prioritized=low.map(x=>{
+        const qty=Number(x.quantity||0),min=Number(x.min_stock??3),demand=demandByStock.get(x.id)||0;
+        const shortage=Math.max(0,min-qty);
+        const score=(qty<=0?100:0)+(demand*20)+(shortage*5)+(min-Math.min(min,qty));
+        const suggested=Math.max(shortage,demand>qty?demand-qty+min:shortage);
+        return {...x,demand,shortage,score,suggested};
+      }).sort((a,b)=>b.score-a.score||Number(a.quantity||0)-Number(b.quantity||0));
+
       const recs=[];
-      if(low.length)recs.push(`📦 Reponer ${low.length} variante${low.length===1?'':'s'} con stock bajo${low.some(x=>Number(x.quantity||0)<=0)?' (hay agotadas)':''}.`);
+      if(prioritized.length){
+        recs.push(`📦 Reponer ${prioritized.length} variante${prioritized.length===1?'':'s'} con stock bajo${prioritized.some(x=>Number(x.quantity||0)<=0)?' (hay agotadas)':''}.`);
+        prioritized.slice(0,3).forEach((x,i)=>recs.push(`${i===0?'🔥':'•'} Prioridad ${i+1}: ${x.supplier_model||x.supplier||'Prenda'} · ${x.size||''} · ${x.color||''} — stock ${Number(x.quantity||0)}, demanda activa ${x.demand}${x.suggested>0?`, sugerencia +${x.suggested}`:''}.`));
+      }
       if(delayed.length)recs.push(`🔴 Revisar ${delayed.length} pedido${delayed.length===1?'':'s'} con 3 días o más sin terminar.`);
       if(unpaid.length)recs.push(`💶 Hay ${unpaid.length} pedido${unpaid.length===1?'':'s'} con importe pendiente de cobro.`);
       if(!recs.length)recs.push('✅ No detecto incidencias operativas prioritarias ahora mismo.');
@@ -50,7 +68,13 @@
       box.innerHTML=`<div class="section"><div><h2>🤖 Recomendaciones AIHXO</h2><div class="muted">Lectura rápida automática del negocio</div></div><button class="primary small" id="aihxoDailyAnalyze">Analizar con IA</button></div><div id="aihxoDailyList" style="display:grid;gap:8px">${recs.map(x=>`<div style="padding:10px 12px;background:#f6f8fb;border-radius:10px">${e(x)}</div>`).join('')}</div><div id="aihxoDailyResult" style="margin-top:10px;white-space:pre-wrap;line-height:1.5"></div>`;
       const firstGrid=page.querySelector('.grid.two');
       if(firstGrid) firstGrid.insertAdjacentElement('beforebegin',box); else page.prepend(box);
-      box.querySelector('#aihxoDailyAnalyze').onclick=async()=>{const b=box.querySelector('#aihxoDailyAnalyze'),r=box.querySelector('#aihxoDailyResult');b.disabled=true;b.textContent='Analizando…';try{const context={pedidos_activos:current.slice(0,40),stock_bajo:low.slice(0,30),cobros_pendientes:unpaid.slice(0,30)};r.textContent=await ai('assistant','Dame las 3 prioridades más importantes de hoy para AIHXO. Sé breve y accionable.',context);}catch(err){r.textContent='⚠️ '+err.message;}finally{b.disabled=false;b.textContent='Analizar con IA';}};
+      box.querySelector('#aihxoDailyAnalyze').onclick=async()=>{
+        const b=box.querySelector('#aihxoDailyAnalyze'),r=box.querySelector('#aihxoDailyResult');b.disabled=true;b.textContent='Analizando…';
+        try{
+          const context={pedidos_activos:current.slice(0,40),stock_priorizado:prioritized.slice(0,20),cobros_pendientes:unpaid.slice(0,30)};
+          r.textContent=await ai('assistant','Dame las 3 prioridades más importantes de hoy para AIHXO. Para stock, prioriza primero variantes agotadas o con pedidos activos. Sé breve y accionable.',context);
+        }catch(err){r.textContent='⚠️ '+err.message;}finally{b.disabled=false;b.textContent='Analizar con IA';}
+      };
     };
   }
 
