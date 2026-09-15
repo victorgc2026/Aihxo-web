@@ -18,7 +18,14 @@
  ];
  async function update(id,patch,msg){patch.production_updated_at=new Date().toISOString();const {error}=await supabaseClient.from('orders').update(patch).eq('id',id);if(error){console.error(error);toast('No se pudo actualizar');return}const o=orders.find(x=>x.id===id);if(o)Object.assign(o,patch);toast(msg||'Actualizado');window.produccionView($('#view'))}
  function stageFor(o){if(n(o.production_status)==='terminado')return 'Terminado';if(['en producción','en produccion'].includes(n(o.production_status)))return 'En producción';if(['lista para planchar','listo para planchar'].includes(n(o.production_status)))return 'Lista para planchar';if(['pendiente cliente','boceto preparado','enviado al cliente','cambios solicitados'].includes(n(o.design_approval_status)))return 'Diseño';if(['pedido','recibido','listo'].includes(n(o.dtf_status)))return 'DTF';return 'Pendiente'}
- function nextStage(id,current){const map={'Pendiente':'Lista para planchar','Diseño':'Pendiente','DTF':'Lista para planchar','Lista para planchar':'En producción','En producción':'Terminado'};const next=map[current];if(!next)return;if(next==='En producción')return window.aihxoProdStart(id);if(next==='Terminado')return window.aihxoProdFinish(id);return window.aihxoProdStatus(id,next)}
+ function nextStage(id,current){
+   if(current==='Diseño')return update(id,{design_approval_status:'Aprobado',production_status:'Pendiente'},'Diseño aprobado · pedido avanzado');
+   const map={'Pendiente':'Lista para planchar','DTF':'Lista para planchar','Lista para planchar':'En producción','En producción':'Terminado'};
+   const next=map[current];if(!next)return;
+   if(next==='En producción')return window.aihxoProdStart(id);
+   if(next==='Terminado')return window.aihxoProdFinish(id);
+   return window.aihxoProdStatus(id,next)
+ }
  function card(o,s){const qty=s?Number(s.quantity||0):null;const needed=Number(o.base_stock_quantity||o.quantity||1);const enough=s?qty>=needed:false;const stage=stageFor(o);const old=daysOld(o);return `<div class="card" style="padding:14px;border:${overdue(o)?'2px solid #d92d20':'1px solid #e4e7ec'};box-shadow:none">
    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><b>${esc(o.order_number||'Pedido')}</b><div class="muted" style="margin-top:2px">${esc(o.customer_name||'')}</div></div>${overdue(o)?badge(`⚠️ ${old} días`,'#fee4e2','#b42318'):badge(stage)}</div>
    <div style="margin-top:10px;font-size:14px"><b>${esc(o.product_name||o.design||'')}</b></div><div class="muted">${esc(o.size||'')} · ${esc(o.color||'')}</div>
