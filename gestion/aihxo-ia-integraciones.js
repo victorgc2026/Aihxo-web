@@ -17,10 +17,11 @@
   }
 
   function orderContext(o){
-    return {pedido:{id:o.id,numero:o.order_number,cliente:o.customer_name,contacto:o.contact,producto:o.product_name,talla:o.size,color:o.color,cantidad:o.quantity,total:o.total,estado:o.status,fecha:o.order_date,produccion:o.production_status,aprobacion_diseno:o.design_approval_status,estado_diseno:o.design_status,estado_dtf:o.dtf_status,pago:o.payment_status,importe_pagado:o.amount_paid,brief:o.design_brief,notas_produccion:o.production_notes,notas_internas:o.internal_notes,origen_diseno:o.design_source,archivo_final_cliente:o.customer_file_final,ia_diseno_permitida:o.ai_design_allowed,archivo_delantero:!!o.design_front_path,archivo_trasero:!!o.design_back_path}};
+    return {pedido:{id:o.id,numero:o.order_number,cliente:o.customer_name,contacto:o.contact,producto:o.product_name,talla:o.size,color:o.color,cantidad:o.quantity,total:o.total,estado:o.status,fecha:o.order_date,produccion:o.production_status,aprobacion_diseno:o.design_approval_status,estado_diseno:o.design_status,estado_dtf:o.dtf_status,pago:o.payment_status,importe_pagado:o.amount_paid,brief:o.design_brief,notas_produccion:o.production_notes,notas_internas:o.internal_notes,origen_diseno:o.design_source,archivo_final_cliente:o.customer_file_final,ia_diseno_permitida:o.ai_design_allowed,archivo_delantero:!!o.design_front_path,archivo_trasero:!!o.design_back_path,ultimo_analisis_ia:o.ai_order_analysis,ultimo_mensaje_cliente_ia:o.ai_customer_message,ultimo_brief_ia:o.ai_design_brief}};
   }
 
   function isProtected(o){return o?.design_source==='customer_final'||o?.customer_file_final===true||o?.ai_design_allowed===false;}
+  function savedBlock(label,value){return value?`<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:800">${label}</summary><div style="white-space:pre-wrap;line-height:1.5;margin-top:8px;padding:10px 12px;background:#f6f8fb;border-radius:10px">${e(value)}</div></details>`:'';}
 
   const oldDashboard=window.dashboard;
   if(typeof oldDashboard==='function'){
@@ -87,12 +88,26 @@
       body.querySelectorAll('#aihxoOrderAI').forEach(x=>x.remove());
       const protectedDesign=isProtected(o);
       const card=document.createElement('div');card.id='aihxoOrderAI';card.className='card';card.style.marginTop='14px';
-      card.innerHTML=`<div class="section"><div><h3 style="margin:0">🤖 IA para este pedido</h3><div class="muted">${protectedDesign?'🔒 Archivo final de cliente protegido · la IA no modifica el diseño':'Asistencia contextual sobre este encargo'}</div></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary small" id="pdAiAnalyze">Analizar pedido</button><button class="secondary small" id="pdAiCustomer">Mensaje al cliente</button><button class="secondary small" id="pdAiBrief" ${protectedDesign?'disabled title="Diseño final del cliente protegido"':''}>Brief de diseño</button></div><div id="pdAiResult" style="margin-top:12px;white-space:pre-wrap;line-height:1.5"></div>`;
+      card.innerHTML=`<div class="section"><div><h3 style="margin:0">🤖 IA para este pedido</h3><div class="muted">${protectedDesign?'🔒 Archivo final de cliente protegido · la IA no modifica el diseño':'Asistencia contextual sobre este encargo'}</div></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary small" id="pdAiAnalyze">Analizar pedido</button><button class="secondary small" id="pdAiCustomer">Mensaje al cliente</button><button class="secondary small" id="pdAiBrief" ${protectedDesign?'disabled title="Diseño final del cliente protegido"':''}>Brief de diseño</button></div><div id="pdAiResult" style="margin-top:12px;white-space:pre-wrap;line-height:1.5"></div><div id="pdAiSaved">${savedBlock('🧠 Último análisis guardado',o.ai_order_analysis)}${savedBlock('💬 Último mensaje guardado',o.ai_customer_message)}${savedBlock('🎨 Último brief guardado',o.ai_design_brief)}</div>`;
       const actions=body.lastElementChild; if(actions) body.insertBefore(card,actions); else body.appendChild(card);
-      const run=async(type,prompt)=>{const r=card.querySelector('#pdAiResult');const buttons=card.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);r.textContent='Pensando…';try{r.textContent=await ai(type,prompt,orderContext(o));}catch(err){r.textContent='⚠️ '+err.message;}finally{buttons.forEach(b=>{if(!(b.id==='pdAiBrief'&&protectedDesign))b.disabled=false;});}};
-      card.querySelector('#pdAiAnalyze').onclick=()=>run('order','Analiza este pedido: dime qué falta, riesgos, siguiente acción y cualquier incoherencia de producción, stock, diseño o cobro.');
-      card.querySelector('#pdAiCustomer').onclick=()=>run('support','Redacta un mensaje breve y amable al cliente según el estado actual del pedido. Si no hace falta contactar, indícalo.');
-      if(!protectedDesign)card.querySelector('#pdAiBrief').onclick=()=>run('designer','Crea un brief de diseño DTF usando exclusivamente los datos disponibles de este pedido. Si faltan datos esenciales, enuméralos primero.');
+
+      const refreshSaved=()=>{const x=card.querySelector('#pdAiSaved');if(x)x.innerHTML=`${savedBlock('🧠 Último análisis guardado',o.ai_order_analysis)}${savedBlock('💬 Último mensaje guardado',o.ai_customer_message)}${savedBlock('🎨 Último brief guardado',o.ai_design_brief)}`;};
+      const run=async(type,prompt,column)=>{
+        const r=card.querySelector('#pdAiResult'),buttons=card.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);r.textContent='Pensando…';
+        try{
+          const text=await ai(type,prompt,orderContext(o));
+          const patch={[column]:text,ai_result_updated_at:new Date().toISOString(),ai_last_action:column,ai_last_action_at:new Date().toISOString()};
+          const {error}=await supabaseClient.from('orders').update(patch).eq('id',o.id);
+          if(error) throw error;
+          Object.assign(o,patch);
+          r.textContent=text+'\n\n✅ Guardado en el pedido.';
+          refreshSaved();
+        }catch(err){r.textContent='⚠️ '+(err?.message||'No se pudo guardar el resultado');}
+        finally{buttons.forEach(b=>{if(!(b.id==='pdAiBrief'&&protectedDesign))b.disabled=false;});}
+      };
+      card.querySelector('#pdAiAnalyze').onclick=()=>run('order','Analiza este pedido: dime qué falta, riesgos, siguiente acción y cualquier incoherencia de producción, stock, diseño o cobro.','ai_order_analysis');
+      card.querySelector('#pdAiCustomer').onclick=()=>run('support','Redacta un mensaje breve y amable al cliente según el estado actual del pedido. Si no hace falta contactar, indícalo.','ai_customer_message');
+      if(!protectedDesign)card.querySelector('#pdAiBrief').onclick=()=>run('designer','Crea un brief de diseño DTF usando exclusivamente los datos disponibles de este pedido. Si faltan datos esenciales, enuméralos primero.','ai_design_brief');
     };
   }
 })();
