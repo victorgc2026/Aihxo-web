@@ -1,0 +1,33 @@
+name: Patch Premium Personaliza
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-premium-personaliza.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch Web index
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('Web/index.html')
+          s=p.read_text()
+          old='<script src="aihxo-mobile-fix.js?v=1"></script>'
+          new='<script src="aihxo-premium-personaliza.js?v=1"></script>'
+          if old in s:
+              s=s.replace(old,new,1)
+          elif new not in s:
+              s=s.replace('</body>',new+'\n</body>',1)
+          p.write_text(s)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Web/index.html
+          git diff --cached --quiet || git commit -m "Integrar camisetas Premium PALM en Personaliza"
+          git push
