@@ -1,0 +1,41 @@
+name: Patch AIHXO Web AI
+
+on:
+  push:
+    branches:
+      - feature/asistente-ia-web-publica
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/asistente-ia-web-publica
+      - name: Insertar asistente en Web/index.html
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('Web/index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="aihxo-web-ai.js?v=1"></script>'
+          if tag not in s:
+              if '</body>' not in s:
+                  raise SystemExit('No se encontró </body>')
+              s=s.replace('</body>', f'{tag}\n</body>', 1)
+              p.write_text(s, encoding='utf-8')
+          PY
+      - name: Guardar cambio
+        run: |
+          if git diff --quiet -- Web/index.html; then
+            echo "Sin cambios"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Web/index.html
+          git commit -m "Cargar asistente IA en web pública"
+          git push origin HEAD:feature/asistente-ia-web-publica
