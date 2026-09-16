@@ -1,102 +1,56 @@
-/* AIHXO · Mockup automático V2 */
+/* AIHXO · Mockup automático V2 · prenda + color + modelo + frontal/trasera */
 (function(){
   const $=s=>document.querySelector(s);
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-  let garments=[], templates=[], frontImg=null, backImg=null, frontBase=null, backBase=null;
+  let garments=[],templates=[],frontDesign=null,backDesign=null,frontBase=null,backBase=null;
+  let state={garmentId:null,color:'#ffffff',modelKey:'',mode:'double',front:{x:.5,y:.36,w:.30,h:.26,r:0},back:{x:.5,y:.38,w:.42,h:.38,r:0}};
 
-  const loadImage=src=>new Promise((resolve,reject)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>resolve(i);i.onerror=reject;i.src=src});
-  const fileImage=file=>new Promise((resolve,reject)=>{if(!file)return resolve(null);const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=r.result};r.onerror=reject;r.readAsDataURL(file)});
-  const cover=(ctx,img,w,h)=>{const r=Math.max(w/img.width,h/img.height),iw=img.width*r,ih=img.height*r;ctx.drawImage(img,(w-iw)/2,(h-ih)/2,iw,ih)};
+  function modelKey(t){return String(t.name||'Modelo').replace(/\s*·\s*(Delantera|Trasera)\s*$/i,'').replace(/\s*-\s*(Delantera|Trasera)\s*$/i,'').trim()}
+  function hexForColor(g,name){return (g?.color_map||{})[name]||'#ffffff'}
+  function loadImage(src){return new Promise((resolve,reject)=>{if(!src)return resolve(null);const im=new Image();im.crossOrigin='anonymous';im.onload=()=>resolve(im);im.onerror=reject;im.src=src})}
+  function fileImage(file){return new Promise((resolve,reject)=>{if(!file)return resolve(null);const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=r.result};r.onerror=reject;r.readAsDataURL(file)})}
+  function cover(ctx,img,w,h){const r=Math.max(w/img.width,h/img.height),dw=img.width*r,dh=img.height*r;ctx.drawImage(img,(w-dw)/2,(h-dh)/2,dw,dh)}
 
-  function applyTint(ctx,zone,color,w,h){
-    if(!zone||!color)return;
-    const x=(Number(zone.x||.5)-Number(zone.w||.45)/2)*w;
-    const y=(Number(zone.y||.48)-Number(zone.h||.5)/2)*h;
-    const zw=Number(zone.w||.45)*w, zh=Number(zone.h||.5)*h;
-    ctx.save();ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.58;ctx.fillStyle=color;
-    ctx.beginPath();ctx.roundRect?.(x,y,zw,zh,Math.min(50,zw*.12));
-    if(!ctx.roundRect)ctx.rect(x,y,zw,zh);
-    ctx.fill();ctx.restore();
+  function tintShirt(ctx,t,color){
+    if(!t?.shirt_zone||!color)return;
+    const z=t.shirt_zone,W=900,H=1050;
+    ctx.save();ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.42;ctx.fillStyle=color;
+    const x=(Number(z.x||.5)-Number(z.w||.45)/2)*W,y=(Number(z.y||.48)-Number(z.h||.5)/2)*H,w=Number(z.w||.45)*W,h=Number(z.h||.5)*H,rr=Math.min(w,h)*.12;
+    ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,rr);else ctx.rect(x,y,w,h);ctx.fill();ctx.restore();
+  }
+  function drawDesign(ctx,img,adj){if(!img)return;const W=900,H=1050,w=Number(adj.w)*W,h=Number(adj.h)*H,x=Number(adj.x)*W,y=Number(adj.y)*H;ctx.save();ctx.translate(x,y);ctx.rotate((Number(adj.r)||0)*Math.PI/180);ctx.drawImage(img,-w/2,-h/2,w,h);ctx.restore()}
+  function templateFor(side){return templates.filter(t=>String(t.garment_id)===String(state.garmentId)&&(!state.modelKey||modelKey(t)===state.modelKey)).find(t=>t.side===side)||null}
+  function drawSide(side){const c=$(`#ma${side==='front'?'Front':'Back'}Canvas`);if(!c)return;const ctx=c.getContext('2d'),base=side==='front'?frontBase:backBase,design=side==='front'?frontDesign:backDesign,t=templateFor(side),adj=state[side];ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='#eef2f6';ctx.fillRect(0,0,c.width,c.height);if(base)cover(ctx,base,c.width,c.height);else{ctx.fillStyle='#667085';ctx.font='700 24px sans-serif';ctx.textAlign='center';ctx.fillText('Falta plantilla '+(side==='front'?'delantera':'trasera'),c.width/2,c.height/2)}if(base)tintShirt(ctx,t,state.color);drawDesign(ctx,design,adj)}
+  function drawDouble(){const c=$('#maDoubleCanvas');if(!c)return;const ctx=c.getContext('2d');ctx.fillStyle='#f4f6f8';ctx.fillRect(0,0,c.width,c.height);const f=$('#maFrontCanvas'),b=$('#maBackCanvas');if(f)ctx.drawImage(f,0,0,900,1050,0,0,700,817);if(b)ctx.drawImage(b,0,0,900,1050,700,0,700,817);ctx.fillStyle='#07152f';ctx.font='800 22px sans-serif';ctx.textAlign='center';ctx.fillText('DELANTERO',350,850);ctx.fillText('TRASERO',1050,850)}
+  function redraw(){drawSide('front');drawSide('back');drawDouble()}
+
+  async function loadTemplatesForSelection(){frontBase=backBase=null;const ft=templateFor('front'),bt=templateFor('back');if(ft?.print_zone)state.front={...state.front,x:Number(ft.print_zone.x||.5),y:Number(ft.print_zone.y||.36),w:Number(ft.print_zone.w||.30),h:Number(ft.print_zone.h||.26),r:Number(ft.print_zone.rotation||0)};if(bt?.print_zone)state.back={...state.back,x:Number(bt.print_zone.x||.5),y:Number(bt.print_zone.y||.38),w:Number(bt.print_zone.w||.42),h:Number(bt.print_zone.h||.38),r:Number(bt.print_zone.rotation||0)};[frontBase,backBase]=await Promise.all([loadImage(ft?.image_url).catch(()=>null),loadImage(bt?.image_url).catch(()=>null)]);syncControls();redraw()}
+  function syncControls(){['front','back'].forEach(side=>{const p=side==='front'?'F':'B',a=state[side],ids={x:`#ma${p}X`,y:`#ma${p}Y`,w:`#ma${p}W`,h:`#ma${p}H`,r:`#ma${p}R`};Object.entries(ids).forEach(([k,sel])=>{const el=$(sel);if(el)el.value=k==='r'?a[k]:Math.round(a[k]*100)})})}
+  function readAdj(side){const p=side==='front'?'F':'B';state[side]={x:Number($(`#ma${p}X`).value)/100,y:Number($(`#ma${p}Y`).value)/100,w:Number($(`#ma${p}W`).value)/100,h:Number($(`#ma${p}H`).value)/100,r:Number($(`#ma${p}R`).value)};redraw()}
+
+  function fillGarments(){const s=$('#maGarment');if(!s)return;s.innerHTML=garments.map(g=>`<option value="${g.id}">${esc(g.manufacturer)} · ${esc(g.model)}</option>`).join('');if(state.garmentId&&garments.some(g=>g.id===state.garmentId))s.value=state.garmentId;else state.garmentId=s.value||null;fillColors();fillModels()}
+  function fillColors(){const g=garments.find(x=>x.id===state.garmentId),s=$('#maColor');if(!s)return;const colors=Array.isArray(g?.colors)?g.colors:[];s.innerHTML=colors.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');if(colors.length){const name=colors[0];s.value=name;state.color=hexForColor(g,name)}else state.color='#ffffff';const chip=$('#maColorChip');if(chip)chip.style.background=state.color}
+  function fillModels(){const s=$('#maModel');if(!s)return;const related=templates.filter(t=>String(t.garment_id)===String(state.garmentId)),keys=[...new Set(related.map(modelKey))];s.innerHTML=keys.map(k=>{const sides=related.filter(t=>modelKey(t)===k).map(t=>t.side),complete=sides.includes('front')&&sides.includes('back');return `<option value="${esc(k)}">${esc(k)}${complete?' · DEL/TRA':' · vista parcial'}</option>`}).join('');state.modelKey=keys[0]||'';if(state.modelKey)s.value=state.modelKey}
+  function controls(p,label){return `<details style="margin-top:10px"><summary style="font-weight:800;cursor:pointer">Ajustar ${label}</summary><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><label>Horizontal<input id="ma${p}X" type="range" min="5" max="95"></label><label>Vertical<input id="ma${p}Y" type="range" min="5" max="95"></label><label>Ancho<input id="ma${p}W" type="range" min="5" max="90"></label><label>Alto<input id="ma${p}H" type="range" min="5" max="90"></label><label>Giro<input id="ma${p}R" type="range" min="-20" max="20"></label></div></details>`}
+  function applyMode(){const m=state.mode;$('#maFrontBox').style.display=m==='back'?'none':'block';$('#maBackBox').style.display=m==='front'?'none':'block';$('#maDoubleBox').style.display=m==='double'?'block':'none'}
+
+  function makePanel(){
+    document.getElementById('aihxoMockupAutoV2')?.remove();const p=document.createElement('div');p.id='aihxoMockupAutoV2';p.style.cssText='position:fixed;inset:0;z-index:12000;background:rgba(7,21,47,.58);overflow:auto;padding:0;';
+    p.innerHTML=`<div style="background:#fff;min-height:100dvh;max-width:980px;margin:0 auto;padding:16px 14px calc(28px + env(safe-area-inset-bottom));box-sizing:border-box"><div style="position:sticky;top:0;background:#fff;z-index:5;padding:4px 0 12px;display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h2 style="margin:0">⚡ Mockup automático AIHXO</h2><div class="muted">Prenda + color + modelo + delantero + trasero</div></div><button id="maClose" class="secondary" type="button">✕</button></div>
+      <div class="card" style="padding:14px"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px"><label>Prenda base<select id="maGarment" class="dp-input"></select></label><label>Color fabricante<div style="display:flex;gap:8px;align-items:center"><span id="maColorChip" style="width:28px;height:28px;border-radius:999px;border:1px solid #ccd3db;flex:0 0 auto"></span><select id="maColor" class="dp-input" style="flex:1"></select></div></label><label>Modelo / persona<select id="maModel" class="dp-input"></select></label><label>Salida<select id="maMode" class="dp-input"><option value="double">Delantero + trasero + doble</option><option value="front">Solo delantero</option><option value="back">Solo trasero</option></select></label></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px"><label><b>Diseño delantero</b><input id="maFrontFile" type="file" accept="image/*" class="dp-input"></label><label><b>Diseño trasero</b><input id="maBackFile" type="file" accept="image/*" class="dp-input"></label></div><button id="maGenerate" class="primary" type="button" style="width:100%;margin-top:12px;padding:14px">⚡ GENERAR MOCKUP AUTOMÁTICO</button></div>
+      <div id="maOutputs" style="margin-top:14px;display:grid;gap:14px"><div class="card" id="maFrontBox"><h3 style="margin-top:0">Delantero</h3><canvas id="maFrontCanvas" width="900" height="1050" style="width:100%;border-radius:14px;background:#eef2f6"></canvas>${controls('F','delantero')}</div><div class="card" id="maBackBox"><h3 style="margin-top:0">Trasero</h3><canvas id="maBackCanvas" width="900" height="1050" style="width:100%;border-radius:14px;background:#eef2f6"></canvas>${controls('B','trasero')}</div><div class="card" id="maDoubleBox"><h3 style="margin-top:0">Composición doble</h3><canvas id="maDoubleCanvas" width="1400" height="900" style="width:100%;border-radius:14px;background:#f4f6f8"></canvas><div class="muted" style="margin-top:8px">El color sobre una persona es una simulación. Las plantillas con camiseta clara/neutra dan el resultado más realista.</div></div></div>
+      <div style="position:sticky;bottom:0;background:#fff;padding:10px 0 calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:8px;z-index:5"><button id="maAttach" class="primary" type="button">🌐 Añadir al diseño/web</button><button id="maSave" class="secondary" type="button">Guardar / compartir PNG</button></div></div>`;
+    document.body.appendChild(p);$('#maClose').onclick=()=>p.remove();$('#maGarment').onchange=async e=>{state.garmentId=e.target.value;fillColors();fillModels();await loadTemplatesForSelection()};$('#maColor').onchange=e=>{const g=garments.find(x=>x.id===state.garmentId);state.color=hexForColor(g,e.target.value);$('#maColorChip').style.background=state.color;redraw()};$('#maModel').onchange=async e=>{state.modelKey=e.target.value;await loadTemplatesForSelection()};$('#maMode').onchange=e=>{state.mode=e.target.value;applyMode()};$('#maFrontFile').onchange=async e=>{frontDesign=await fileImage(e.target.files?.[0]).catch(()=>null);redraw()};$('#maBackFile').onchange=async e=>{backDesign=await fileImage(e.target.files?.[0]).catch(()=>null);redraw()};['F','B'].forEach(pfx=>['X','Y','W','H','R'].forEach(k=>{$(`#ma${pfx}${k}`).oninput=()=>readAdj(pfx==='F'?'front':'back')}));$('#maGenerate').onclick=async()=>{await loadTemplatesForSelection();if(typeof toast==='function')toast('Mockup generado')};$('#maAttach').onclick=attachOutputs;$('#maSave').onclick=saveOutput;return p
   }
 
-  function placeDesign(ctx,img,zone,w,h){
-    if(!img||!zone)return;
-    const x=Number(zone.x||.5)*w,y=Number(zone.y||.36)*h;
-    const maxW=Number(zone.w||.32)*w,maxH=Number(zone.h||.28)*h;
-    const scale=Math.min(maxW/img.width,maxH/img.height);
-    const dw=img.width*scale,dh=img.height*scale,rot=Number(zone.rotation||0)*Math.PI/180;
-    ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.drawImage(img,-dw/2,-dh/2,dw,dh);ctx.restore();
-  }
+  function blobOf(canvas){return new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error('PNG no generado')),'image/png',1))}
+  function baseName(){return String($('#dpNombre')?.value||'AIHXO').trim().replace(/[^a-z0-9]+/gi,'-')}
+  async function outputFiles(){const list=[];if(state.mode!=='back')list.push(new File([await blobOf($('#maFrontCanvas'))],`${baseName()}-mockup-delantero.png`,{type:'image/png'}));if(state.mode!=='front')list.push(new File([await blobOf($('#maBackCanvas'))],`${baseName()}-mockup-trasero.png`,{type:'image/png'}));if(state.mode==='double')list.push(new File([await blobOf($('#maDoubleCanvas'))],`${baseName()}-mockup-doble.png`,{type:'image/png'}));return list}
+  async function attachOutputs(){const gallery=$('#dpGaleria');if(!gallery){alert('Abre el generador desde un Diseño AIHXO para poder añadir los mockups directamente.');return}const btn=$('#maAttach');btn.disabled=true;btn.textContent='Añadiendo…';try{const files=await outputFiles(),dt=new DataTransfer();Array.from(gallery.files||[]).forEach(f=>dt.items.add(f));files.forEach(f=>dt.items.add(f));gallery.files=dt.files;if(typeof toast==='function')toast(`${files.length} mockup(s) añadidos al diseño`)}catch(e){console.error(e);alert('No se pudieron añadir los mockups')}finally{btn.disabled=false;btn.textContent='🌐 Añadir al diseño/web'}}
+  async function saveOutput(){try{const files=await outputFiles();if(navigator.share&&navigator.canShare&&navigator.canShare({files})){await navigator.share({files,title:'Mockups AIHXO'});return}for(const f of files){const u=URL.createObjectURL(f),a=document.createElement('a');a.href=u;a.download=f.name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2500)}}catch(e){console.error(e);alert('No se pudieron guardar los PNG')}}
 
-  function pairOptions(){
-    const g=$('#mavGarment')?.value;
-    const grouped={};
-    templates.filter(t=>t.garment_id===g).forEach(t=>{const k=(t.gender||t.name||'modelo').toLowerCase(); grouped[k]??={gender:k,front:null,back:null,name:t.name}; if(t.side==='front')grouped[k].front=t;if(t.side==='back')grouped[k].back=t;});
-    return Object.values(grouped).filter(x=>x.front||x.back);
-  }
+  window.abrirMockupAutomatico=async function(){const [{data:g,error:ge},{data:t,error:te}]=await Promise.all([supabaseClient.from('garments').select('id,manufacturer,model,colors,color_map,active').eq('active',true).order('manufacturer').order('model'),supabaseClient.from('mockup_templates').select('id,name,garment_id,model_type,gender,side,image_url,print_zone,shirt_zone,active').eq('active',true).order('name')]);if(ge||te){console.error(ge||te);toast('No se pudo cargar el generador de mockups');return}garments=g||[];templates=t||[];const fromDesign=$('#dpGarment')?.value||null;state.garmentId=(fromDesign&&garments.some(x=>x.id===fromDesign))?fromDesign:(garments[0]?.id||null);makePanel();fillGarments();await loadTemplatesForSelection();applyMode();const f=$('#dpFoto')?.files?.[0];if(f){frontDesign=await fileImage(f).catch(()=>null);redraw()}}
 
-  async function refreshModel(){
-    const sel=$('#mavModel'); if(!sel)return;
-    const pairs=pairOptions();
-    sel.innerHTML=pairs.map((p,i)=>`<option value="${i}">${esc((p.front||p.back)?.gender||p.name||'Modelo')} ${p.front&&p.back?'· frontal + trasera':''}</option>`).join('')||'<option value="">Sin modelos guardados</option>';
-    await loadSelectedPair();
-  }
-
-  async function loadSelectedPair(){
-    const pairs=pairOptions(), idx=Number($('#mavModel')?.value||0),p=pairs[idx];
-    frontBase=backBase=null;
-    if(p?.front?.image_url)try{frontBase=await loadImage(p.front.image_url)}catch(e){console.error(e)}
-    if(p?.back?.image_url)try{backBase=await loadImage(p.back.image_url)}catch(e){console.error(e)}
-    drawAll();
-  }
-
-  function selectedGarment(){return garments.find(g=>g.id===$('#mavGarment')?.value)}
-  function selectedPair(){return pairOptions()[Number($('#mavModel')?.value||0)]}
-
-  function fillColors(){
-    const g=selectedGarment(),s=$('#mavColor'); if(!s)return;
-    s.innerHTML=(g?.colors||[]).map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
-    drawAll();
-  }
-
-  function drawOne(canvas,base,design,side){
-    if(!canvas)return; const ctx=canvas.getContext('2d'),w=1000,h=1100;ctx.clearRect(0,0,w,h);ctx.fillStyle='#eef2f6';ctx.fillRect(0,0,w,h);
-    if(base)cover(ctx,base,w,h); else {ctx.fillStyle='#667085';ctx.font='700 26px sans-serif';ctx.textAlign='center';ctx.fillText(`Sin plantilla ${side==='front'?'delantera':'trasera'}`,w/2,h/2)}
-    const g=selectedGarment(),name=$('#mavColor')?.value||'',hex=g?.color_map?.[name]||'#ffffff',p=selectedPair(),t=side==='front'?p?.front:p?.back;
-    if(base&&t?.shirt_zone)applyTint(ctx,t.shirt_zone,hex,w,h);
-    placeDesign(ctx,design,t?.print_zone||{x:.5,y:side==='front'?.36:.38,w:side==='front'?.30:.42,h:side==='front'?.26:.38},w,h);
-  }
-
-  function drawAll(){drawOne($('#mavFront'),frontBase,frontImg,'front');drawOne($('#mavBack'),backBase,backImg,'back');drawDouble()}
-  function drawDouble(){const c=$('#mavDouble');if(!c)return;const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,2000,1100);if($('#mavFront'))ctx.drawImage($('#mavFront'),0,0);if($('#mavBack'))ctx.drawImage($('#mavBack'),1000,0)}
-
-  const blobOf=c=>new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('No se pudo generar PNG')),'image/png',1));
-  async function saveCanvas(canvas,name){const b=await blobOf(canvas),f=new File([b],name,{type:'image/png'});if(navigator.share&&navigator.canShare?.({files:[f]}))return navigator.share({files:[f],title:'Mockup AIHXO'});const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},2000)}
-
-  async function attachCanvas(canvas,name){
-    const gallery=$('#dpGaleria'); if(!gallery){toast?.('Abre el mockup desde un diseño propio');return}
-    const b=await blobOf(canvas),f=new File([b],name,{type:'image/png'}),dt=new DataTransfer();Array.from(gallery.files||[]).forEach(x=>dt.items.add(x));dt.items.add(f);gallery.files=dt.files;toast?.('Mockup añadido al diseño');
-  }
-
-  window.abrirMockupAutomatico=async function(){
-    const old=$('#aihxoMockupAutoV2'); if(old)old.remove();
-    const [{data:g},{data:t}]=await Promise.all([supabaseClient.from('garments').select('id,manufacturer,model,colors,color_map').eq('active',true).order('model'),supabaseClient.from('mockup_templates').select('*').eq('active',true).order('name')]);garments=g||[];templates=t||[];
-    const wrap=document.createElement('div');wrap.id='aihxoMockupAutoV2';wrap.style.cssText='position:fixed;inset:0;z-index:20000;background:rgba(7,21,47,.58);overflow:auto;padding:0';
-    wrap.innerHTML=`<div style="background:#fff;max-width:980px;margin:0 auto;min-height:100dvh;padding:16px;box-sizing:border-box"><div style="display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:2;padding:8px 0 12px"><div><h2 style="margin:0">⚡ Mockup automático</h2><div class="muted">Prenda + color + modelo + frontal + trasera</div></div><button id="mavClose" class="secondary">✕</button></div>
-    <div class="card" style="padding:14px"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px"><label>Prenda base<select id="mavGarment" class="dp-input">${garments.map(x=>`<option value="${x.id}">${esc(x.manufacturer)} · ${esc(x.model)}</option>`).join('')}</select></label><label>Color<select id="mavColor" class="dp-input"></select></label><label>Modelo/persona<select id="mavModel" class="dp-input"></select></label></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px"><label>Diseño delantero<input id="mavFrontFile" type="file" accept="image/*" class="dp-input"></label><label>Diseño trasero<input id="mavBackFile" type="file" accept="image/*" class="dp-input"></label></div></div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px"><div class="card"><b>DELANTERO</b><canvas id="mavFront" width="1000" height="1100" style="width:100%;margin-top:8px;border-radius:14px"></canvas><div style="display:grid;gap:8px;margin-top:8px"><button id="mavSaveFront" class="secondary">Guardar frontal PNG</button><button id="mavAttachFront" class="primary">Añadir frontal al diseño</button></div></div><div class="card"><b>TRASERO</b><canvas id="mavBack" width="1000" height="1100" style="width:100%;margin-top:8px;border-radius:14px"></canvas><div style="display:grid;gap:8px;margin-top:8px"><button id="mavSaveBack" class="secondary">Guardar trasero PNG</button><button id="mavAttachBack" class="primary">Añadir trasero al diseño</button></div></div></div>
-    <div class="card" style="margin-top:12px"><b>COMPOSICIÓN DOBLE</b><canvas id="mavDouble" width="2000" height="1100" style="width:100%;margin-top:8px;border-radius:14px"></canvas><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button id="mavSaveDouble" class="secondary">Guardar doble PNG</button><button id="mavAttachDouble" class="primary">Añadir doble al diseño</button></div><div class="muted" style="margin-top:8px">El color sobre una foto de persona es una simulación. Cuanto más neutra/blanca sea la camiseta de la plantilla, más realista queda.</div></div></div>`;
-    document.body.appendChild(wrap);
-    $('#mavClose').onclick=()=>wrap.remove();
-    $('#mavGarment').onchange=async()=>{fillColors();await refreshModel()}; $('#mavColor').onchange=drawAll; $('#mavModel').onchange=loadSelectedPair;
-    $('#mavFrontFile').onchange=async e=>{frontImg=await fileImage(e.target.files?.[0]);drawAll()}; $('#mavBackFile').onchange=async e=>{backImg=await fileImage(e.target.files?.[0]);drawAll()};
-    $('#mavSaveFront').onclick=()=>saveCanvas($('#mavFront'),'AIHXO-mockup-delantero.png');$('#mavSaveBack').onclick=()=>saveCanvas($('#mavBack'),'AIHXO-mockup-trasero.png');$('#mavSaveDouble').onclick=()=>saveCanvas($('#mavDouble'),'AIHXO-mockup-doble.png');
-    $('#mavAttachFront').onclick=()=>attachCanvas($('#mavFront'),'AIHXO-mockup-delantero.png');$('#mavAttachBack').onclick=()=>attachCanvas($('#mavBack'),'AIHXO-mockup-trasero.png');$('#mavAttachDouble').onclick=()=>attachCanvas($('#mavDouble'),'AIHXO-mockup-doble.png');
-    fillColors();await refreshModel();
-    const f=$('#dpFoto')?.files?.[0];if(f){frontImg=await fileImage(f);drawAll()}
-  };
-
-  const oldOpen=window.abrirGeneradorMockup;
-  window.abrirGeneradorMockup=function(){return window.abrirMockupAutomatico()};
-  window.abrirGeneradorMockupClasico=oldOpen;
+  const classic=window.abrirGeneradorMockup;window.abrirGeneradorMockup=function(){return window.abrirMockupAutomatico()};window.abrirGeneradorMockupClasico=classic;
 })();
