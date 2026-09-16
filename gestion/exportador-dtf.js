@@ -3,7 +3,7 @@
   if(window.__aihxoExportadorDTF) return;
   window.__aihxoExportadorDTF=true;
 
-  const state={file:null,img:null,width:0,height:0,hasAlpha:false,name:'diseno'};
+  const state={file:null,img:null,width:0,height:0,hasAlpha:false,name:'diseno',objectUrl:null,source:'upload'};
   const CM_TO_IN=1/2.54;
   const DPI=300;
   const presets=[
@@ -28,20 +28,29 @@
   }
 
   function pxForCm(cm){return Math.max(1,Math.round(Number(cm||0)*CM_TO_IN*DPI));}
-  function cmForPx(px){return Number(px||0)/DPI*2.54;}
   function fmt(n,d=0){return Number(n||0).toFixed(d);}
+  function cleanupUrl(){if(state.objectUrl){URL.revokeObjectURL(state.objectUrl);state.objectUrl=null;}}
 
-  function render(){
+  async function designOptions(){
+    const rows=(window.products||products||[])
+      .filter(p=>p?.image_url&&String(p.category||'').toLowerCase().includes('diseno propio'))
+      .sort((a,b)=>String(a.model||'').localeCompare(String(b.model||''),'es'));
+    return rows.map(p=>`<option value="${esc(p.id)}">${esc(p.model||p.sku||'Diseño AIHXO')}</option>`).join('');
+  }
+
+  async function render(){
     const view=document.querySelector('#view');if(!view)return;
     document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('active'));
     document.querySelector('#aihxoDtfNav')?.classList.add('active');
     const title=document.querySelector('#title');if(title)title.textContent='Exportador DTF';
+    const options=await designOptions();
     view.innerHTML=`<div class="page">
       <div class="section"><div><h2 style="margin:0">🖨️ Exportador DTF</h2><div class="muted">Prepara un PNG transparente con medidas reales para enviar a impresión.</div></div></div>
       <div class="grid two">
         <div class="card">
-          <h3>1. Archivo maestro</h3>
-          <p class="muted">Usa preferiblemente PNG transparente y de alta resolución. El archivo original nunca se modifica.</p>
+          <h3>1. Elegir diseño</h3>
+          <label class="field"><span>Diseño AIHXO guardado</span><select id="dtfDesignSelect"><option value="">Seleccionar diseño…</option>${options}</select></label>
+          <div class="muted" style="margin:8px 0 14px">O carga un archivo maestro manualmente.</div>
           <input id="dtfFile" type="file" accept="image/png,image/webp,image/jpeg">
           <div id="dtfSourceInfo" class="muted" style="margin-top:10px">Todavía no has cargado ningún diseño.</div>
 
@@ -65,7 +74,7 @@
         <div class="card">
           <h3>Previsualización y control</h3>
           <div id="dtfPreviewWrap" style="min-height:320px;border:1px solid #d9dee8;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;padding:18px;overflow:hidden">
-            <div class="muted">Carga una imagen para verla aquí.</div>
+            <div class="muted">Elige un diseño o carga una imagen.</div>
           </div>
           <div id="dtfChecks" style="margin-top:14px"></div>
           <button id="dtfExport" class="primary" style="width:100%;margin-top:14px" disabled>Generar PNG DTF</button>
@@ -79,6 +88,8 @@
   function bind(){
     const file=document.querySelector('#dtfFile');
     file.onchange=()=>loadFile(file.files?.[0]);
+    const design=document.querySelector('#dtfDesignSelect');
+    design.onchange=()=>loadSavedDesign(design.value);
     document.querySelectorAll('.dtfPreset').forEach(b=>b.onclick=()=>{document.querySelector('#dtfW').value=b.dataset.w;document.querySelector('#dtfH').value=b.dataset.h;refresh();});
     ['#dtfW','#dtfH','#dtfFit'].forEach(sel=>document.querySelector(sel)?.addEventListener('input',refresh));
     document.querySelectorAll('.dtfGarment').forEach(b=>b.onclick=()=>{
@@ -88,16 +99,32 @@
     document.querySelector('#dtfExport').onclick=exportPNG;
   }
 
-  async function loadFile(file){
+  async function loadSavedDesign(id){
+    if(!id)return;
+    const p=(window.products||products||[]).find(x=>String(x.id)===String(id));
+    if(!p?.image_url){alert('Este diseño no tiene imagen principal disponible.');return;}
+    try{
+      const r=await fetch(p.image_url,{cache:'no-store'});
+      if(!r.ok)throw new Error('No se pudo descargar la imagen');
+      const blob=await r.blob();
+      const ext=(blob.type||'image/png').includes('jpeg')?'jpg':(blob.type||'image/png').split('/')[1]||'png';
+      const file=new File([blob],`${p.sku||p.model||'diseno'}.${ext}`,{type:blob.type||'image/png'});
+      state.source='aihxo';
+      await loadFile(file,p.model||p.sku||'Diseño AIHXO');
+    }catch(e){alert('No se pudo cargar ese diseño desde AIHXO.');console.error(e);}
+  }
+
+  async function loadFile(file,label=''){
     if(!file)return;
     if(!/^image\/(png|webp|jpeg)$/.test(file.type)){alert('Formato no compatible. Usa PNG, WEBP o JPG.');return;}
-    const url=URL.createObjectURL(file);const img=new Image();
+    cleanupUrl();
+    const url=URL.createObjectURL(file);state.objectUrl=url;
+    const img=new Image();
     img.onload=()=>{
-      state.file=file;state.img=img;state.width=img.naturalWidth;state.height=img.naturalHeight;state.name=(file.name.replace(/\.[^.]+$/,'')||'diseno').replace(/[^a-zA-Z0-9_-]+/g,'-');
+      state.file=file;state.img=img;state.width=img.naturalWidth;state.height=img.naturalHeight;state.name=((label||file.name).replace(/\.[^.]+$/,'')||'diseno').replace(/[^a-zA-Z0-9_-]+/g,'-');
       detectAlpha(img).then(v=>{state.hasAlpha=v;refresh();});
-      URL.revokeObjectURL(url);
     };
-    img.onerror=()=>{URL.revokeObjectURL(url);alert('No se pudo abrir la imagen.');};
+    img.onerror=()=>{cleanupUrl();alert('No se pudo abrir la imagen.');};
     img.src=url;
   }
 
@@ -123,7 +150,7 @@
     if(!state.img)return;
     const w=Number(document.querySelector('#dtfW')?.value||0),h=Number(document.querySelector('#dtfH')?.value||0),garment=document.querySelector('#dtfGarmentValue')?.value||'light';
     const tW=pxForCm(w),tH=pxForCm(h);const ppiW=state.width/(w*CM_TO_IN),ppiH=state.height/(h*CM_TO_IN),effective=Math.min(ppiW,ppiH);const stats=contrastStats(state.img);
-    document.querySelector('#dtfSourceInfo').innerHTML=`<b>${esc(state.file.name)}</b><br>${state.width}×${state.height} px · ${(state.file.size/1024/1024).toFixed(2)} MB`;
+    document.querySelector('#dtfSourceInfo').innerHTML=`<b>${esc(state.name)}</b><br>${state.width}×${state.height} px · ${(state.file.size/1024/1024).toFixed(2)} MB · ${state.source==='aihxo'?'Diseño AIHXO':'Archivo cargado'}`;
     const wrap=document.querySelector('#dtfPreviewWrap');wrap.style.background=garment==='dark'?'#111':'#fff';wrap.innerHTML='';const im=document.createElement('img');im.src=state.img.src;im.style.maxWidth='100%';im.style.maxHeight='400px';im.style.objectFit='contain';wrap.appendChild(im);
     const okRes=effective>=280,midRes=effective>=180;const transparency=state.hasAlpha;
     let contrastMsg='✅ Contraste general correcto para la prenda elegida.';
@@ -148,10 +175,11 @@
       const scale=Math.min(outW/state.img.naturalWidth,outH/state.img.naturalHeight);const dw=Math.round(state.img.naturalWidth*scale),dh=Math.round(state.img.naturalHeight*scale),dx=Math.round((outW-dw)/2),dy=Math.round((outH-dh)/2);x.drawImage(state.img,dx,dy,dw,dh);
     }
     const blob=await new Promise(res=>c.toBlob(res,'image/png',1));if(!blob){alert('No se pudo generar el PNG.');return;}
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`AIHXO_${state.name}_DTF_${String(w).replace('.','-')}x${String(h).replace('.','-')}cm_${outW}x${outH}px.png`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+    const dl=URL.createObjectURL(blob);const a=document.createElement('a');a.href=dl;a.download=`AIHXO_${state.name}_DTF_${String(w).replace('.','-')}x${String(h).replace('.','-')}cm_${outW}x${outH}px.png`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(dl),2500);
     if(typeof toast==='function')toast('PNG DTF generado');
   }
 
   window.aihxoExportadorDTFView=render;
+  window.aihxoExportadorDTFDesdeArchivo=async function(file){await render();await loadFile(file);};
   const mo=new MutationObserver(injectNav);mo.observe(document.documentElement,{childList:true,subtree:true});injectNav();
 })();
