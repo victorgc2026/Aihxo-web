@@ -16,6 +16,13 @@
       if(pe) throw pe;
       if(le) throw le;
 
+      const status=String(purchase?.status||'').trim().toLowerCase();
+      if(['recibido','recibida','completado','completada'].includes(status)){
+        toast?.('Esta compra ya figura como recibida');
+        await window.comprasView?.(document.getElementById('view'));
+        return;
+      }
+
       const rows=lines||[];
       if(!rows.length){
         alert('Esta compra no tiene líneas de prendas. Añade primero el desglose desde “Líneas”.');
@@ -31,9 +38,7 @@
         .filter(x=>x.item_id&&x.qty>0);
 
       if(!pending.length){
-        if(!['recibido','completado'].includes(String(purchase?.status||'').toLowerCase())){
-          await supabaseClient.from('purchases').update({status:'Recibido'}).eq('id',purchaseId);
-        }
+        await supabaseClient.from('purchases').update({status:'Recibido'}).eq('id',purchaseId);
         toast?.('La compra ya estaba completamente recibida');
         await window.comprasView?.(document.getElementById('view'));
         return;
@@ -52,7 +57,6 @@
       });
       if(error) throw error;
 
-      // Al recepcionar todo lo pendiente, la compra queda cerrada como recibida.
       const {error:statusError}=await supabaseClient
         .from('purchases')
         .update({status:'Recibido'})
@@ -79,9 +83,16 @@
       const card=cameraBtn.closest('.card');
       if(!card||card.querySelector(`.manualReceivePurchase[data-purchase-id="${pid}"]`)) return;
 
-      // No mostrar el botón si visualmente ya consta como recibido/completado.
       const cardText=(card.textContent||'').toLowerCase();
-      if(cardText.includes('0 pendientes') || /\brecibido\b/.test(cardText) || /\bcompletado\b/.test(cardText)) return;
+
+      // Solo mostrar en compras con un número real de unidades pendientes > 0.
+      // Esto excluye automáticamente compras antiguas sin desglose.
+      const match=cardText.match(/(\d+)\s+pendientes?/);
+      const pendingCount=match?Number(match[1]):0;
+      if(pendingCount<=0) return;
+
+      // Nunca mostrar si la compra ya consta como recibida/completada.
+      if(/\b(recibido|recibida|completado|completada)\b/.test(cardText)) return;
 
       const b=document.createElement('button');
       b.type='button';
