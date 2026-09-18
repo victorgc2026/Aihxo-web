@@ -33,7 +33,43 @@
   function fileImage(file){return new Promise((resolve,reject)=>{if(!file)return resolve(null);const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=r.result};r.onerror=reject;r.readAsDataURL(file)})}
   function cover(ctx,img,w,h){const r=Math.max(w/img.width,h/img.height),dw=img.width*r,dh=img.height*r;ctx.drawImage(img,(w-dw)/2,(h-dh)/2,dw,dh)}
 
-  function tintShirt(ctx,t,color){if(!t?.shirt_zone||!color)return;const z=t.shirt_zone,W=900,H=1050;ctx.save();ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.42;ctx.fillStyle=color;const x=(Number(z.x||.5)-Number(z.w||.45)/2)*W,y=(Number(z.y||.48)-Number(z.h||.5)/2)*H,w=Number(z.w||.45)*W,h=Number(z.h||.5)*H,rr=Math.min(w,h)*.12;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,rr);else ctx.rect(x,y,w,h);ctx.fill();ctx.restore()}
+  function tintShirt(ctx,t,color){
+    if(!t?.shirt_zone||!color||String(color).toLowerCase()==='#ffffff')return;
+    const z=t.shirt_zone,W=900,H=1050;
+    const x=Math.max(0,Math.round((Number(z.x||.5)-Number(z.w||.45)/2)*W));
+    const y=Math.max(0,Math.round((Number(z.y||.48)-Number(z.h||.5)/2)*H));
+    const w=Math.min(W-x,Math.round(Number(z.w||.45)*W));
+    const h=Math.min(H-y,Math.round(Number(z.h||.5)*H));
+    const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(color));
+    if(!m)return;
+    const tr=parseInt(m[1],16),tg=parseInt(m[2],16),tb=parseInt(m[3],16);
+    try{
+      const img=ctx.getImageData(x,y,w,h),d=img.data;
+      for(let i=0;i<d.length;i+=4){
+        const r=d[i],g=d[i+1],b=d[i+2],a=d[i+3];
+        if(a<10)continue;
+        const max=Math.max(r,g,b),min=Math.min(r,g,b),sat=max-min,lum=(r+g+b)/3;
+        // Selecciona píxeles claros/neutros propios de la camiseta blanca,
+        // evitando piel, pelo y fondo en lo posible.
+        if(lum<82||sat>34)continue;
+        const whiteness=Math.max(0,Math.min(1,(lum-82)/173));
+        const neutral=Math.max(0,Math.min(1,1-sat/34));
+        const mask=whiteness*neutral;
+        if(mask<0.12)continue;
+        const shade=Math.max(.18,lum/255);
+        const nr=tr*shade,ng=tg*shade,nb=tb*shade;
+        const strength=.88*mask;
+        d[i]=Math.round(r*(1-strength)+nr*strength);
+        d[i+1]=Math.round(g*(1-strength)+ng*strength);
+        d[i+2]=Math.round(b*(1-strength)+nb*strength);
+      }
+      ctx.putImageData(img,x,y);
+    }catch(err){
+      console.warn('Recoloración avanzada no disponible, usando modo básico',err);
+      ctx.save();ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.28;ctx.fillStyle=color;
+      const rr=Math.min(w,h)*.12;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,rr);else ctx.rect(x,y,w,h);ctx.fill();ctx.restore();
+    }
+  }
   function drawDesign(ctx,img,adj){if(!img)return;const W=900,H=1050,maxW=Number(adj.w)*W,maxH=Number(adj.h)*H,x=Number(adj.x)*W,y=Number(adj.y)*H,scale=Math.min(maxW/img.width,maxH/img.height),w=img.width*scale,h=img.height*scale;ctx.save();ctx.translate(x,y);ctx.rotate((Number(adj.r)||0)*Math.PI/180);ctx.drawImage(img,-w/2,-h/2,w,h);ctx.restore()}
   function templateFor(side){return templates.filter(t=>String(t.garment_id)===String(state.garmentId)&&(!state.modelKey||modelKey(t)===state.modelKey)).find(t=>t.side===side)||null}
   function drawSide(side){const c=$(`#ma${side==='front'?'Front':'Back'}Canvas`);if(!c)return;const ctx=c.getContext('2d'),base=side==='front'?frontBase:backBase,design=side==='front'?frontDesign:backDesign,t=templateFor(side),adj=state[side];ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='#eef2f6';ctx.fillRect(0,0,c.width,c.height);if(base)cover(ctx,base,c.width,c.height);else{ctx.fillStyle='#667085';ctx.font='700 24px sans-serif';ctx.textAlign='center';ctx.fillText('Falta plantilla '+(side==='front'?'delantera':'trasera'),c.width/2,c.height/2)}if(base)tintShirt(ctx,t,state.color);drawDesign(ctx,design,adj)}
