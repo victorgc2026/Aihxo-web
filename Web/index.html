@@ -409,6 +409,8 @@ const guiaTallasUrl =
 
       const nombre = escaparHTML(p.model || p.sku || 'Diseño AIHXO');
       const imagen = escaparHTML(p.image_url || '');
+      const galeria = Array.isArray(p.gallery) ? p.gallery.filter(Boolean).map(x => escaparHTML(x)) : [];
+      const imagenPrincipal = galeria[0] || imagen;
       const descripcion = escaparHTML(p.features || '');
       const precio = Number(p.sale_price || 0);
       const oferta = p.price_one_print != null
@@ -437,7 +439,7 @@ const colores = String(p.color || '')
 
     <div class="ph" style="padding:0;overflow:hidden;height:auto;">
       <img
-        src="${imagen}"
+        src="${imagenPrincipal}"
         alt="${nombre}"
         loading="lazy"
         style="width:100%;display:block;object-fit:cover;max-height:720px;"
@@ -505,6 +507,21 @@ const colores = String(p.color || '')
   </summary>
 
   <div class="aihxo-product-expanded">
+      ${galeria.length ? `
+        <div style="margin:14px 0 18px;">
+          <div style="font-weight:900;margin-bottom:10px;">Mockups del diseño</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+            ${galeria.map((url,index)=>`
+              <button type="button"
+                onclick="this.closest(\'.product\').querySelector(\'.ph img\').src=\'${url}\'"
+                style="border:1px solid #d7dee8;background:#fff;padding:0;border-radius:12px;overflow:hidden;cursor:pointer;">
+                <img src="${url}" alt="${nombre} mockup ${index+1}" loading="lazy"
+                  style="width:100%;aspect-ratio:1/1;object-fit:cover;display:block;">
+              </button>
+            `).join(\'\')}
+          </div>
+        </div>
+      ` : \'\'}
       ${tallas.length ? `
   <div style="margin:14px 0;">
     <div style="font-weight:800;margin-bottom:8px;">Tallas disponibles</div>
