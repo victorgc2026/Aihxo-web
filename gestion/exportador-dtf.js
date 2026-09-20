@@ -8,6 +8,32 @@
   const DPI=300;
   const presets=[['Pecho niño','8','6'],['Pecho adulto','10','8'],['Logo sudadera','9','5'],['Espalda niño','28','30'],['Espalda adulto','32','32'],['DTF estándar','25','30'],['Tote','25','36']];
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+
+  function canvasToBlob(canvas,type='image/png',quality=1){
+    return new Promise((resolve,reject)=>{
+      const fail=()=>reject(new Error('El navegador no pudo crear el PNG desde el lienzo.'));
+      try{
+        if(typeof canvas.toBlob==='function'){
+          canvas.toBlob(blob=>blob?resolve(blob):fail(),type,quality);
+          return;
+        }
+        const dataUrl=canvas.toDataURL(type,quality);
+        const parts=dataUrl.split(',');
+        if(parts.length<2)return fail();
+        const bin=atob(parts[1]),bytes=new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+        resolve(new Blob([bytes],{type}));
+      }catch(e){reject(e instanceof Error?e:new Error(String(e||'Error creando PNG')));}
+    });
+  }
+
+  function downloadBlob(blob,filename){
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+  }
 
   function injectNav(){
     const nav=document.querySelector('#nav');
@@ -246,19 +272,34 @@
     try{
       const src=state.img,maxProcess=1600,scale=Math.min(1,maxProcess/Math.max(src.naturalWidth,src.naturalHeight));
       const w=Math.max(1,Math.round(src.naturalWidth*scale)),h=Math.max(1,Math.round(src.naturalHeight*scale));
-      const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(src,0,0,w,h);
-      const id=x.getImageData(0,0,w,h),s=state.repairSettings,bg=sampleBackground(id.data,w,h,s.bgMode);state.repairWarning='';
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      const x=c.getContext('2d',{willReadFrequently:true})||c.getContext('2d');
+      if(!x)throw new Error('Safari no ha podido iniciar el procesador de imagen.');
+      x.clearRect(0,0,w,h);x.drawImage(src,0,0,w,h);
+      let id;
+      try{id=x.getImageData(0,0,w,h);}catch(err){throw new Error('No se pudieron leer los píxeles de la imagen. Prueba a volver a cargar el archivo.');}
+      const s=state.repairSettings,bg=sampleBackground(id.data,w,h,s.bgMode);state.repairWarning='';
       if(s.removeBackground&&!state.hasAlpha){if(bg.spread>58&&s.bgMode==='auto')state.repairWarning='⚠️ El fondo parece complejo: revisa bien los bordes. Puedes ajustar la tolerancia o mantener el original.';removeEdgeBackground(id,w,h,bg.rgb,s.threshold,s.feather,s.cleanHalo);}
       if(s.sharpen)sharpenImage(id,w,h,.14);if(s.clarity)applyClarity(id,s.clarity);x.putImageData(id,0,0);
       const tw=pxForCm(Number(document.querySelector('#dtfW').value)),th=pxForCm(Number(document.querySelector('#dtfH').value));
       const desired=Math.min(3,Math.max(1,Math.min(tw/w,th/h))),cap=Math.min(1,4200/Math.max(w*desired,h*desired)),upScale=desired*cap;
-      let out=c;if(upScale>1.03){const u=document.createElement('canvas');u.width=Math.round(w*upScale);u.height=Math.round(h*upScale);const ux=u.getContext('2d');ux.imageSmoothingEnabled=true;ux.imageSmoothingQuality='high';ux.drawImage(c,0,0,u.width,u.height);out=u;}
-      const blob=await new Promise(res=>out.toBlob(res,'image/png',1));if(!blob)throw new Error('No se pudo crear el PNG reparado');
+      let out=c;if(upScale>1.03){const u=document.createElement('canvas');u.width=Math.round(w*upScale);u.height=Math.round(h*upScale);const ux=u.getContext('2d');if(!ux)throw new Error('Safari no ha podido preparar la imagen reparada.');ux.imageSmoothingEnabled=true;ux.imageSmoothingQuality='high';ux.drawImage(c,0,0,u.width,u.height);out=u;}
+      const blob=await canvasToBlob(out,'image/png',1);
       if(state.repairedUrl)URL.revokeObjectURL(state.repairedUrl);state.repairedBlob=blob;state.repairedUrl=URL.createObjectURL(blob);state.repairedImg=await imageFromUrl(state.repairedUrl);state.selected='repaired';
       const cmp=document.querySelector('#dtfCompare');if(cmp)cmp.style.display='block';document.querySelector('#dtfOriginalPreview').src=state.img.src;document.querySelector('#dtfRepairedPreview').src=state.repairedImg.src;
       const info=document.querySelector('#dtfRepairInfo');if(info)info.innerHTML='Reparado: <b>'+state.repairedImg.naturalWidth+'×'+state.repairedImg.naturalHeight+' px</b>. '+(s.removeBackground&&!state.hasAlpha?'Fondo tratado · ':'')+(s.sharpen?'definición mejorada · ':'')+'original conservado. '+state.repairWarning;
       markSelected();refresh();if(typeof toast==='function')toast('Diseño reparado. Revisa la comparación.');
-    }catch(e){console.error(e);alert('No se pudo completar la reparación. El original sigue intacto.');}
+    }catch(e){
+      console.error('AIHXO DTF repair error',e);
+      state.selected='original';
+      const msg=e instanceof Error&&e.message?e.message:'Error desconocido al reparar la imagen.';
+      const st=document.querySelector('#dtfRepairStatus');
+      if(st){st.textContent='❌ '+msg+' El original sigue intacto.';st.style.background='#fff0f1';st.style.color='#a02333';}
+      const info=document.querySelector('#dtfRepairInfo');
+      if(info)info.textContent='Detalle: '+msg;
+      alert('No se pudo completar la reparación: '+msg+'\n\nEl original sigue intacto.');
+      try{refresh();}catch(_){}
+    }
     finally{if(btn){btn.disabled=false;btn.textContent='✨ Reparar y preparar para DTF';}if(btn2)btn2.disabled=false;}
   }
 
@@ -276,7 +317,7 @@
     const w=Number(document.querySelector('#dtfW').value),h=Number(document.querySelector('#dtfH').value);
     const outW=pxForCm(w),outH=pxForCm(h),c=document.createElement('canvas');c.width=outW;c.height=outH;const x=c.getContext('2d');x.clearRect(0,0,outW,outH);x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';
     const scale=Math.min(outW/img.naturalWidth,outH/img.naturalHeight),dw=Math.round(img.naturalWidth*scale),dh=Math.round(img.naturalHeight*scale),dx=Math.round((outW-dw)/2),dy=Math.round((outH-dh)/2);x.drawImage(img,dx,dy,dw,dh);
-    const raw=await new Promise(res=>c.toBlob(res,'image/png',1));if(!raw)return null;const blob=await withPngDpi(raw);
+    let raw;try{raw=await canvasToBlob(c,'image/png',1);}catch(e){console.error('AIHXO DTF export error',e);throw e;}const blob=await withPngDpi(raw);
     const version=state.selected==='repaired'&&state.repairedImg?'reparado':'original';
     const filename=`AIHXO_${state.name}_${version}_DTF_${String(w).replace('.','-')}x${String(h).replace('.','-')}cm_300ppp.png`;
     return {blob,filename};
