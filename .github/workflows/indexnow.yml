@@ -1,0 +1,29 @@
+name: Avisar a IndexNow
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Web/**'
+
+permissions:
+  contents: read
+
+jobs:
+  indexnow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Avisar cambios de AIHXO
+        shell: bash
+        run: |
+          KEY="aihxo2026indexnow5f7d91c2b4e8a3"
+          KEY_LOCATION="https://aihxo.es/aihxo2026indexnow5f7d91c2b4e8a3.txt"
+
+          for URL in "https://aihxo.es/" "https://aihxo.es/x/"; do
+            echo "Avisando IndexNow: $URL"
+            curl --fail-with-body --silent --show-error --get \
+              "https://api.indexnow.org/indexnow" \
+              --data-urlencode "url=$URL" \
+              --data-urlencode "key=$KEY" \
+              --data-urlencode "keyLocation=$KEY_LOCATION" || true
+          done
