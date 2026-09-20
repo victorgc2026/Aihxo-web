@@ -3,7 +3,7 @@
   if(window.__aihxoExportadorDTF) return;
   window.__aihxoExportadorDTF=true;
 
-  const state={file:null,img:null,width:0,height:0,hasAlpha:false,name:'diseno',objectUrl:null,source:'upload',repairedImg:null,repairedBlob:null,repairedUrl:null,selected:'original',repairWarning:'',repairSettings:{removeBackground:true,cleanHalo:true,sharpen:true,clarity:6,threshold:42,feather:24,bgMode:'auto'}};
+  const state={file:null,img:null,width:0,height:0,hasAlpha:false,name:'diseno',objectUrl:null,source:'upload',repairedImg:null,repairedBlob:null,repairedUrl:null,selected:'original',repairWarning:'',repairSettings:{removeBackground:true,cleanHalo:true,sharpen:true,clarity:6,threshold:42,feather:24,bgMode:'auto',mode:'basic'}};
   const CM_TO_IN=1/2.54;
   const DPI=300;
   const presets=[['Pecho niño','8','6'],['Pecho adulto','10','8'],['Logo sudadera','9','5'],['Espalda niño','28','30'],['Espalda adulto','32','32'],['DTF estándar','25','30'],['Tote','25','36']];
@@ -60,6 +60,12 @@
     document.querySelector('#aihxoDtfNav')?.classList.add('active');
     const title=document.querySelector('#title');if(title)title.textContent='Exportador DTF';
     const options=await designOptions();
+    if(!document.querySelector('#aihxoDtfCheckerStyle')){
+      const st=document.createElement('style');
+      st.id='aihxoDtfCheckerStyle';
+      st.textContent='.dtfChecker{background-color:#fff;background-image:linear-gradient(45deg,#e7ebf0 25%,transparent 25%),linear-gradient(-45deg,#e7ebf0 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e7ebf0 75%),linear-gradient(-45deg,transparent 75%,#e7ebf0 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0px;}';
+      document.head.appendChild(st);
+    }
     view.innerHTML=`<div class="page">
       <div class="section"><div><h2 style="margin:0">🖨️ Exportador DTF</h2><div class="muted">Prepara un PNG transparente con medidas reales para enviar a impresión.</div></div></div>
       <div class="grid two">
@@ -96,6 +102,12 @@
               <button id="dtfUseOriginalTop" class="secondary" type="button">Usar original</button>
             </div>
 
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+              <button type="button" class="primary small dtfModeBtn" data-mode="basic">✨ Reparado básico</button>
+              <button type="button" class="secondary small dtfModeBtn" data-mode="isolate">🪄 Recorte real</button>
+            </div>
+            <input id="dtfRepairMode" type="hidden" value="basic">
+
             <div id="dtfRepairSettings" style="display:none;margin-top:12px;padding:14px;border:1px solid #e5eaf2;border-radius:12px;background:#fff">
               <h4 style="margin:0 0 10px">🎛️ Retoque técnico</h4>
               <label style="display:flex;gap:9px;align-items:center;padding:8px 0"><input id="dtfOptRemoveBg" type="checkbox" checked style="width:auto"><span><b>Quitar fondo</b> si es uniforme o casi uniforme</span></label>
@@ -110,8 +122,8 @@
 
             <div id="dtfCompare" style="display:none;margin-top:12px">
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
-                <div id="dtfOriginalCard" style="border:1px solid #e2e7ef;border-radius:12px;padding:10px"><b>Original</b><div style="height:260px;margin-top:8px;background:#eef1f5;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden"><img id="dtfOriginalPreview" alt="Original" style="max-width:100%;max-height:100%;object-fit:contain"></div></div>
-                <div id="dtfRepairedCard" style="border:1px solid #e2e7ef;border-radius:12px;padding:10px"><b>Reparado</b><div style="height:260px;margin-top:8px;background:#eef1f5;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden"><img id="dtfRepairedPreview" alt="Reparado" style="max-width:100%;max-height:100%;object-fit:contain"></div></div>
+                <div id="dtfOriginalCard" style="border:1px solid #e2e7ef;border-radius:12px;padding:10px"><b>Original</b><div class="dtfChecker" style="height:260px;margin-top:8px;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden"><img id="dtfOriginalPreview" alt="Original" style="max-width:100%;max-height:100%;object-fit:contain"></div></div>
+                <div id="dtfRepairedCard" style="border:1px solid #e2e7ef;border-radius:12px;padding:10px"><b>Reparado</b><div class="dtfChecker" style="height:260px;margin-top:8px;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden"><img id="dtfRepairedPreview" alt="Reparado" style="max-width:100%;max-height:100%;object-fit:contain"></div></div>
               </div>
               <div id="dtfRepairInfo" class="muted" style="margin-top:10px"></div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
@@ -138,6 +150,14 @@
     document.querySelectorAll('.dtfPreset').forEach(b=>b.onclick=()=>{document.querySelector('#dtfW').value=b.dataset.w;document.querySelector('#dtfH').value=b.dataset.h;refresh();});
     ['#dtfW','#dtfH'].forEach(sel=>document.querySelector(sel)?.addEventListener('input',refresh));
     document.querySelectorAll('.dtfGarment').forEach(b=>b.onclick=()=>{document.querySelectorAll('.dtfGarment').forEach(x=>x.className='secondary dtfGarment');b.className='primary dtfGarment';document.querySelector('#dtfGarmentValue').value=b.dataset.garment;refresh();});
+    document.querySelectorAll('.dtfModeBtn').forEach(btn=>btn.onclick=()=>{
+      document.querySelectorAll('.dtfModeBtn').forEach(x=>x.className='secondary small dtfModeBtn');
+      btn.className='primary small dtfModeBtn';
+      const mode=btn.dataset.mode||'basic';
+      const input=document.querySelector('#dtfRepairMode');if(input)input.value=mode;
+      state.repairSettings.mode=mode;
+      const settings=document.querySelector('#dtfRepairSettings');if(settings)settings.style.display='block';
+    });
     document.querySelector('#dtfRepairNow').onclick=processRepair;
     document.querySelector('#dtfUseOriginalTop').onclick=()=>{state.selected='original';markSelected();refresh();};
     document.querySelector('#dtfUseRepaired').onclick=()=>{if(state.repairedImg){state.selected='repaired';markSelected();refresh();}};
@@ -188,11 +208,18 @@
     const w=Number(document.querySelector('#dtfW')?.value||0),h=Number(document.querySelector('#dtfH')?.value||0),garment=document.querySelector('#dtfGarmentValue')?.value||'light';
     const tW=pxForCm(w),tH=pxForCm(h),ppiW=state.width/(w*CM_TO_IN),ppiH=state.height/(h*CM_TO_IN),effective=Math.min(ppiW,ppiH),stats=contrastStats(state.img);
     document.querySelector('#dtfSourceInfo').innerHTML=`<b>${esc(state.name)}</b><br>${state.width}×${state.height} px · ${(state.file.size/1024/1024).toFixed(2)} MB · ${state.source==='aihxo'?'Diseño AIHXO':'Archivo cargado'}`;
-    const wrap=document.querySelector('#dtfPreviewWrap');wrap.style.background=garment==='dark'?'#111':'#fff';wrap.innerHTML='';const im=document.createElement('img');im.src=displayImg.src;im.style.maxWidth='100%';im.style.maxHeight='400px';im.style.objectFit='contain';wrap.appendChild(im);
+    const wrap=document.querySelector('#dtfPreviewWrap');
+    if(state.selected==='repaired'){
+      wrap.style.background='linear-gradient(45deg,#e7ebf0 25%,transparent 25%),linear-gradient(-45deg,#e7ebf0 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e7ebf0 75%),linear-gradient(-45deg,transparent 75%,#e7ebf0 75%)';
+      wrap.style.backgroundSize='24px 24px';wrap.style.backgroundPosition='0 0,0 12px,12px -12px,-12px 0px';wrap.style.backgroundColor='#fff';
+    }else{
+      wrap.style.backgroundImage='none';wrap.style.backgroundSize='';wrap.style.backgroundPosition='';wrap.style.backgroundColor=garment==='dark'?'#111':'#fff';
+    }
+    wrap.innerHTML='';const im=document.createElement('img');im.src=displayImg.src;im.style.maxWidth='100%';im.style.maxHeight='400px';im.style.objectFit='contain';wrap.appendChild(im);
     const okRes=effective>=280,midRes=effective>=180,transparency=(state.selected==='repaired'&&state.repairedImg)?true:state.hasAlpha;let contrastMsg='✅ Contraste general correcto para la prenda elegida.';
     if(garment==='dark'&&stats.dark>.55)contrastMsg='⚠️ El diseño contiene muchos tonos oscuros. Revísalo sobre camiseta oscura; algunos elementos pueden perderse.';
     if(garment==='light'&&stats.light>.65)contrastMsg='⚠️ El diseño contiene muchos tonos muy claros/blancos. Revísalo sobre camiseta clara; algunos elementos pueden perderse.';
-    document.querySelector('#dtfChecks').innerHTML=`<div style="display:grid;gap:8px"><div style="padding:10px 12px;border-radius:10px;background:#f6f8fb"><b>Salida:</b> ${fmt(w,1)}×${fmt(h,1)} cm · ${tW}×${tH} px · ${DPI} ppp objetivo</div><div style="padding:10px 12px;border-radius:10px;background:#f6f8fb">${okRes?'✅':midRes?'⚠️':'❌'} <b>Resolución efectiva del original:</b> ${Math.round(effective)} ppp ${okRes?'· adecuada':midRes?'· utilizable con precaución':'· insuficiente para esa medida'}</div><div style="padding:10px 12px;border-radius:10px;background:#f6f8fb">${transparency?'✅ Fondo transparente detectado':'⚠️ No se detecta transparencia. Si ves un fondo blanco/negro, también aparecerá en el archivo final.'}</div><div style="padding:10px 12px;border-radius:10px;background:#f6f8fb">${contrastMsg}</div></div>`;
+    document.querySelector('#dtfChecks').innerHTML=`<div style="display:grid;gap:8px"><div style="padding:10px 12px;border-radius:10px;background:#f6f8fb"><b>Salida:</b> ${fmt(w,1)}×${fmt(h,1)} cm · ${tW}×${tH} px · ${DPI} ppp objetivo</div><div style="padding:10px 12px;border-radius:10px;background:#f6f8fb">${okRes?'✅':midRes?'⚠️':'❌'} <b>Resolución efectiva del original:</b> ${Math.round(effective)} ppp ${okRes?'· adecuada':midRes?'· utilizable con precaución':'· insuficiente para esa medida'}</div><div style="padding:10px 12px;border-radius:10px;background:#f6f8fb">${state.selected==='repaired'&&state.repairSettings.mode==='isolate'?'✅ Recorte real aplicado: comprueba la transparencia sobre el patrón ajedrezado.':(transparency?'✅ Fondo transparente detectado':'⚠️ No se detecta transparencia. Si ves un fondo blanco/negro, también aparecerá en el archivo final.')}</div><div style="padding:10px 12px;border-radius:10px;background:#f6f8fb">${contrastMsg}</div></div>`;
     updateRepairPanel(effective);const ready=w>0&&h>0;document.querySelector('#dtfExport').disabled=!ready;document.querySelector('#dtfSaveFiles').disabled=!ready;
   }
 
@@ -208,6 +235,7 @@
     const s=state.repairSettings;
     const a=document.querySelector('#dtfOptRemoveBg'),b=document.querySelector('#dtfOptHalo'),d=document.querySelector('#dtfOptSharp'),m=document.querySelector('#dtfBgMode');
     if(a)s.removeBackground=a.checked;if(b)s.cleanHalo=b.checked;if(d)s.sharpen=d.checked;if(m)s.bgMode=m.value;
+    const mode=document.querySelector('#dtfRepairMode');if(mode)s.mode=mode.value||'basic';
     const t=document.querySelector('#dtfThreshold'),f=document.querySelector('#dtfFeather'),cl=document.querySelector('#dtfClarity');
     if(t)s.threshold=Number(t.value);if(f)s.feather=Number(f.value);if(cl)s.clarity=Number(cl.value);
     const tv=document.querySelector('#dtfThresholdVal'),fv=document.querySelector('#dtfFeatherVal'),cv=document.querySelector('#dtfClarityVal');
@@ -256,6 +284,53 @@
     }
   }
 
+  function isolateArtwork(imageData,w,h,opts={}){
+    const d=imageData.data,total=w*h;
+    const bg=new Uint8Array(total),seen=new Uint8Array(total),stack=new Int32Array(total);
+    let sp=0;
+    const lightThreshold=Number(opts.lightThreshold??242);
+    const satThreshold=Number(opts.satThreshold??24);
+    const alphaMin=Number(opts.alphaMin??8);
+    const feather=Math.max(0,Number(opts.feather??18));
+    const idx=(x,y)=>y*w+x;
+    const nearWhite=p=>{
+      const i=p*4,a=d[i+3]; if(a<alphaMin)return true;
+      const r=d[i],g=d[i+1],b=d[i+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b);
+      return r>=lightThreshold&&g>=lightThreshold&&b>=lightThreshold&&(mx-mn)<=satThreshold;
+    };
+    const push=p=>{if(p<0||p>=total||seen[p]||!nearWhite(p))return;seen[p]=1;stack[sp++]=p;};
+    for(let x=0;x<w;x++){push(x);push((h-1)*w+x);}
+    for(let y=0;y<h;y++){push(y*w);push(y*w+w-1);}
+    while(sp){
+      const p=stack[--sp];bg[p]=1;
+      const x=p%w,y=(p/w)|0;
+      if(x>0)push(p-1);if(x<w-1)push(p+1);if(y>0)push(p-w);if(y<h-1)push(p+w);
+    }
+    const distWhite=p=>{const i=p*4;return Math.hypot(255-d[i],255-d[i+1],255-d[i+2]);};
+    for(let p=0;p<total;p++){
+      const i=p*4;if(d[i+3]<alphaMin){d[i+3]=0;continue;}
+      if(bg[p]){d[i+3]=0;continue;}
+      const ds=distWhite(p);
+      if(ds<34){
+        const x=p%w,y=(p/w)|0;let edge=0,samples=0;
+        for(let yy=Math.max(0,y-1);yy<=Math.min(h-1,y+1);yy++){
+          for(let xx=Math.max(0,x-1);xx<=Math.min(w-1,x+1);xx++){
+            if(xx===x&&yy===y)continue;
+            const q=idx(xx,yy),qi=q*4;
+            edge+=Math.abs(d[i]-d[qi])+Math.abs(d[i+1]-d[qi+1])+Math.abs(d[i+2]-d[qi+2]);samples++;
+          }
+        }
+        edge=samples?edge/samples:0;
+        if(edge<36){
+          const a=feather?clamp(Math.round(255*(ds/Math.max(1,feather+18))),0,255):0;
+          d[i+3]=Math.min(d[i+3],a);
+        }
+      }
+    }
+    for(let p=0;p<total;p++){const i=p*4;if(d[i+3]<10)d[i+3]=0;}
+    return {changed:true};
+  }
+
   function sharpenImage(imageData,w,h,amount=.16){
     if(w<3||h<3)return;const d=imageData.data,src=new Uint8ClampedArray(d);
     for(let y=1;y<h-1;y++){let p=(y*w+1)*4;for(let x=1;x<w-1;x++,p+=4){if(src[p+3]===0)continue;for(let k=0;k<3;k++){const v=src[p+k]*(1+4*amount)-amount*(src[p-4+k]+src[p+4+k]+src[p-w*4+k]+src[p+w*4+k]);d[p+k]=clamp(Math.round(v),0,255);}}}
@@ -279,7 +354,13 @@
       let id;
       try{id=x.getImageData(0,0,w,h);}catch(err){throw new Error('No se pudieron leer los píxeles de la imagen. Prueba a volver a cargar el archivo.');}
       const s=state.repairSettings,bg=sampleBackground(id.data,w,h,s.bgMode);state.repairWarning='';
-      if(s.removeBackground&&!state.hasAlpha){if(bg.spread>58&&s.bgMode==='auto')state.repairWarning='⚠️ El fondo parece complejo: revisa bien los bordes. Puedes ajustar la tolerancia o mantener el original.';removeEdgeBackground(id,w,h,bg.rgb,s.threshold,s.feather,s.cleanHalo);}
+      if(s.mode==='isolate'){
+        isolateArtwork(id,w,h,{lightThreshold:242,satThreshold:24,alphaMin:8,feather:s.feather});
+        state.repairWarning='✅ Recorte real aplicado. Revisa el patrón ajedrezado para confirmar la transparencia.';
+      }else if(s.removeBackground&&!state.hasAlpha){
+        if(bg.spread>58&&s.bgMode==='auto')state.repairWarning='⚠️ El fondo parece complejo: revisa bien los bordes. Puedes ajustar la tolerancia o usar Recorte real.';
+        removeEdgeBackground(id,w,h,bg.rgb,s.threshold,s.feather,s.cleanHalo);
+      }
       if(s.sharpen)sharpenImage(id,w,h,.14);if(s.clarity)applyClarity(id,s.clarity);x.putImageData(id,0,0);
       const tw=pxForCm(Number(document.querySelector('#dtfW').value)),th=pxForCm(Number(document.querySelector('#dtfH').value));
       const desired=Math.min(3,Math.max(1,Math.min(tw/w,th/h))),cap=Math.min(1,4200/Math.max(w*desired,h*desired)),upScale=desired*cap;
@@ -287,7 +368,11 @@
       const blob=await canvasToBlob(out,'image/png',1);
       if(state.repairedUrl)URL.revokeObjectURL(state.repairedUrl);state.repairedBlob=blob;state.repairedUrl=URL.createObjectURL(blob);state.repairedImg=await imageFromUrl(state.repairedUrl);state.selected='repaired';
       const cmp=document.querySelector('#dtfCompare');if(cmp)cmp.style.display='block';document.querySelector('#dtfOriginalPreview').src=state.img.src;document.querySelector('#dtfRepairedPreview').src=state.repairedImg.src;
-      const info=document.querySelector('#dtfRepairInfo');if(info)info.innerHTML='Reparado: <b>'+state.repairedImg.naturalWidth+'×'+state.repairedImg.naturalHeight+' px</b>. '+(s.removeBackground&&!state.hasAlpha?'Fondo tratado · ':'')+(s.sharpen?'definición mejorada · ':'')+'original conservado. '+state.repairWarning;
+      const info=document.querySelector('#dtfRepairInfo');
+      if(info){
+        const modeLabel=s.mode==='isolate'?'Recorte real · transparencia total':'Fondo tratado';
+        info.innerHTML='Reparado: <b>'+state.repairedImg.naturalWidth+'×'+state.repairedImg.naturalHeight+' px</b>. '+modeLabel+' · '+(s.sharpen?'definición mejorada · ':'')+'original conservado. '+state.repairWarning;
+      }
       markSelected();refresh();if(typeof toast==='function')toast('Diseño reparado. Revisa la comparación.');
     }catch(e){
       console.error('AIHXO DTF repair error',e);
