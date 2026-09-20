@@ -41,13 +41,58 @@
   const ss=window._aihxoSuppliers||[], items=await stockOptions();
   document.getElementById('purchaseModal')?.remove();
   const modal=document.createElement('div');modal.id='purchaseModal';modal.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center';
-  modal.innerHTML=`<div style="background:#fff;color:#111;width:100%;max-width:720px;max-height:94vh;overflow:auto;border-radius:20px 20px 0 0;padding:20px;box-sizing:border-box"><div style="display:flex;justify-content:space-between;align-items:center"><div><h2 style="margin:0">🛒 Nueva compra</h2><div style="color:#667085;font-size:14px">Añade también las prendas previstas</div></div><button id="purchaseClose" type="button">✕</button></div><form id="buyForm" class="form" style="margin-top:16px"><div class="field"><label>Proveedor</label><select name="supplier_id" required><option value="">Selecciona</option>${ss.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></div><div class="field"><label>Número / referencia</label><input name="purchase_number"></div><div class="field"><label>Descripción</label><input name="description" required></div><div class="field"><label>Importe €</label><input name="amount" type="number" min="0" step="0.01" required></div><div class="field"><label>Fecha</label><input name="purchase_date" type="date" value="${new Date().toISOString().slice(0,10)}" required></div><input type="hidden" name="status" value="Pedido"><div class="field"><label>Prendas previstas</label><div id="purchaseLines"></div><button type="button" id="addPurchaseLine" class="secondary" style="margin-top:8px">＋ Añadir prenda</button></div><div class="field"><label>Notas</label><textarea name="notes"></textarea></div><button type="submit" class="primary" style="width:100%">Guardar compra</button></form></div>`;
+  modal.innerHTML=`<div style="background:#fff;color:#111;width:100%;max-width:720px;max-height:94vh;overflow:auto;border-radius:20px 20px 0 0;padding:20px;box-sizing:border-box"><div style="display:flex;justify-content:space-between;align-items:center"><div><h2 style="margin:0">🛒 Nueva compra</h2><div style="color:#667085;font-size:14px">Añade también las prendas previstas</div></div><button id="purchaseClose" type="button">✕</button></div><form id="buyForm" class="form" style="margin-top:16px"><div class="field"><label>Proveedor</label><select name="supplier_id" required><option value="">Selecciona</option>${ss.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></div><div class="field"><label>Número / referencia</label><input name="purchase_number" placeholder="Opcional · AIHXO la genera si lo dejas vacío"><div class="muted" style="margin-top:5px">Puedes poner el nº de factura/albarán del proveedor.</div></div><div class="field"><label>Descripción</label><input name="description" required></div><div class="field"><label>Importe €</label><input name="amount" type="number" min="0" step="0.01" required></div><div class="field"><label>Fecha</label><input name="purchase_date" type="date" value="${new Date().toISOString().slice(0,10)}" required></div><input type="hidden" name="status" value="Pedido"><div class="field"><label>Prendas previstas</label><div id="purchaseLines"></div><button type="button" id="addPurchaseLine" class="secondary" style="margin-top:8px">＋ Añadir prenda</button></div><div class="field"><label>Notas</label><textarea name="notes"></textarea></div><button type="submit" class="primary" style="width:100%">Guardar compra</button></form></div>`;
   document.body.appendChild(modal);
   const linesBox=modal.querySelector('#purchaseLines');
   const addLine=()=>{const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:1fr 85px 85px 40px;gap:6px;margin-bottom:7px';row.innerHTML=`<select class="pli"><option value="">Prenda</option>${items.map(i=>`<option value="${i.id}" data-cost="${N(i.unit_cost)}">${esc(i.supplier_model||i.supplier||'Prenda')} · ${esc(i.size||'')} · ${esc(i.color||'')}</option>`).join('')}</select><input class="plq" type="number" min="1" value="1" title="Cantidad"><input class="plc" type="number" min="0" step="0.01" placeholder="€/ud"><button type="button" class="pldel">✕</button>`;row.querySelector('.pli').addEventListener('change',e=>{const op=e.target.selectedOptions[0];row.querySelector('.plc').value=op?.dataset.cost||''});row.querySelector('.pldel').onclick=()=>row.remove();linesBox.appendChild(row)};
   addLine();modal.querySelector('#addPurchaseLine').onclick=addLine;
   const cerrar=()=>modal.remove();modal.querySelector('#purchaseClose').onclick=cerrar;modal.addEventListener('click',e=>{if(e.target===modal)cerrar()});
-  modal.querySelector('#buyForm').addEventListener('submit',async e=>{e.preventDefault();const btn=e.submitter;if(btn){btn.disabled=true;btn.textContent='Guardando…'}const f=new FormData(e.target),payload=Object.fromEntries(f.entries());payload.amount=N(payload.amount);delete payload.item_id;const {data:purchase,error}=await supabaseClient.from('purchases').insert(payload).select('id').single();if(error){console.error(error);toast('No se pudo guardar la compra');if(btn){btn.disabled=false;btn.textContent='Guardar compra'}return}const rows=[...linesBox.children].map(r=>({purchase_id:purchase.id,item_id:r.querySelector('.pli').value,ordered_quantity:N(r.querySelector('.plq').value),received_quantity:0,unit_cost:N(r.querySelector('.plc').value)})).filter(x=>x.item_id&&x.ordered_quantity>0);if(rows.length){const {error:le}=await supabaseClient.from('purchase_lines').insert(rows);if(le){console.error(le);toast('Compra guardada, pero falló el desglose')}}toast('Compra registrada');cerrar();comprasView($('#view'))});
+  modal.querySelector('#buyForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const btn=e.submitter;
+    if(btn){btn.disabled=true;btn.textContent='Guardando…'}
+    try{
+      const f=new FormData(e.target),payload=Object.fromEntries(f.entries());
+      payload.amount=N(payload.amount);
+      payload.purchase_number=String(payload.purchase_number||'').trim();
+      if(!payload.purchase_number){
+        const d=new Date();
+        const stamp=d.getFullYear().toString()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-'+String(Date.now()).slice(-5);
+        payload.purchase_number='AIHXO-COMP-'+stamp;
+      }
+      delete payload.item_id;
+
+      const rowsDraft=[...linesBox.children].map(r=>({
+        item_id:r.querySelector('.pli').value,
+        ordered_quantity:N(r.querySelector('.plq').value),
+        received_quantity:0,
+        unit_cost:N(r.querySelector('.plc').value)
+      })).filter(x=>x.item_id&&x.ordered_quantity>0);
+
+      if(!rowsDraft.length){
+        toast('Añade al menos una prenda a la compra');
+        return;
+      }
+
+      const {data:purchase,error}=await supabaseClient.from('purchases').insert(payload).select('id').single();
+      if(error) throw error;
+
+      const {error:le}=await supabaseClient.from('purchase_lines').insert(rowsDraft.map(x=>({...x,purchase_id:purchase.id})));
+      if(le){
+        await supabaseClient.from('purchases').delete().eq('id',purchase.id);
+        throw le;
+      }
+
+      toast('Compra registrada');
+      cerrar();
+      await comprasView($('#view'));
+    }catch(err){
+      console.error('Nueva compra:',err);
+      alert('No se pudo guardar la compra. '+(err?.message||'Revisa los datos e inténtalo de nuevo.'));
+    }finally{
+      if(btn&&document.body.contains(btn)){btn.disabled=false;btn.textContent='Guardar compra'}
+    }
+  });
  };
 
  window.editarLineasCompra=async function(purchaseId){
