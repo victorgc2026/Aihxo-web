@@ -45,6 +45,10 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
  const gallery=Array.isArray(p.gallery)?p.gallery.filter(Boolean):[];
  const image=p.homepage_image_url||gallery[0]||p.image_url||'';
  const price=Number(p.price_one_print||p.sale_price||0);
+ const stock=Number(p.stock||0);
+ const salesDisabled=Boolean(p.sales_disabled);
+ const orderable=p.orderable_when_out_of_stock!==false;
+ const availability=salesDisabled?'No disponible':(stock>0?'Stock inmediato':(orderable?'Disponible bajo pedido al proveedor':'No disponible'));
  document.title=name+' | AIHXO';
  const desc=p.features||'Diseño original AIHXO.';
  const wa='https://wa.me/34634344174?text='+encodeURIComponent(
@@ -63,12 +67,12 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
      <div class="meta">
        ${size?'<div><strong>Talla:</strong> '+esc(size)+'</div>':''}
        ${color?'<div><strong>Color:</strong> '+esc(color)+'</div>':''}
-       <div><strong>Estado:</strong> Nuevo</div>
+       <div><strong>Estado:</strong> ${esc(availability)}</div>
        <div><strong>Envío:</strong> 5,00 €</div>
      </div>
      <div class="desc">${esc(desc)}</div>
-     <a class="cta" href="${wa}" target="_blank" rel="noopener">PEDIR POR WHATSAPP →</a>
-     <div class="notice">Preparación habitual: 1–2 días laborables. Transporte estimado: 1–3 días laborables.</div>
+     ${salesDisabled||(!orderable&&stock<=0)?'<div class="cta" style="opacity:.55;pointer-events:none">NO DISPONIBLE</div>':'<a class="cta" href="'+wa+'" target="_blank" rel="noopener">PEDIR POR WHATSAPP →</a>'}
+     <div class="notice">${stock>0?'Disponible para preparación con stock actual.':(orderable&&!salesDisabled?'Esta prenda se solicita al proveedor al recibir el pedido; la preparación comienza cuando AIHXO la recibe.':'Producto no disponible actualmente.')} ${stock>0?'Preparación habitual: 1–2 días laborables.':''} Transporte estimado tras preparación: 1–3 días laborables.</div>
    </div>`;
 })();
 </script>
