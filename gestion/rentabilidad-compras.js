@@ -1,6 +1,10 @@
 /* AIHXO · Rentabilidad + Compras */
 (function(){
  const N=v=>Number(v||0), ok=o=>String(o.status||'').toLowerCase()!=='cancelado';
+ const withTimeout=(promise,label,ms=7000)=>Promise.race([
+   promise,
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error('Tiempo agotado cargando '+label)),ms))
+ ]);
  const actualCost=o=>N(o.garment_actual_cost)+N(o.dtf_actual_cost)+N(o.packaging_cost)+N(o.supplier_shipping_cost)+N(o.extras_actual_cost);
 
  window.rentabilidadView=async function(c){
@@ -19,10 +23,10 @@
   c.innerHTML='<div class="page"><div class="card">⏳ Cargando compras…</div></div>';
   try{
    const [supRes,purRes,lineRes,itemRes]=await Promise.all([
-    supabaseClient.from('suppliers').select('*').order('name'),
-    supabaseClient.from('purchases').select('*').order('purchase_date',{ascending:false}),
-    supabaseClient.from('purchase_lines').select('*'),
-    supabaseClient.from('base_stock_items').select('id,supplier,supplier_model,size,color')
+    withTimeout(supabaseClient.from('suppliers').select('*').order('name'),'proveedores'),
+    withTimeout(supabaseClient.from('purchases').select('*').order('purchase_date',{ascending:false}),'compras'),
+    withTimeout(supabaseClient.from('purchase_lines').select('*'),'líneas de compra'),
+    withTimeout(supabaseClient.from('base_stock_items').select('id,supplier,supplier_model,size,color'),'stock base')
    ]);
    const firstError=supRes.error||purRes.error||lineRes.error||itemRes.error;
    if(firstError) throw firstError;
