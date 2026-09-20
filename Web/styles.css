@@ -674,3 +674,338 @@ footer small{
   background:#07152f !important;
   color:#DFFF00 !important;
 }
+
+
+/* =========================================================
+   AIHXO · PORTADA SIMPLIFICADA v4 · septiembre 2026
+   Menos carga visual, navegación por intención y mobile-first
+   ========================================================= */
+
+body.aihxo-v33{
+  background:#f7f8fa;
+}
+
+/* Hero más limpio */
+.aihxo-v33 .hero-inner{
+  padding-top:34px;
+  padding-bottom:48px;
+}
+.aihxo-v33 .logo-box{
+  margin-bottom:20px;
+}
+.aihxo-v33 .hero h1{
+  max-width:820px;
+  font-size:clamp(44px,9vw,76px);
+  letter-spacing:-2.6px;
+  margin:14px 0 16px;
+}
+.aihxo-v33 .hero p{
+  max-width:520px;
+  margin:0;
+  font-size:17px;
+}
+.aihxo-v33 .hero .buttons{
+  margin-top:24px;
+}
+
+/* Tres caminos, sin ruido de categorías */
+.brand-paths{
+  max-width:none;
+  width:100%;
+  margin:0;
+  padding:28px max(20px,calc((100% - 1060px)/2)) 34px;
+  background:#fff;
+  gap:12px;
+}
+.brand-path{
+  min-height:118px;
+  border:1px solid #e1e6ed !important;
+  background:#fff !important;
+  color:#07152f !important;
+  border-radius:16px;
+  padding:20px;
+  box-shadow:none;
+}
+.brand-path strong{
+  color:#07152f !important;
+  font-size:18px;
+}
+.brand-path span{
+  color:#69758a !important;
+  font-size:13px;
+  line-height:1.4;
+}
+.brand-path-dark{
+  background:#07152f !important;
+  border-color:#07152f !important;
+}
+.brand-path-dark strong{
+  color:#DFFF00 !important;
+}
+.brand-path-dark span{
+  color:#fff !important;
+  opacity:.88;
+}
+.brand-path-x{
+  background:#050505 !important;
+  border-color:#202020 !important;
+}
+.brand-path-x strong{
+  color:#fff !important;
+}
+.brand-path-x span{
+  color:#aaa !important;
+}
+
+/* Secciones con más aire y menos texto */
+.home-heading{
+  max-width:720px;
+}
+.home-heading h2{
+  margin-bottom:12px;
+}
+.home-heading p{
+  margin-top:0;
+  max-width:650px;
+}
+.home-collection{
+  padding-top:56px;
+  padding-bottom:60px;
+}
+
+/* Los filtros permanecen funcionales en código, pero no saturan la portada */
+#coleccion > .filters{
+  display:none !important;
+}
+
+/* Máximo 6 diseños en portada hasta pulsar “ver toda” */
+#coleccion:not(.is-expanded) #disenosPropiosAutomaticos .product:nth-child(n+7){
+  display:none !important;
+}
+.home-collection-more{
+  display:flex;
+  justify-content:center;
+  margin-top:26px;
+}
+.home-outline-btn{
+  appearance:none;
+  border:1px solid #07152f;
+  background:#fff;
+  color:#07152f;
+  cursor:pointer;
+  min-width:250px;
+}
+.home-outline-btn:hover{
+  background:#07152f;
+  color:#DFFF00;
+}
+
+/* Fichas: menos aspecto de dashboard, más tienda */
+#disenosPropiosAutomaticos .product{
+  border:1px solid #e4e8ee;
+  border-radius:16px;
+  box-shadow:none;
+}
+#disenosPropiosAutomaticos .product-destacado{
+  transform:none !important;
+  border:1px solid #e4e8ee !important;
+  box-shadow:none !important;
+}
+#disenosPropiosAutomaticos .product .info{
+  padding:18px 18px 16px;
+}
+#disenosPropiosAutomaticos .product .info h3{
+  margin:8px 0 4px;
+  font-size:20px;
+}
+#disenosPropiosAutomaticos .product .info > em{
+  display:inline-block;
+  padding:5px 8px !important;
+  font-size:9px !important;
+  letter-spacing:1.1px !important;
+  border-radius:999px;
+}
+
+/* Personaliza: llamada breve; el catálogo aparece solo si el usuario lo pide */
+.home-personaliza{
+  padding:62px 20px;
+}
+.home-personaliza > div{
+  max-width:860px;
+}
+.home-personaliza h2{
+  max-width:680px;
+}
+.home-personaliza p{
+  max-width:600px;
+}
+.catalogo-collapsible{
+  display:none;
+}
+.catalogo-collapsible.is-open{
+  display:block;
+}
+.catalog-close-btn{
+  appearance:none;
+  border:0;
+  background:transparent;
+  color:#667085;
+  padding:0;
+  margin-top:8px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+/* Memories: teaser real, no microsite entero en portada */
+.home-memories{
+  padding-top:70px;
+  padding-bottom:76px;
+}
+.home-memories .memories-inner{
+  gap:52px;
+}
+.home-memories .memories-copy p{
+  margin-bottom:24px;
+}
+.home-memories .memories-coming{
+  border:1px solid #444;
+  padding:12px 16px;
+  border-radius:999px;
+  letter-spacing:2.2px;
+}
+
+/* Contacto compacto */
+.home-contact{
+  padding-top:52px;
+  padding-bottom:56px;
+}
+.home-contact .heading{
+  margin-bottom:20px;
+}
+.home-contact .heading h2{
+  font-size:clamp(30px,6vw,42px);
+}
+.home-contact .contacts{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+.home-contact .contacts a{
+  flex-direction:column;
+  padding:16px;
+  gap:5px;
+  box-shadow:none;
+}
+
+/* Mobile: una pantalla mucho más ligera */
+@media(max-width:700px){
+  .aihxo-v33 .hero-inner{
+    width:calc(100% - 32px) !important;
+    padding:24px 0 34px !important;
+  }
+  .aihxo-v33 .logo-box{
+    max-width:290px !important;
+    margin:0 0 18px !important;
+  }
+  .aihxo-v33 .hero .mini{
+    font-size:9px !important;
+    letter-spacing:1.7px !important;
+  }
+  .aihxo-v33 .hero h1{
+    font-size:43px !important;
+    line-height:1 !important;
+    letter-spacing:-2px !important;
+    margin:12px 0 14px !important;
+  }
+  .aihxo-v33 .hero p{
+    font-size:15px !important;
+    line-height:1.5 !important;
+  }
+  .aihxo-v33 .hero .buttons{
+    margin-top:20px;
+  }
+  .brand-paths{
+    grid-template-columns:1fr;
+    padding:14px 16px 24px;
+    gap:8px;
+  }
+  .brand-path{
+    min-height:78px;
+    padding:15px 16px;
+    border-radius:13px;
+  }
+  .brand-path strong{
+    font-size:16px !important;
+  }
+  .brand-path span{
+    margin-top:3px;
+    font-size:12px !important;
+  }
+  .home-collection{
+    width:calc(100% - 32px);
+    padding:42px 0 48px !important;
+  }
+  .home-heading h2{
+    font-size:38px;
+    line-height:1.03;
+    letter-spacing:-1.7px;
+  }
+  .home-heading p{
+    font-size:14px;
+    line-height:1.55;
+  }
+  #disenosPropiosAutomaticos .product .ph{
+    max-height:300px !important;
+  }
+  #disenosPropiosAutomaticos .product .ph img{
+    height:300px !important;
+  }
+  .home-outline-btn{
+    width:100%;
+    min-width:0;
+  }
+  .home-personaliza{
+    padding:48px 16px;
+  }
+  .home-personaliza h2{
+    font-size:38px;
+    letter-spacing:-1.7px;
+  }
+  .home-personaliza p{
+    font-size:15px;
+  }
+  .home-memories{
+    padding:48px 18px 58px;
+  }
+  .home-memories .memories-inner{
+    gap:8px;
+  }
+  .home-memories .memories-logo-wrap{
+    padding:0 54px 2px;
+  }
+  .home-memories .memories-copy h2{
+    font-size:31px;
+    margin-bottom:14px;
+  }
+  .home-memories .memories-copy p{
+    font-size:15px;
+    line-height:1.55;
+    margin-bottom:20px;
+  }
+  .home-contact{
+    width:calc(100% - 32px);
+    padding:42px 0 46px !important;
+  }
+  .home-contact .contacts{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  .home-contact .contacts a{
+    padding:14px;
+    border-radius:13px;
+  }
+  .home-contact .contacts small{
+    font-size:11px;
+  }
+  footer{
+    padding:26px 20px;
+  }
+}
