@@ -167,6 +167,62 @@
       if (node) observer.observe(node);
     });
   }
+  // Genera datos estructurados de los productos visibles para ayudar a buscadores
+  // a entender nombre, imagen y precio aunque el catálogo se cargue desde Supabase.
+  function refreshProductSchema() {
+    const cards = Array.from(document.querySelectorAll('#disenosPropiosAutomaticos .product'));
+    if (!cards.length) return;
+
+    const items = cards.map((card, index) => {
+      const name = text(card.querySelector('h3')) || 'Diseño AIHXO';
+      const img = card.querySelector('.ph img')?.src || '';
+      const price = Number(card.dataset.orderPrice || 0);
+      const product = {
+        '@type': 'Product',
+        name,
+        brand: { '@type': 'Brand', name: 'AIHXO' }
+      };
+      if (img) product.image = [img];
+      if (Number.isFinite(price) && price > 0) {
+        product.offers = {
+          '@type': 'Offer',
+          priceCurrency: 'EUR',
+          price: price.toFixed(2),
+          url: 'https://aihxo.es/#coleccion'
+        };
+      }
+      return {
+        '@type': 'ListItem',
+        position: index + 1,
+        item: product
+      };
+    });
+
+    let node = document.getElementById('aihxo-product-schema');
+    if (!node) {
+      node = document.createElement('script');
+      node.type = 'application/ld+json';
+      node.id = 'aihxo-product-schema';
+      document.head.appendChild(node);
+    }
+
+    node.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'Colección AIHXO',
+      itemListElement: items
+    });
+  }
+
+  const catalogRoot = document.getElementById('disenosPropiosAutomaticos');
+  if (catalogRoot && 'MutationObserver' in window) {
+    let schemaTimer;
+    new MutationObserver(() => {
+      clearTimeout(schemaTimer);
+      schemaTimer = setTimeout(refreshProductSchema, 250);
+    }).observe(catalogRoot, { childList: true, subtree: true });
+    setTimeout(refreshProductSchema, 1200);
+  }
 
   // Integración preparada para Microsoft Clarity.
   // Al definir window.AIHXO_CLARITY_ID con el ID del proyecto, se activa sin más cambios.
