@@ -365,7 +365,8 @@ const guiaTallasUrl =
       const nombre = escaparHTML(p.model || p.sku || 'Diseño AIHXO');
       const imagen = escaparHTML(p.image_url || '');
       const galeria = Array.isArray(p.gallery) ? p.gallery.filter(Boolean).map(x => escaparHTML(x)) : [];
-      const imagenPrincipal = galeria[0] || imagen;
+      const imagenPortada = escaparHTML(p.homepage_image_url || '');
+      const imagenPrincipal = imagenPortada || galeria[0] || imagen;
       const descripcion = escaparHTML(p.features || '');
       const precio = Number(p.sale_price || 0);
       const oferta = p.price_one_print != null
