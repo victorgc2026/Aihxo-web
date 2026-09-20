@@ -43,7 +43,7 @@
   ]
 }
 </script>
-<link rel="stylesheet" href="styles.css?v=391">
+<link rel="stylesheet" href="styles.css?v=392">
  <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-NBDR7343Y6"></script>
 <script>
@@ -59,41 +59,38 @@
 <header class="hero">
   <div class="hero-inner">
     <div class="logo-box"><img src="AIHXO_logo_web_recortadooscuro_recortado.png" alt="AIHXO - Viste tu historia"></div>
-    <div class="mini">KIDS WEAR · STREETWEAR · PERSONALIZA</div>
-   <h1>Viste tu historia.<br><span>Diseños para todas las edades.</span></h1> 
-   <p>Diseños propios y personalización para niños, jóvenes y adultos. Tú lo imaginas, nosotros lo hacemos.</p> 
+    <div class="mini">COLECCIÓN · PERSONALIZA · X MEMORIES</div>
+    <h1>Viste tu historia.<br><span>Diseños con identidad propia.</span></h1>
+    <p>Diseños AIHXO y prendas personalizadas creadas en Galicia.</p>
     <div class="buttons">
-      <a class="btn primary" href="#coleccion">Colección AIHXO</a>
-      <a class="btn light" href="#personaliza">Personaliza tu prenda</a>
+      <a class="btn primary" href="#coleccion">VER COLECCIÓN</a>
+      <a class="btn light" href="#personaliza">PERSONALIZAR</a>
     </div>
-    
   </div>
 </header>
-<section class="brand-paths">
-  <a href="#coleccion" class="brand-path brand-kids" data-auto-filter="infantil">
-  <strong>KIDS WEAR</strong>
-  <span>Para los pequeños con más estilo</span>
-</a>
-
-<a href="#coleccion" class="brand-path brand-street" data-auto-filter="adulto">
-  <strong>STREETWEAR</strong>
-  <span>Diseños con actitud propia</span>
-</a>
-
-  <a href="#personaliza" class="brand-path brand-personaliza">
+<section class="brand-paths" aria-label="Accesos principales">
+  <a href="#coleccion" class="brand-path">
+    <strong>COLECCIÓN</strong>
+    <span>Diseños propios AIHXO</span>
+  </a>
+  <a href="#personaliza" class="brand-path brand-path-dark">
     <strong>PERSONALIZA</strong>
     <span>Tu idea. Nuestra camiseta.</span>
+  </a>
+  <a href="x/" class="brand-path brand-path-x">
+    <strong>X MEMORIES</strong>
+    <span>Convierte recuerdos en algo que puedas llevar</span>
   </a>
 </section>
 <main>
  
-<section id="coleccion" class="section">
-  <div class="heading">
-    <span>COLECCIÓN AIHXO</span>
-  <h2>Colecciones AIHXO</h2> 
-    <p>Diseños creados por AIHXO para vestir tu historia. Descubre nuestras colecciones para niños, jóvenes y adultos.</p>
+<section id="coleccion" class="section home-collection">
+  <div class="heading home-heading">
+    <span>AIHXO COLLECTION</span>
+    <h2>Selección AIHXO</h2>
+    <p>Una selección de diseños con identidad propia. Entra en cada pieza para ver tallas, colores y detalles.</p>
   </div>
-  <div class="filters">
+  <div class="filters" aria-hidden="true">
     <button class="active" data-collection-filter="all">Todo</button>
     <button data-collection-filter="camiseta">Camisetas</button>
     <button data-collection-filter="sudadera">Sudaderas</button>
@@ -104,26 +101,27 @@
   </div>
   <div class="products" id="collectionGrid">
     <div id="disenosPropiosAutomaticos" style="display:contents;"></div>
-    
-    
-
+  </div>
+  <div class="home-collection-more">
+    <button id="collectionToggle" type="button" class="btn home-outline-btn">VER TODA LA COLECCIÓN</button>
   </div>
 </section>
 
-<section id="personaliza" class="custom">
+<section id="personaliza" class="custom home-personaliza">
   <div>
-    <span>PERSONALIZACIÓN</span>
-    <h2>Camisetas personalizadas en Oleiros y A Coruña</h2>
-    <p>Personalizamos camisetas para niños y adultos con nombres, números, frases, dibujos, fotos y diseños especiales mediante impresión DTF. Realizamos pedidos desde Oleiros y A Coruña con envíos a toda España.</p>
-    <a class="btn primary" href="#catalogo">Ver prendas para personalizar ↓</a>
+    <span>PERSONALIZA</span>
+    <h2>Tu idea. Nuestra camiseta.</h2>
+    <p>Elige la prenda, envíanos tu diseño o cuéntanos qué quieres crear. Nosotros nos encargamos del resto.</p>
+    <button id="openPersonalCatalog" class="btn primary" type="button">CREAR MI CAMISETA</button>
   </div>
 </section>
 
-<section id="catalogo" class="section">
+<section id="catalogo" class="section catalogo-collapsible">
   <div class="heading">
     <span>PRENDAS PARA PERSONALIZAR</span>
     <h2>Elige la prenda</h2>
-    <p>Estas son las prendas base disponibles para realizar personalizaciones. Se cargan automáticamente desde AIHXO Gestión.</p>
+    <p>Elige una prenda base y configura tu personalización.</p>
+    <button id="closePersonalCatalog" type="button" class="catalog-close-btn">Cerrar prendas ✕</button>
   </div>
  <div class="personal-category-access">
 
@@ -169,101 +167,30 @@
   </div>
 </section>
 
-<section id="x-memories" class="memories-teaser" aria-label="X by AIHXO Memories próximamente">
+<section id="x-memories" class="memories-teaser home-memories" aria-label="X by AIHXO Memories">
   <div class="memories-inner">
-    <div class="memories-logo-wrap"><img class="memories-logo" src="x-aihxo-memories-white.png" alt="X by AIHXO Memories"></div>
+    <div class="memories-logo-wrap">
+      <img class="memories-logo" src="x-aihxo-memories-white.png" alt="X by AIHXO Memories">
+    </div>
     <div class="memories-copy">
       <span class="memories-kicker">X BY AIHXO · MEMORIES</span>
-      <h2>Hay recuerdos que no deberían quedarse en una galería.</h2>
-      <p>Una nueva forma de convertir personas, momentos e historias en algo que puedas llevar contigo.</p>
-      <div class="memories-tags"><span>FOTOS</span><span>FIRMAS</span><span>FECHAS</span><span>MENSAJES</span><span>RECUERDOS</span></div>
+      <h2>Hay recuerdos que merecen salir de la galería.</h2>
+      <p>Fotos, firmas, fechas y momentos convertidos en una prenda con historia.</p>
       <a class="memories-coming" href="x/">DESCUBRIR X →</a>
-     <details class="memories-details">
-  <summary>VER CÓMO FUNCIONA ↓</summary>
-
-  <div class="memories-details-content">
-      <div style="margin:34px 0 14px;text-align:center;">
-  <span style="display:block;font-size:10px;font-weight:800;letter-spacing:2.4px;color:#8f8f8f;margin-bottom:8px;">
-    ¿QUÉ ES X BY AIHXO MEMORIES?
-  </span>
-  <h3 style="margin:0;color:#fff;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;">
-    Convierte tus recuerdos en una camiseta
-  </h3>
-</div>
-  <div style="margin-top:32px;">
-  <a href="x-by-aihxo-memories-ejemplo-small.webp" target="_blank" rel="noopener">
-    <img
-      src="x-by-aihxo-memories-ejemplo-small.webp"
-      alt="Ejemplo X by AIHXO Memories - camiseta personalizada con recuerdos y experiencia digital mediante QR"
-      style="width:100%;max-width:720px;height:auto;margin:0 auto;border-radius:18px;display:block;cursor:zoom-in;"
-      loading="lazy"
-    >
-  </a>
-</div>    
-      <div style="margin:38px 0 14px;text-align:center;">
-  <span style="display:block;font-size:10px;font-weight:800;letter-spacing:2.4px;color:#8f8f8f;margin-bottom:8px;">
-    ASÍ FUNCIONA
-  </span>
-  <h3 style="margin:0;color:#fff;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;">
-    Tu camiseta. Tu QR. Tus recuerdos.
-  </h3>
-</div>
-      <div style="margin-top:22px;">
-  <a href="x-by-aihxo-memories-como-funciona.webp" target="_blank" rel="noopener">
-    <img
-      src="x-by-aihxo-memories-como-funciona.webp"
-      alt="Cómo funciona X by AIHXO Memories: camiseta personalizada, QR y recuerdo digital"
-      style="width:100%;max-width:720px;height:auto;margin:0 auto;border-radius:18px;display:block;cursor:zoom-in;"
-      loading="lazy"
-    >
-  </a>
-</div>
-      <div style="margin:38px 0 14px;text-align:center;">
-  <span style="display:block;font-size:10px;font-weight:800;letter-spacing:2.4px;color:#8f8f8f;margin-bottom:8px;">
-    DE TUS FOTOS A TU CAMISETA
-  </span>
-  <h3 style="margin:0;color:#fff;font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:400;">
-    Creamos una Memories única para ti
-  </h3>
-</div>
-      <div style="margin-top:22px;">
-  <a href="x-by-aihxo-memories-ejemplo-real.webp" target="_blank" rel="noopener">
-    <img
-      src="x-by-aihxo-memories-ejemplo-real.webp"
-      alt="Ejemplo real de creación de una camiseta X by AIHXO Memories"
-      style="width:100%;max-width:720px;height:auto;margin:0 auto;border-radius:18px;display:block;cursor:zoom-in;"
-      loading="lazy"
-    >
-  </a>
-</div>
-      <div style="margin:42px 0 10px;text-align:center;">
-  <p style="color:#b9b9b9;font-size:15px;line-height:1.6;margin:0 auto 18px;max-width:520px;">
-    Cuéntanos qué recuerdo quieres convertir en algo que puedas llevar siempre contigo.
-  </p>
-
-  <a
-    href="https://wa.me/34634344174?text=Hola%20AIHXO%2C%20quiero%20crear%20mi%20X%20by%20AIHXO%20Memories"
-    target="_blank"
-    rel="noopener"
-    style="display:inline-flex;align-items:center;justify-content:center;background:#fff;color:#050505;padding:16px 24px;border-radius:999px;font-weight:900;font-size:13px;letter-spacing:1.2px;text-decoration:none;">
-    CREAR MI MEMORIES →
-  </a>
-</div>
-     </div>
-</details>
     </div>
   </div>
 </section>
 
-<section id="contacto" class="section">
-  <div class="heading"><span>CONTACTO</span><h2>Hablemos</h2></div>
+<section id="contacto" class="section home-contact">
+  <div class="heading home-heading">
+    <span>AIHXO</span>
+    <h2>Estamos aquí</h2>
+  </div>
   <div class="contacts">
-    <a href="https://wa.me/34634344174" target="_blank"><b>💬 WhatsApp</b><small>634 344 174</small></a>
-    <a href="tel:+34634344174"><b>☎ Teléfono</b><small>634 344 174</small></a>
-    <a href="mailto:hola@aihxo.es"><b>✉ Correo</b><small>hola@aihxo.es</small></a>
-   <a href="mailto:pedidos@aihxo.es"><b>🛍️ Pedidos</b><small>pedidos@aihxo.es</small></a>
-    <a href="https://www.instagram.com/aihxo.camisetas/" target="_blank"><b>◎ Instagram</b><small>@aihxo.camisetas</small></a>
-    <a href="https://www.tiktok.com/@aihxo.camisetas" target="_blank"><b>♪ TikTok</b><small>@aihxo.camisetas</small></a>
+    <a href="https://wa.me/34634344174" target="_blank"><b>WhatsApp</b><small>Escríbenos</small></a>
+    <a href="https://www.instagram.com/aihxo.camisetas/" target="_blank"><b>Instagram</b><small>@aihxo.camisetas</small></a>
+    <a href="https://www.tiktok.com/@aihxo.camisetas" target="_blank"><b>TikTok</b><small>@aihxo.camisetas</small></a>
+    <a href="mailto:hola@aihxo.es"><b>Email</b><small>hola@aihxo.es</small></a>
   </div>
 </section>
 </main>
@@ -272,6 +199,34 @@
 
 <script>
 document.getElementById('year').textContent = new Date().getFullYear();
+
+const collectionSection = document.getElementById('coleccion');
+const collectionToggle = document.getElementById('collectionToggle');
+if (collectionSection && collectionToggle) {
+  collectionToggle.addEventListener('click', () => {
+    const expanded = collectionSection.classList.toggle('is-expanded');
+    collectionToggle.textContent = expanded ? 'VER MENOS' : 'VER TODA LA COLECCIÓN';
+    if (!expanded) collectionSection.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+}
+
+const personalCatalog = document.getElementById('catalogo');
+const openPersonalCatalog = document.getElementById('openPersonalCatalog');
+const closePersonalCatalog = document.getElementById('closePersonalCatalog');
+
+function showPersonalCatalog() {
+  if (!personalCatalog) return;
+  personalCatalog.classList.add('is-open');
+  setTimeout(() => personalCatalog.scrollIntoView({behavior:'smooth', block:'start'}), 60);
+}
+function hidePersonalCatalog() {
+  if (!personalCatalog) return;
+  personalCatalog.classList.remove('is-open');
+  document.getElementById('personaliza')?.scrollIntoView({behavior:'smooth', block:'start'});
+}
+openPersonalCatalog?.addEventListener('click', showPersonalCatalog);
+closePersonalCatalog?.addEventListener('click', hidePersonalCatalog);
+if (location.hash === '#catalogo') showPersonalCatalog();
 
 document.querySelectorAll('[data-collection-filter]').forEach(btn => {
   btn.addEventListener('click', () => {
