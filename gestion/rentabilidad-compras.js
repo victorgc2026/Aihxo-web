@@ -15,24 +15,36 @@
  };
 
  window.comprasView=async function(c){
-  const [{data:suppliers},{data:purchases,error},{data:lines}]=await Promise.all([
-   supabaseClient.from('suppliers').select('*').order('name'),
-   supabaseClient.from('purchases').select('*,suppliers(name)').order('purchase_date',{ascending:false}),
-   supabaseClient.from('purchase_lines').select('*,base_stock_items(supplier,supplier_model,size,color)')
-  ]);
-  if(error){console.error(error);return}
-  const ps=purchases||[], ls=lines||[];
+  if(!c) return;
+  c.innerHTML='<div class="page"><div class="card">⏳ Cargando compras…</div></div>';
+  try{
+   const [supRes,purRes,lineRes,itemRes]=await Promise.all([
+    supabaseClient.from('suppliers').select('*').order('name'),
+    supabaseClient.from('purchases').select('*').order('purchase_date',{ascending:false}),
+    supabaseClient.from('purchase_lines').select('*'),
+    supabaseClient.from('base_stock_items').select('id,supplier,supplier_model,size,color')
+   ]);
+   const firstError=supRes.error||purRes.error||lineRes.error||itemRes.error;
+   if(firstError) throw firstError;
+   const suppliers=supRes.data||[], purchases=purRes.data||[], lines=lineRes.data||[], stockItems=itemRes.data||[];
+   const supplierById=Object.fromEntries(suppliers.map(s=>[String(s.id),s]));
+   const itemById=Object.fromEntries(stockItems.map(i=>[String(i.id),i]));
+   const ps=purchases, ls=lines;
   const total=ps.reduce((a,p)=>a+N(p.amount),0);
   const pending=ps.filter(p=>!['recibido','completado'].includes(String(p.status||'').toLowerCase()));
   const byPurchase={};ls.forEach(l=>(byPurchase[l.purchase_id]??=[]).push(l));
   const orderedTotal=ls.reduce((a,l)=>a+N(l.ordered_quantity),0), receivedTotal=ls.reduce((a,l)=>a+N(l.received_quantity),0), missing=Math.max(0,orderedTotal-receivedTotal);
-  c.innerHTML=`<div class="page"><div class="section"><div><h2>🛒 Compras y proveedores</h2><div class="muted">Previsto, recibido y faltantes por proveedor</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="recvCamera" type="button" class="secondary">📷 Recibir con cámara</button><button id="newPurchaseBtn" type="button" class="primary">＋ Nueva compra</button></div></div><div class="grid kpis">${kpi('Compras',ps.length,'registradas')}${kpi('Importe',money(total),'total histórico')}${kpi('Pendientes',pending.length,'por recibir/cerrar')}${kpi('Faltan',missing,'unidades pendientes')}</div><div style="display:grid;gap:12px">${ps.map(p=>{const pl=byPurchase[p.id]||[];const ord=pl.reduce((a,l)=>a+N(l.ordered_quantity),0);const rec=pl.reduce((a,l)=>a+N(l.received_quantity),0);const falt=Math.max(0,ord-rec);const pct=ord?Math.min(100,Math.round(rec/ord*100)):0;return `<div class="card"><div class="section"><div><h3 style="margin:0">${esc(p.purchase_number||p.description||'Compra')}</h3><div class="muted">${esc(p.suppliers?.name||'—')} · ${esc(p.purchase_date||'')}</div></div><div style="text-align:right"><b>${money(p.amount)}</b><div class="muted">${esc(p.status||'')}</div></div></div>${pl.length?`<div style="margin:12px 0"><div style="height:8px;background:#edf0f4;border-radius:999px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#07152f"></div></div><div class="muted" style="margin-top:5px">${rec}/${ord} unidades recibidas · ${falt} pendientes</div></div><div class="table-wrap"><table><thead><tr><th>Prenda</th><th>Pedidas</th><th>Recibidas</th><th>Faltan</th></tr></thead><tbody>${pl.map(l=>`<tr><td>${esc(l.base_stock_items?.supplier_model||l.base_stock_items?.supplier||'Prenda')} · ${esc(l.base_stock_items?.size||'')} · ${esc(l.base_stock_items?.color||'')}</td><td>${N(l.ordered_quantity)}</td><td>${N(l.received_quantity)}</td><td><b>${Math.max(0,N(l.ordered_quantity)-N(l.received_quantity))}</b></td></tr>`).join('')}</tbody></table></div>`:'<div class="muted" style="margin-top:10px">Compra antigua sin desglose por prendas.</div>'}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="secondary recvPurchase" data-purchase-id="${p.id}">📷 Recibir</button><button type="button" class="secondary editPurchaseLines" data-purchase-id="${p.id}">✏️ Líneas</button></div></div>`}).join('')}</div></div>`;
+  c.innerHTML=`<div class="page"><div class="section"><div><h2>🛒 Compras y proveedores</h2><div class="muted">Previsto, recibido y faltantes por proveedor</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="recvCamera" type="button" class="secondary">📷 Recibir con cámara</button><button id="newPurchaseBtn" type="button" class="primary">＋ Nueva compra</button></div></div><div class="grid kpis">${kpi('Compras',ps.length,'registradas')}${kpi('Importe',money(total),'total histórico')}${kpi('Pendientes',pending.length,'por recibir/cerrar')}${kpi('Faltan',missing,'unidades pendientes')}</div><div style="display:grid;gap:12px">${ps.map(p=>{const pl=byPurchase[p.id]||[];const ord=pl.reduce((a,l)=>a+N(l.ordered_quantity),0);const rec=pl.reduce((a,l)=>a+N(l.received_quantity),0);const falt=Math.max(0,ord-rec);const pct=ord?Math.min(100,Math.round(rec/ord*100)):0;return `<div class="card"><div class="section"><div><h3 style="margin:0">${esc(p.purchase_number||p.description||'Compra')}</h3><div class="muted">${esc(supplierById[String(p.supplier_id)]?.name||'—')} · ${esc(p.purchase_date||'')}</div></div><div style="text-align:right"><b>${money(p.amount)}</b><div class="muted">${esc(p.status||'')}</div></div></div>${pl.length?`<div style="margin:12px 0"><div style="height:8px;background:#edf0f4;border-radius:999px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#07152f"></div></div><div class="muted" style="margin-top:5px">${rec}/${ord} unidades recibidas · ${falt} pendientes</div></div><div class="table-wrap"><table><thead><tr><th>Prenda</th><th>Pedidas</th><th>Recibidas</th><th>Faltan</th></tr></thead><tbody>${pl.map(l=>`<tr><td>${esc(itemById[String(l.item_id)]?.supplier_model||itemById[String(l.item_id)]?.supplier||'Prenda')} · ${esc(itemById[String(l.item_id)]?.size||'')} · ${esc(itemById[String(l.item_id)]?.color||'')}</td><td>${N(l.ordered_quantity)}</td><td>${N(l.received_quantity)}</td><td><b>${Math.max(0,N(l.ordered_quantity)-N(l.received_quantity))}</b></td></tr>`).join('')}</tbody></table></div>`:'<div class="muted" style="margin-top:10px">Compra antigua sin desglose por prendas.</div>'}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="secondary recvPurchase" data-purchase-id="${p.id}">📷 Recibir</button><button type="button" class="secondary editPurchaseLines" data-purchase-id="${p.id}">✏️ Líneas</button></div></div>`}).join('')}</div></div>`;
   window._aihxoSuppliers=suppliers||[];
   const abrir=pid=>typeof window.abrirRecepcionEtiquetas==='function'?window.abrirRecepcionEtiquetas(pid||null):toast('No se pudo abrir la cámara.');
   c.querySelector('#recvCamera')?.addEventListener('click',()=>abrir(null));
   c.querySelectorAll('.recvPurchase').forEach(btn=>btn.addEventListener('click',()=>abrir(btn.dataset.purchaseId)));
   c.querySelectorAll('.editPurchaseLines').forEach(btn=>btn.addEventListener('click',()=>window.editarLineasCompra(btn.dataset.purchaseId)));
   c.querySelector('#newPurchaseBtn')?.addEventListener('click',()=>window.nuevaCompra());
+  }catch(err){
+   console.error('Compras:',err);
+   c.innerHTML='<div class="page"><div class="card"><h2>🛒 Compras</h2><div style="color:#b42318;font-weight:800;margin-top:10px">No se pudieron cargar las compras.</div><div class="muted" style="margin-top:8px">'+esc(err?.message||'Error desconocido')+'</div><button class="primary" style="margin-top:14px" onclick="comprasView(document.getElementById(\'view\'))">Reintentar</button></div></div>';
+  }
  };
 
  async function stockOptions(){const {data}=await supabaseClient.from('base_stock_items').select('id,supplier,supplier_model,size,color,unit_cost').order('supplier_model').order('color').order('size');return data||[]}
