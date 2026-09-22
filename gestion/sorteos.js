@@ -493,11 +493,15 @@ async function cargarSorteos() {
     *,
     participantes_sorteo (
       id,
-      cumple_bases
+      cumple_bases,
+      requisito_comentario,
+      requisito_mencion
     ),
     ganadores_sorteo (
+      id,
       posicion,
       es_suplente,
+      estado_validacion,
       participantes_sorteo (
         nombre,
         usuario_red
@@ -552,6 +556,11 @@ const participantesTotal =
 const participantesAptos =
   (s.participantes_sorteo || []).filter(p => p.cumple_bases).length;
 
+const participantesCandidatos =
+  (s.participantes_sorteo || []).filter(
+    p => p.requisito_comentario && p.requisito_mencion
+  ).length;
+
 const ganadores =
   (s.ganadores_sorteo || [])
     .filter(g => !g.es_suplente)
@@ -560,7 +569,12 @@ const ganadores =
 const textoGanador = ganadores.length
   ? ganadores.map(g => {
       const p = g.participantes_sorteo;
-      return `${p?.nombre || 'Ganador'}${p?.usuario_red ? ' · ' + p.usuario_red : ''}`;
+      const estado = g.estado_validacion === 'confirmado'
+        ? '✅ Confirmado'
+        : g.estado_validacion === 'descartado'
+          ? '❌ Descartado'
+          : '⏳ Provisional';
+      return `${p?.nombre || 'Ganador'}${p?.usuario_red ? ' · ' + p.usuario_red : ''}<br><span class="muted" style="font-size:12px;">${estado}</span>`;
     }).join('<br>')
   : 'Todavía sin ganador';
     return `
@@ -602,7 +616,7 @@ const textoGanador = ganadores.length
     </div>
     <b>${participantesTotal}</b>
     <div class="muted" style="font-size:12px;margin-top:3px;">
-      ✅ ${participantesAptos} aptos
+      🎲 ${participantesCandidatos} candidatos · ✅ ${participantesAptos} verificados
     </div>
   </div>
 
@@ -642,7 +656,7 @@ const textoGanador = ganadores.length
     class="secondary"
     onclick="elegirGanadorSorteo('${s.id}')"
   >
-    ${ganadores.length ? '🏆 Ver resultado' : '🏆 Elegir ganador'}
+    ${ganadores.length ? '🏆 Validar resultado' : '🎲 Elegir ganador provisional'}
   </button>
 <button
   class="secondary"
@@ -935,6 +949,111 @@ async function toggleRequisitoParticipanteSorteo(participanteId, campo, valor, s
   await abrirParticipantesSorteo(sorteoId, sorteoNombre);
 }
 
+async function abrirValidacionGanadorSorteo(sorteoId) {
+  const { data, error } = await supabaseClient
+    .from('ganadores_sorteo')
+    .select(`
+      id,
+      posicion,
+      es_suplente,
+      estado_validacion,
+      participantes_sorteo (
+        id,
+        nombre,
+        usuario_red,
+        requisito_like,
+        requisito_seguidor,
+        requisito_comentario,
+        requisito_mencion,
+        cumple_bases
+      )
+    `)
+    .eq('sorteo_id', sorteoId)
+    .order('es_suplente', { ascending: true })
+    .order('posicion', { ascending: true });
+
+  if (error) { console.error(error); toast('Error cargando resultado'); return; }
+
+  const registros = data || [];
+  const ganador = registros.find(r => !r.es_suplente && r.estado_validacion !== 'descartado');
+  const suplentes = registros.filter(r => r.es_suplente && r.estado_validacion !== 'descartado');
+  const contenedor = document.getElementById('listaSorteos');
+  if (!contenedor) return;
+
+  if (!ganador) {
+    contenedor.innerHTML = `<div style="margin-bottom:16px;"><button class="secondary" onclick="cargarSorteos()">← Volver a sorteos</button></div><div class="card" style="padding:18px;"><h3 style="margin-top:0;">🏆 Validación del sorteo</h3><div class="muted">No hay ganador provisional activo.</div></div>`;
+    return;
+  }
+
+  const p = ganador.participantes_sorteo || {};
+  const confirmado = ganador.estado_validacion === 'confirmado';
+
+  contenedor.innerHTML = `
+    <div style="margin-bottom:16px;">
+      <button class="secondary" onclick="cargarSorteos()">← Volver a sorteos</button>
+    </div>
+    <div class="card" style="padding:18px;">
+      <h3 style="margin-top:0;">🏆 ${confirmado ? 'Ganador confirmado' : 'Ganador provisional'}</h3>
+      <div style="font-size:20px;font-weight:900;margin-bottom:4px;">${p.nombre || 'Ganador'}</div>
+      <div class="muted" style="margin-bottom:16px;">${p.usuario_red || ''}</div>
+      <div style="padding:14px;border-radius:14px;background:#f5f8fc;margin-bottom:16px;line-height:1.8;">
+        <div>✅ Comentó en la publicación</div>
+        <div>✅ Mencionó a un amigo</div>
+        <div>${p.requisito_like ? '✅' : '⬜'} Me gusta en la publicación</div>
+        <div>${p.requisito_seguidor ? '✅' : '⬜'} Sigue a @aihxo.camisetas</div>
+      </div>
+      ${!confirmado ? `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+          <button class="secondary" onclick="marcarRequisitoGanadorSorteo('${p.id}','requisito_like',${!p.requisito_like},'${sorteoId}')">${p.requisito_like ? '↩ Quitar Me gusta' : '❤️ Confirmar Me gusta'}</button>
+          <button class="secondary" onclick="marcarRequisitoGanadorSorteo('${p.id}','requisito_seguidor',${!p.requisito_seguidor},'${sorteoId}')">${p.requisito_seguidor ? '↩ Quitar seguimiento' : '👤 Confirmar que sigue'}</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="primary" onclick="confirmarGanadorSorteo('${ganador.id}','${p.id}','${sorteoId}')" ${p.requisito_like && p.requisito_seguidor ? '' : 'disabled'}>✅ Confirmar ganador</button>
+          <button class="secondary" onclick="descartarGanadorYUsarSuplente('${ganador.id}','${sorteoId}')">❌ No cumple · usar suplente</button>
+        </div>
+      ` : `<div style="padding:12px 14px;border-radius:12px;background:#e8f8ee;color:#16803c;font-weight:900;">✅ Todos los requisitos verificados</div>`}
+      <div style="margin-top:22px;padding-top:16px;border-top:1px solid #e8edf3;">
+        <b>Suplentes</b>
+        <div style="margin-top:10px;">
+          ${suplentes.length ? suplentes.map(s => { const sp=s.participantes_sorteo||{}; return `<div class="muted" style="margin:6px 0;">${s.posicion}. ${sp.nombre || 'Suplente'}${sp.usuario_red ? ' · ' + sp.usuario_red : ''}</div>`; }).join('') : '<div class="muted">Sin suplentes disponibles.</div>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+async function marcarRequisitoGanadorSorteo(participanteId, campo, valor, sorteoId) {
+  if (!['requisito_like','requisito_seguidor'].includes(campo)) return;
+  const { data: actual, error: e1 } = await supabaseClient.from('participantes_sorteo').select('requisito_like,requisito_seguidor,requisito_comentario,requisito_mencion').eq('id', participanteId).single();
+  if (e1 || !actual) { console.error(e1); toast('Error cargando participante'); return; }
+  const siguiente = { ...actual, [campo]: !!valor };
+  const cumple = !!(siguiente.requisito_like && siguiente.requisito_seguidor && siguiente.requisito_comentario && siguiente.requisito_mencion);
+  const { error } = await supabaseClient.from('participantes_sorteo').update({ [campo]: !!valor, cumple_bases: cumple, verificado_at: cumple ? new Date().toISOString() : null }).eq('id', participanteId);
+  if (error) { console.error(error); toast('Error actualizando requisito'); return; }
+  await abrirValidacionGanadorSorteo(sorteoId);
+}
+
+async function confirmarGanadorSorteo(registroGanadorId, participanteId, sorteoId) {
+  const { data: p, error: ep } = await supabaseClient.from('participantes_sorteo').select('requisito_like,requisito_seguidor,requisito_comentario,requisito_mencion').eq('id', participanteId).single();
+  if (ep || !p) { toast('No se pudo comprobar al ganador'); return; }
+  if (!(p.requisito_like && p.requisito_seguidor && p.requisito_comentario && p.requisito_mencion)) { toast('Falta verificar Me gusta o seguimiento'); return; }
+  const { error } = await supabaseClient.from('ganadores_sorteo').update({ estado_validacion:'confirmado', validado_at:new Date().toISOString(), motivo_invalidacion:null }).eq('id', registroGanadorId);
+  if (error) { console.error(error); toast('Error confirmando ganador'); return; }
+  await supabaseClient.from('sorteos').update({ estado:'finalizado' }).eq('id', sorteoId);
+  toast('🏆 Ganador confirmado');
+  await abrirValidacionGanadorSorteo(sorteoId);
+}
+
+async function descartarGanadorYUsarSuplente(registroGanadorId, sorteoId) {
+  const { error: ed } = await supabaseClient.from('ganadores_sorteo').update({ estado_validacion:'descartado', motivo_invalidacion:'No cumple requisitos finales' }).eq('id', registroGanadorId);
+  if (ed) { console.error(ed); toast('Error descartando ganador'); return; }
+  const { data: suplente, error: es } = await supabaseClient.from('ganadores_sorteo').select('id,posicion').eq('sorteo_id', sorteoId).eq('es_suplente', true).eq('estado_validacion', 'provisional').order('posicion', { ascending:true }).limit(1).maybeSingle();
+  if (es) { console.error(es); toast('Error buscando suplente'); return; }
+  if (!suplente) { toast('No quedan suplentes disponibles'); await abrirValidacionGanadorSorteo(sorteoId); return; }
+  const { error: ep } = await supabaseClient.from('ganadores_sorteo').update({ es_suplente:false, posicion:1, estado_validacion:'provisional' }).eq('id', suplente.id);
+  if (ep) { console.error(ep); toast('Error promoviendo suplente'); return; }
+  toast('Suplente promovido a ganador provisional');
+  await abrirValidacionGanadorSorteo(sorteoId);
+}
 // ==========================================
 // ELEGIR GANADOR
 // ==========================================
@@ -960,36 +1079,9 @@ async function elegirGanadorSorteo(sorteoId) {
   }
 
  if (existentes && existentes.length > 0) {
-
-  const ganadoresExistentes = existentes.filter(g => !g.es_suplente);
-  const suplentesExistentes = existentes.filter(g => g.es_suplente);
-
-  const textoGanadoresExistentes = ganadoresExistentes.map(g => {
-    const p = g.participantes_sorteo;
-    return `${g.posicion}. ${p?.nombre || 'Ganador'}${p?.usuario_red ? ' - ' + p.usuario_red : ''}`;
-  }).join('\n');
-
-  const textoSuplentesExistentes = suplentesExistentes.map(g => {
-    const p = g.participantes_sorteo;
-    return `${g.posicion}. ${p?.nombre || 'Suplente'}${p?.usuario_red ? ' - ' + p.usuario_red : ''}`;
-  }).join('\n');
-
-  alert(
-    '🏆 ESTE SORTEO YA ESTÁ REALIZADO\n\n' +
-    'GANADOR' +
-    (ganadoresExistentes.length > 1 ? 'ES' : '') +
-    '\n\n' +
-    textoGanadoresExistentes +
-    (suplentesExistentes.length
-      ? '\n\n🔄 SUPLENTE' +
-        (suplentesExistentes.length > 1 ? 'S' : '') +
-        '\n\n' +
-        textoSuplentesExistentes
-      : '')
-  );
-
+  await abrirValidacionGanadorSorteo(sorteoId);
   return;
-} 
+}
 
 
   const { data: sorteo, error: errorSorteo } = await supabaseClient
@@ -1009,7 +1101,8 @@ async function elegirGanadorSorteo(sorteoId) {
     .from('participantes_sorteo')
     .select('*')
     .eq('sorteo_id', sorteoId)
-    .eq('cumple_bases', true);
+    .eq('requisito_comentario', true)
+    .eq('requisito_mencion', true);
 
   if (error) {
     console.error(error);
@@ -1018,7 +1111,7 @@ async function elegirGanadorSorteo(sorteoId) {
   }
 
   if (!participantes || participantes.length === 0) {
-    toast('No hay participantes verificados que cumplan las bases');
+    toast('No hay candidatos con comentario y mención válidos');
     return;
   }
 
@@ -1051,14 +1144,16 @@ const suplentes = mezclados.slice(
   sorteo_id: sorteoId,
   participante_id: ganador.id,
   posicion: index + 1,
-  es_suplente: false
+  es_suplente: false,
+  estado_validacion: 'provisional'
 }));
 
 const registrosSuplentes = suplentes.map((suplente, index) => ({
   sorteo_id: sorteoId,
   participante_id: suplente.id,
   posicion: index + 1,
-  es_suplente: true
+  es_suplente: true,
+  estado_validacion: 'provisional'
 }));
 
 const registros = [
@@ -1078,27 +1173,8 @@ const registros = [
   }
 
 
-  const textoGanadores = ganadores.map((g, index) =>
-    `${index + 1}. ${g.nombre}${g.usuario_red ? ' - ' + g.usuario_red : ''}`
-  ).join('\n');
-const textoSuplentes = suplentes.map((s, index) =>
-  `${index + 1}. ${s.nombre}${s.usuario_red ? ' - ' + s.usuario_red : ''}`
-).join('\n');
-
-  alert(
-  '🏆 GANADOR' +
-  (ganadores.length > 1 ? 'ES' : '') +
-  ' DEL SORTEO\n\n' +
-  textoGanadores +
-  (suplentes.length
-    ? '\n\n🔄 SUPLENTE' +
-      (suplentes.length > 1 ? 'S' : '') +
-      '\n\n' +
-      textoSuplentes
-    : '')
-);
-
-  toast('Resultado guardado');
+  toast('Ganador provisional elegido');
+  await abrirValidacionGanadorSorteo(sorteoId);
 }
 function generarCartelSorteo() {
 
@@ -1455,6 +1531,10 @@ window.calcularCumpleBasesSorteo = function(p) {
   );
 };
 window.elegirGanadorSorteo = elegirGanadorSorteo;
+window.abrirValidacionGanadorSorteo = abrirValidacionGanadorSorteo;
+window.marcarRequisitoGanadorSorteo = marcarRequisitoGanadorSorteo;
+window.confirmarGanadorSorteo = confirmarGanadorSorteo;
+window.descartarGanadorYUsarSuplente = descartarGanadorYUsarSuplente;
 window.generarCartelSorteo = generarCartelSorteo;
 window.generarCartelDesdeSorteo = generarCartelDesdeSorteo;
 window.sincronizarInstagramSorteo = sincronizarInstagramSorteo;
