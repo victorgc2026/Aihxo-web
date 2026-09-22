@@ -191,6 +191,15 @@ const generarCartel = document.getElementById('generarCartelSorteo');
   if (nuevo) {
     nuevo.onclick = () => {
       formulario.style.display = 'block';
+
+      const condicionesEl = document.getElementById('sorteoCondiciones');
+      if (condicionesEl && !condicionesEl.value.trim()) {
+        condicionesEl.value =
+          '1. Dar Me gusta a la publicación del sorteo.\n' +
+          '2. Seguir a @aihxo.camisetas en Instagram.\n' +
+          '3. Comentar en la publicación mencionando al menos a un amigo.';
+      }
+
       formulario.scrollIntoView({
         behavior: 'smooth',
         block: 'start'
@@ -574,10 +583,22 @@ async function abrirParticipantesSorteo(sorteoId, sorteoNombre) {
                     }
 
                     <div style="margin-top:7px;font-size:12px;line-height:1.7;">
-                      <div>${p.requisito_like ? '✅' : '⬜'} Me gusta</div>
-                      <div>${p.requisito_seguidor ? '✅' : '⬜'} Sigue a @aihxo.camisetas</div>
-                      <div>${p.requisito_comentario ? '✅' : '⬜'} Comentó</div>
-                      <div>${p.requisito_mencion ? '✅' : '⬜'} Mencionó a un amigo</div>
+                      <button class="secondary" style="padding:4px 8px;margin:2px 4px 2px 0;"
+                        onclick="toggleRequisitoParticipanteSorteo('${p.id}','requisito_like',${!p.requisito_like},'${sorteoId}','${sorteoNombre.replace(/'/g, "\\'")}')">
+                        ${p.requisito_like ? '✅' : '⬜'} Me gusta
+                      </button>
+                      <button class="secondary" style="padding:4px 8px;margin:2px 4px 2px 0;"
+                        onclick="toggleRequisitoParticipanteSorteo('${p.id}','requisito_seguidor',${!p.requisito_seguidor},'${sorteoId}','${sorteoNombre.replace(/'/g, "\\'")}')">
+                        ${p.requisito_seguidor ? '✅' : '⬜'} Sigue a @aihxo.camisetas
+                      </button>
+                      <button class="secondary" style="padding:4px 8px;margin:2px 4px 2px 0;"
+                        onclick="toggleRequisitoParticipanteSorteo('${p.id}','requisito_comentario',${!p.requisito_comentario},'${sorteoId}','${sorteoNombre.replace(/'/g, "\\'")}')">
+                        ${p.requisito_comentario ? '✅' : '⬜'} Comentó
+                      </button>
+                      <button class="secondary" style="padding:4px 8px;margin:2px 4px 2px 0;"
+                        onclick="toggleRequisitoParticipanteSorteo('${p.id}','requisito_mencion',${!p.requisito_mencion},'${sorteoId}','${sorteoNombre.replace(/'/g, "\\'")}')">
+                        ${p.requisito_mencion ? '✅' : '⬜'} Mencionó a un amigo
+                      </button>
                     </div>
                     <div style="margin-top:6px;font-size:12px;font-weight:800;color:${p.cumple_bases ? '#16803c' : '#a16207'};">
                       ${p.cumple_bases ? '✅ Cumple bases' : '⏳ Pendiente de verificar'}
@@ -585,17 +606,6 @@ async function abrirParticipantesSorteo(sorteoId, sorteoNombre) {
                   </div>
 
                   <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-                    <button
-                      class="secondary"
-                      onclick="cambiarVerificacionParticipanteSorteo(
-                        '${p.id}',
-                        ${p.cumple_bases ? 'false' : 'true'},
-                        '${sorteoId}',
-                        '${sorteoNombre.replace(/'/g, "\\'")}'
-                      )"
-                    >
-                      ${p.cumple_bases ? '↩ Pendiente' : '✅ Marcar apto'}
-                    </button>
 
                     <button
                       class="secondary"
@@ -697,26 +707,37 @@ async function eliminarParticipanteSorteo(
     sorteoNombre
   );
 }
-async function cambiarVerificacionParticipanteSorteo(participanteId, cumple, sorteoId, sorteoNombre) {
+async function toggleRequisitoParticipanteSorteo(participanteId, campo, valor, sorteoId, sorteoNombre) {
+  const camposPermitidos = ['requisito_like','requisito_seguidor','requisito_comentario','requisito_mencion'];
+  if (!camposPermitidos.includes(campo)) return;
+
+  const { data: actual, error: errorLectura } = await supabaseClient
+    .from('participantes_sorteo')
+    .select('requisito_like,requisito_seguidor,requisito_comentario,requisito_mencion')
+    .eq('id', participanteId)
+    .single();
+
+  if (errorLectura || !actual) {
+    console.error(errorLectura);
+    toast('Error leyendo participante');
+    return;
+  }
+
+  const siguiente = { ...actual, [campo]: !!valor };
+  const cumple = !!(siguiente.requisito_like && siguiente.requisito_seguidor && siguiente.requisito_comentario && siguiente.requisito_mencion);
+
   const { error } = await supabaseClient
     .from('participantes_sorteo')
-    .update({
-      cumple_bases: !!cumple,
-      requisito_like: !!cumple,
-      requisito_seguidor: !!cumple,
-      requisito_comentario: !!cumple,
-      requisito_mencion: !!cumple,
-      verificado_at: cumple ? new Date().toISOString() : null
-    })
+    .update({ [campo]: !!valor, cumple_bases: cumple, verificado_at: cumple ? new Date().toISOString() : null })
     .eq('id', participanteId);
 
   if (error) {
     console.error(error);
-    toast('Error actualizando verificación');
+    toast('Error actualizando requisito');
     return;
   }
 
-  toast(cumple ? 'Participante verificado' : 'Participante marcado como pendiente');
+  toast(cumple ? '✅ Participante apto' : 'Requisito actualizado');
   await abrirParticipantesSorteo(sorteoId, sorteoNombre);
 }
 
@@ -1230,7 +1251,7 @@ window.cargarSorteos = cargarSorteos;
 window.abrirParticipantesSorteo = abrirParticipantesSorteo;
 window.guardarParticipanteSorteo = guardarParticipanteSorteo;
 window.eliminarParticipanteSorteo = eliminarParticipanteSorteo;
-window.cambiarVerificacionParticipanteSorteo = cambiarVerificacionParticipanteSorteo;
+window.toggleRequisitoParticipanteSorteo = toggleRequisitoParticipanteSorteo;
 window.calcularCumpleBasesSorteo = function(p) {
   return !!(
     p?.requisito_like &&
