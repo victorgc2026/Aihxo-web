@@ -501,7 +501,13 @@ async function abrirParticipantesSorteo(sorteoId, sorteoNombre) {
       </div>
 
       <div style="padding:12px 14px;border-radius:12px;background:#fff8e8;color:#7a5200;font-weight:700;margin-bottom:16px;">
-        Solo los participantes marcados como <b>✅ Cumple bases</b> entrarán en el sorteo.
+        Para entrar en el sorteo deben cumplir los 3 requisitos:
+        <div style="margin-top:8px;line-height:1.6;">
+          1. ❤️ Dar Me gusta a la publicación<br>
+          2. 👤 Seguir a @aihxo.camisetas<br>
+          3. 💬 Comentar mencionando a un amigo
+        </div>
+        <div style="margin-top:8px;">Solo los marcados como <b>✅ Cumple bases</b> entrarán en el sorteo.</div>
       </div>
 
       <div style="
@@ -567,6 +573,12 @@ async function abrirParticipantesSorteo(sorteoId, sorteoNombre) {
                       : ''
                     }
 
+                    <div style="margin-top:7px;font-size:12px;line-height:1.7;">
+                      <div>${p.requisito_like ? '✅' : '⬜'} Me gusta</div>
+                      <div>${p.requisito_seguidor ? '✅' : '⬜'} Sigue a @aihxo.camisetas</div>
+                      <div>${p.requisito_comentario ? '✅' : '⬜'} Comentó</div>
+                      <div>${p.requisito_mencion ? '✅' : '⬜'} Mencionó a un amigo</div>
+                    </div>
                     <div style="margin-top:6px;font-size:12px;font-weight:800;color:${p.cumple_bases ? '#16803c' : '#a16207'};">
                       ${p.cumple_bases ? '✅ Cumple bases' : '⏳ Pendiente de verificar'}
                     </div>
@@ -639,7 +651,11 @@ async function guardarParticipanteSorteo(sorteoId, sorteoNombre) {
       usuario_red,
       contacto,
       origen: 'manual',
-      cumple_bases: false
+      cumple_bases: false,
+      requisito_like: false,
+      requisito_seguidor: false,
+      requisito_comentario: false,
+      requisito_mencion: false
     });
 
   if (error) {
@@ -686,6 +702,10 @@ async function cambiarVerificacionParticipanteSorteo(participanteId, cumple, sor
     .from('participantes_sorteo')
     .update({
       cumple_bases: !!cumple,
+      requisito_like: !!cumple,
+      requisito_seguidor: !!cumple,
+      requisito_comentario: !!cumple,
+      requisito_mencion: !!cumple,
       verificado_at: cumple ? new Date().toISOString() : null
     })
     .eq('id', participanteId);
@@ -1211,6 +1231,14 @@ window.abrirParticipantesSorteo = abrirParticipantesSorteo;
 window.guardarParticipanteSorteo = guardarParticipanteSorteo;
 window.eliminarParticipanteSorteo = eliminarParticipanteSorteo;
 window.cambiarVerificacionParticipanteSorteo = cambiarVerificacionParticipanteSorteo;
+window.calcularCumpleBasesSorteo = function(p) {
+  return !!(
+    p?.requisito_like &&
+    p?.requisito_seguidor &&
+    p?.requisito_comentario &&
+    p?.requisito_mencion
+  );
+};
 window.elegirGanadorSorteo = elegirGanadorSorteo;
 window.generarCartelSorteo = generarCartelSorteo;
 window.generarCartelDesdeSorteo = generarCartelDesdeSorteo;
