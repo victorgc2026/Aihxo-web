@@ -107,6 +107,13 @@ function sorteosView() {
             </label>
 
             <label>
+              Enlace de la publicación de Instagram
+              <input id="sorteoInstagramUrl"
+                     type="url"
+                     placeholder="https://www.instagram.com/p/...">
+            </label>
+
+            <label>
               Número de ganadores
               <input id="sorteoGanadores"
                      type="number"
@@ -217,6 +224,9 @@ async function guardarSorteo() {
   const premio = document.getElementById('sorteoPremio').value.trim();
   const fecha_inicio = document.getElementById('sorteoInicio').value || null;
   const fecha_fin = document.getElementById('sorteoFin').value || null;
+  const instagram_post_url =
+    document.getElementById('sorteoInstagramUrl')?.value.trim() || null;
+
   const numero_ganadores = Number(
     document.getElementById('sorteoGanadores').value || 1
   );
@@ -243,6 +253,7 @@ async function guardarSorteo() {
       fecha_fin,
       numero_ganadores,
       numero_suplentes,
+      instagram_post_url,
       estado,
       texto_promocional,
       condiciones
@@ -261,6 +272,8 @@ async function guardarSorteo() {
   document.getElementById('sorteoInicio').value = '';
   document.getElementById('sorteoFin').value = '';
   document.getElementById('sorteoGanadores').value = '1';
+  const instagramUrlEl = document.getElementById('sorteoInstagramUrl');
+  if (instagramUrlEl) instagramUrlEl.value = '';
   document.getElementById('sorteoEstado').value = 'programado';
   document.getElementById('sorteoTexto').value = '';
   document.getElementById('sorteoCondiciones').value = '';
@@ -282,7 +295,8 @@ async function cargarSorteos() {
   .select(`
     *,
     participantes_sorteo (
-      id
+      id,
+      cumple_bases
     ),
     ganadores_sorteo (
       posicion,
@@ -338,6 +352,9 @@ async function cargarSorteos() {
 const participantesTotal =
   s.participantes_sorteo?.length || 0;
 
+const participantesAptos =
+  (s.participantes_sorteo || []).filter(p => p.cumple_bases).length;
+
 const ganadores =
   (s.ganadores_sorteo || [])
     .filter(g => !g.es_suplente)
@@ -387,6 +404,9 @@ const textoGanador = ganadores.length
       👥 Participantes
     </div>
     <b>${participantesTotal}</b>
+    <div class="muted" style="font-size:12px;margin-top:3px;">
+      ✅ ${participantesAptos} aptos
+    </div>
   </div>
 
   <div>
@@ -478,6 +498,10 @@ async function abrirParticipantesSorteo(sorteoId, sorteoNombre) {
 
       <div class="muted" style="margin-bottom:18px;">
         ${sorteoNombre}
+      </div>
+
+      <div style="padding:12px 14px;border-radius:12px;background:#fff8e8;color:#7a5200;font-weight:700;margin-bottom:16px;">
+        Solo los participantes marcados como <b>✅ Cumple bases</b> entrarán en el sorteo.
       </div>
 
       <div style="
@@ -595,7 +619,9 @@ async function guardarParticipanteSorteo(sorteoId, sorteoNombre) {
       sorteo_id: sorteoId,
       nombre,
       usuario_red,
-      contacto
+      contacto,
+      origen: 'manual',
+      cumple_bases: false
     });
 
   if (error) {
@@ -637,6 +663,25 @@ async function eliminarParticipanteSorteo(
     sorteoNombre
   );
 }
+async function cambiarVerificacionParticipanteSorteo(participanteId, cumple, sorteoId, sorteoNombre) {
+  const { error } = await supabaseClient
+    .from('participantes_sorteo')
+    .update({
+      cumple_bases: !!cumple,
+      verificado_at: cumple ? new Date().toISOString() : null
+    })
+    .eq('id', participanteId);
+
+  if (error) {
+    console.error(error);
+    toast('Error actualizando verificación');
+    return;
+  }
+
+  toast(cumple ? 'Participante verificado' : 'Participante marcado como pendiente');
+  await abrirParticipantesSorteo(sorteoId, sorteoNombre);
+}
+
 // ==========================================
 // ELEGIR GANADOR
 // ==========================================
@@ -710,7 +755,8 @@ async function elegirGanadorSorteo(sorteoId) {
   const { data: participantes, error } = await supabaseClient
     .from('participantes_sorteo')
     .select('*')
-    .eq('sorteo_id', sorteoId);
+    .eq('sorteo_id', sorteoId)
+    .eq('cumple_bases', true);
 
   if (error) {
     console.error(error);
@@ -719,7 +765,7 @@ async function elegirGanadorSorteo(sorteoId) {
   }
 
   if (!participantes || participantes.length === 0) {
-    toast('No hay participantes');
+    toast('No hay participantes verificados que cumplan las bases');
     return;
   }
 
@@ -1146,6 +1192,7 @@ window.cargarSorteos = cargarSorteos;
 window.abrirParticipantesSorteo = abrirParticipantesSorteo;
 window.guardarParticipanteSorteo = guardarParticipanteSorteo;
 window.eliminarParticipanteSorteo = eliminarParticipanteSorteo;
+window.cambiarVerificacionParticipanteSorteo = cambiarVerificacionParticipanteSorteo;
 window.elegirGanadorSorteo = elegirGanadorSorteo;
 window.generarCartelSorteo = generarCartelSorteo;
 window.generarCartelDesdeSorteo = generarCartelDesdeSorteo;
