@@ -64,9 +64,11 @@ function sorteosView() {
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
             <label>Meta App ID<input id="instagramAppId" type="text" autocomplete="off" placeholder="App ID"></label>
             <label>Meta App Secret<input id="instagramAppSecret" type="password" autocomplete="off" placeholder="App Secret"></label>
+            <label>Token de acceso de Instagram<input id="instagramAccessToken" type="password" autocomplete="off" placeholder="Pega aquí el token generado en Meta"></label>
           </div>
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
             <button class="primary" id="guardarInstagramConfig">Guardar configuración</button>
+            <button class="secondary" id="guardarInstagramToken">Guardar token de acceso</button>
           </div>
           <div class="muted" style="margin-top:8px;">Las credenciales se guardan en el backend y no se incluyen en el JavaScript público.</div>
         </div>
@@ -214,6 +216,7 @@ const generarCartel = document.getElementById('generarCartelSorteo');
 const configurarInstagram = document.getElementById('configurarInstagramSorteos');
 const conectarInstagram = document.getElementById('conectarInstagramSorteos');
 const guardarInstagramConfig = document.getElementById('guardarInstagramConfig');
+const guardarInstagramToken = document.getElementById('guardarInstagramToken');
   if (nuevo) {
     nuevo.onclick = () => {
       formulario.style.display = 'block';
@@ -252,6 +255,7 @@ if (configurarInstagram) {
   };
 }
 if (guardarInstagramConfig) guardarInstagramConfig.onclick = guardarConfiguracionInstagramSorteos;
+if (guardarInstagramToken) guardarInstagramToken.onclick = guardarTokenInstagramSorteos;
 if (conectarInstagram) conectarInstagram.onclick = conectarInstagramSorteos;
 
   await cargarEstadoInstagramSorteos();
@@ -340,6 +344,37 @@ async function guardarConfiguracionInstagramSorteos() {
   } catch (error) {
     console.error(error);
     toast(error.message || 'Error guardando configuración');
+  }
+}
+
+async function guardarTokenInstagramSorteos() {
+  const access_token =
+    document.getElementById('instagramAccessToken')?.value.trim();
+
+  if (!access_token) {
+    toast('Introduce el token de acceso de Instagram');
+    return;
+  }
+
+  try {
+    const data = await llamarInstagramSorteos({
+      action:'save_token',
+      access_token
+    });
+
+    const tokenEl = document.getElementById('instagramAccessToken');
+    if (tokenEl) tokenEl.value = '';
+
+    toast(
+      data?.username
+        ? 'Instagram conectado: @' + data.username
+        : 'Token de Instagram guardado'
+    );
+
+    await cargarEstadoInstagramSorteos();
+  } catch (error) {
+    console.error(error);
+    toast(error.message || 'No se pudo guardar el token');
   }
 }
 
