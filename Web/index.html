@@ -1442,7 +1442,7 @@ mensaje +=
 abrirModalCuponAIHXO({
   nombre: `${nombre} × ${cantidad}`,
   subtotal: subtotal,
-  envio: 5,
+  envio: calcularEnvioAIHXO(subtotal),
   mensajeBase: mensaje
 });
 }
@@ -1563,7 +1563,7 @@ const mensajeConCantidad =
 abrirModalCuponAIHXO({
   nombre: `${nombre} × ${cantidad}`,
   subtotal: subtotal,
-  envio: 5,
+  envio: calcularEnvioAIHXO(subtotal),
   mensajeBase: mensajeConCantidad
 });
 }
@@ -1633,6 +1633,12 @@ abrirModalCuponAIHXO({
   <span>Envío</span>
   <strong id="cupon-envio">0,00 €</strong>
 </div>
+<div id="cupon-aviso-envio" style="
+  font-size:13px;
+  font-weight:800;
+  color:#087cf4;
+  margin:-2px 0 10px;
+"></div>
       <div id="fila-descuento" style="
         display:none;
         justify-content:space-between;
@@ -1754,11 +1760,19 @@ abrirModalCuponAIHXO({
 let pedidoCuponAIHXO = null;
 let cuponAplicadoAIHXO = null;
 
+const AIHXO_ENVIO_PENINSULA = 6.95;
+const AIHXO_ENVIO_GRATIS_DESDE = 49;
+
 function dineroAIHXO(valor) {
   return Number(valor || 0).toLocaleString('es-ES', {
     style: 'currency',
     currency: 'EUR'
   });
+}
+
+function calcularEnvioAIHXO(subtotal) {
+  const importe = Number(subtotal || 0);
+  return importe >= AIHXO_ENVIO_GRATIS_DESDE ? 0 : AIHXO_ENVIO_PENINSULA;
 }
 
 function abrirModalCuponAIHXO(datosPedido) {
@@ -1776,9 +1790,23 @@ function abrirModalCuponAIHXO(datosPedido) {
 
   producto.textContent = datosPedido.nombre || 'Pedido AIHXO';
   subtotal.textContent = dineroAIHXO(datosPedido.subtotal);
-envio.textContent = dineroAIHXO(datosPedido.envio || 0);
+const envioCalculado = calcularEnvioAIHXO(datosPedido.subtotal);
+pedidoCuponAIHXO.envio = envioCalculado;
+
+envio.textContent = envioCalculado === 0
+  ? 'GRATIS'
+  : dineroAIHXO(envioCalculado);
+
+const avisoEnvio = document.getElementById('cupon-aviso-envio');
+if (avisoEnvio) {
+  const falta = Math.max(0, AIHXO_ENVIO_GRATIS_DESDE - Number(datosPedido.subtotal || 0));
+  avisoEnvio.textContent = envioCalculado === 0
+    ? '✓ Envío gratis por superar 49 €'
+    : `Añade ${dineroAIHXO(falta)} más para conseguir envío gratis`;
+}
+
 total.textContent = dineroAIHXO(
-  datosPedido.subtotal + (datosPedido.envio || 0)
+  datosPedido.subtotal + envioCalculado
 );
 
   filaDescuento.style.display = 'none';
