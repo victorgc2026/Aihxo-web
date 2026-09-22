@@ -49,6 +49,29 @@ function sorteosView() {
 
       </div>
 
+      <div class="card" style="padding:18px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+          <div>
+            <h3 style="margin:0 0 6px;">📸 Instagram profesional</h3>
+            <div class="muted" id="instagramSorteosEstado">Comprobando conexión…</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="secondary" id="configurarInstagramSorteos">⚙️ Configurar</button>
+            <button class="primary" id="conectarInstagramSorteos">Conectar Instagram</button>
+          </div>
+        </div>
+        <div id="instagramSorteosConfig" style="display:none;margin-top:14px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+            <label>Meta App ID<input id="instagramAppId" type="text" autocomplete="off" placeholder="App ID"></label>
+            <label>Meta App Secret<input id="instagramAppSecret" type="password" autocomplete="off" placeholder="App Secret"></label>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="primary" id="guardarInstagramConfig">Guardar configuración</button>
+          </div>
+          <div class="muted" style="margin-top:8px;">Las credenciales se guardan en el backend y no se incluyen en el JavaScript público.</div>
+        </div>
+      </div>
+
       <div class="card" style="padding:18px;">
 
         <h3 style="margin-top:0;">Todos los sorteos</h3>
@@ -188,6 +211,9 @@ async function iniciarSorteos() {
   const cerrar = document.getElementById('cerrarNuevoSorteo');
   const guardar = document.getElementById('guardarSorteo');
 const generarCartel = document.getElementById('generarCartelSorteo');
+const configurarInstagram = document.getElementById('configurarInstagramSorteos');
+const conectarInstagram = document.getElementById('conectarInstagramSorteos');
+const guardarInstagramConfig = document.getElementById('guardarInstagramConfig');
   if (nuevo) {
     nuevo.onclick = () => {
       formulario.style.display = 'block';
@@ -219,9 +245,136 @@ const generarCartel = document.getElementById('generarCartelSorteo');
 if (generarCartel) {
   generarCartel.onclick = generarCartelSorteo;
 }
+if (configurarInstagram) {
+  configurarInstagram.onclick = () => {
+    const box = document.getElementById('instagramSorteosConfig');
+    if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  };
+}
+if (guardarInstagramConfig) guardarInstagramConfig.onclick = guardarConfiguracionInstagramSorteos;
+if (conectarInstagram) conectarInstagram.onclick = conectarInstagramSorteos;
+
+  await cargarEstadoInstagramSorteos();
   await cargarSorteos();
 }
 
+
+const INSTAGRAM_SORTEOS_ENDPOINT =
+  'https://zoiesxtchnesrilpuqek.supabase.co/functions/v1/instagram-sorteos';
+
+async function llamarInstagramSorteos(payload) {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session?.access_token) throw new Error('Sesión no disponible');
+
+  const respuesta = await fetch(INSTAGRAM_SORTEOS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + session.access_token
+    },
+    body: JSON.stringify(payload || {})
+  });
+
+  const data = await respuesta.json().catch(() => ({}));
+  if (!respuesta.ok || data?.error) {
+    throw new Error(data?.error || 'Error conectando con Instagram');
+  }
+
+  return data;
+}
+
+async function cargarEstadoInstagramSorteos() {
+  const estado = document.getElementById('instagramSorteosEstado');
+  if (!estado) return;
+
+  try {
+    const data = await llamarInstagramSorteos({ action:'status' });
+
+    if (data.connected) {
+      estado.innerHTML =
+        '✅ Conectado con <b>@' + (data.username || 'Instagram') + '</b>' +
+        (data.expires_at ? ' · Token hasta ' + new Date(data.expires_at).toLocaleDateString('es-ES') : '');
+    } else if (data.configured) {
+      estado.textContent = '⚠️ Configuración guardada, falta autorizar la cuenta de Instagram.';
+    } else {
+      estado.textContent = 'Sin configurar. Añade App ID y App Secret de Meta.';
+    }
+  } catch (error) {
+    console.error(error);
+    estado.textContent = 'No se pudo comprobar el estado de Instagram.';
+  }
+}
+
+async function guardarConfiguracionInstagramSorteos() {
+  const app_id = document.getElementById('instagramAppId')?.value.trim();
+  const app_secret = document.getElementById('instagramAppSecret')?.value.trim();
+
+  if (!app_id || !app_secret) {
+    toast('Introduce App ID y App Secret');
+    return;
+  }
+
+  try {
+    const data = await llamarInstagramSorteos({
+      action:'save_config',
+      app_id,
+      app_secret
+    });
+
+    toast('Configuración de Meta guardada');
+
+    const secret = document.getElementById('instagramAppSecret');
+    if (secret) secret.value = '';
+
+    const estado = document.getElementById('instagramSorteosEstado');
+    if (estado) {
+      estado.textContent = 'Configuración guardada. Pulsa Conectar Instagram.';
+    }
+
+    const box = document.getElementById('instagramSorteosConfig');
+    if (box) box.style.display = 'none';
+
+    if (data.redirect_uri) {
+      console.info('Instagram Redirect URI:', data.redirect_uri);
+    }
+  } catch (error) {
+    console.error(error);
+    toast(error.message || 'Error guardando configuración');
+  }
+}
+
+async function conectarInstagramSorteos() {
+  try {
+    const data = await llamarInstagramSorteos({ action:'connect_url' });
+    if (!data?.url) throw new Error('No se pudo crear el enlace de autorización');
+    window.location.href = data.url;
+  } catch (error) {
+    console.error(error);
+    toast(error.message || 'No se pudo conectar Instagram');
+  }
+}
+
+async function sincronizarInstagramSorteo(sorteoId) {
+  try {
+    toast('Sincronizando Instagram…');
+
+    const data = await llamarInstagramSorteos({
+      action:'sync',
+      sorteo_id:sorteoId
+    });
+
+    toast(
+      'Instagram: ' +
+      (data.nuevos || 0) + ' nuevos · ' +
+      (data.actualizados || 0) + ' actualizados'
+    );
+
+    await cargarSorteos();
+  } catch (error) {
+    console.error(error);
+    toast(error.message || 'Error sincronizando Instagram');
+  }
+}
 
 // ==========================================
 // GUARDAR SORTEO
@@ -461,6 +614,12 @@ const textoGanador = ganadores.length
   onclick="generarCartelDesdeSorteo('${s.id}')"
 >
   🎨 Cartel
+</button>
+<button
+  class="secondary"
+  onclick="sincronizarInstagramSorteo('${s.id}')"
+>
+  🔄 Sincronizar Instagram
 </button>
 </div>
         </div>
@@ -1263,3 +1422,4 @@ window.calcularCumpleBasesSorteo = function(p) {
 window.elegirGanadorSorteo = elegirGanadorSorteo;
 window.generarCartelSorteo = generarCartelSorteo;
 window.generarCartelDesdeSorteo = generarCartelDesdeSorteo;
+window.sincronizarInstagramSorteo = sincronizarInstagramSorteo;
