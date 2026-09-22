@@ -566,18 +566,36 @@ async function abrirParticipantesSorteo(sorteoId, sorteoNombre) {
                       ? `<div class="muted">${p.usuario_red}</div>`
                       : ''
                     }
+
+                    <div style="margin-top:6px;font-size:12px;font-weight:800;color:${p.cumple_bases ? '#16803c' : '#a16207'};">
+                      ${p.cumple_bases ? '✅ Cumple bases' : '⏳ Pendiente de verificar'}
+                    </div>
                   </div>
 
-                  <button
-                    class="secondary"
-                    onclick="eliminarParticipanteSorteo(
-                      '${p.id}',
-                      '${sorteoId}',
-                      '${sorteoNombre.replace(/'/g, "\\'")}'
-                    )"
-                  >
-                    🗑
-                  </button>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+                    <button
+                      class="secondary"
+                      onclick="cambiarVerificacionParticipanteSorteo(
+                        '${p.id}',
+                        ${p.cumple_bases ? 'false' : 'true'},
+                        '${sorteoId}',
+                        '${sorteoNombre.replace(/'/g, "\\'")}'
+                      )"
+                    >
+                      ${p.cumple_bases ? '↩ Pendiente' : '✅ Marcar apto'}
+                    </button>
+
+                    <button
+                      class="secondary"
+                      onclick="eliminarParticipanteSorteo(
+                        '${p.id}',
+                        '${sorteoId}',
+                        '${sorteoNombre.replace(/'/g, "\\'")}'
+                      )"
+                    >
+                      🗑
+                    </button>
+                  </div>
 
                 </div>
               `).join('')
