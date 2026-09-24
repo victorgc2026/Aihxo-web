@@ -402,8 +402,10 @@ async function sincronizarInstagramSorteo(sorteoId) {
 
     toast(
       'Instagram: ' +
+      (data.comentarios || 0) + ' comentarios · ' +
       (data.nuevos || 0) + ' nuevos · ' +
-      (data.actualizados || 0) + ' actualizados'
+      (data.actualizados || 0) + ' actualizados' +
+      ((data.sin_usuario || 0) ? ' · ' + data.sin_usuario + ' sin usuario' : '')
     );
 
     await cargarSorteos();
