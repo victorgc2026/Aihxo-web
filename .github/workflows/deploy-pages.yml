@@ -8,6 +8,9 @@ on:
       - "Web/**"
       - "gestion/**"
       - "recuerdos/**"
+      - "privacidad.html"
+      - "condiciones.html"
+      - "eliminacion-datos.html"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
@@ -44,6 +47,9 @@ jobs:
           mkdir -p _site/recuerdos
           
           cp -a recuerdos/. _site/recuerdos/
+          cp privacidad.html _site/privacidad.html
+          cp condiciones.html _site/condiciones.html
+          cp eliminacion-datos.html _site/eliminacion-datos.html
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
