@@ -400,13 +400,17 @@ async function sincronizarInstagramSorteo(sorteoId) {
       sorteo_id:sorteoId
     });
 
-    toast(
-      'Instagram: ' +
-      (data.comentarios || 0) + ' comentarios · ' +
-      (data.nuevos || 0) + ' nuevos · ' +
-      (data.actualizados || 0) + ' actualizados' +
-      ((data.sin_usuario || 0) ? ' · ' + data.sin_usuario + ' sin usuario' : '')
-    );
+    if ((data.comentarios || 0) === 0) {
+      toast('Instagram devuelve 0 comentarios. Si el Reel sí tiene comentarios, completa la revisión/publicación de la app en Meta para acceder a datos reales.');
+    } else {
+      toast(
+        'Instagram: ' +
+        (data.comentarios || 0) + ' comentarios · ' +
+        (data.nuevos || 0) + ' nuevos · ' +
+        (data.actualizados || 0) + ' actualizados' +
+        ((data.sin_usuario || 0) ? ' · ' + data.sin_usuario + ' sin usuario' : '')
+      );
+    }
 
     await cargarSorteos();
   } catch (error) {
