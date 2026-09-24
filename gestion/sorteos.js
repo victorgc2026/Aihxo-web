@@ -226,7 +226,9 @@ const guardarInstagramToken = document.getElementById('guardarInstagramToken');
         condicionesEl.value =
           '1. Dar Me gusta a la publicación del sorteo.\n' +
           '2. Seguir a @aihxo.camisetas en Instagram.\n' +
-          '3. Comentar en la publicación mencionando al menos a un amigo.';
+          '3. Comentar en la publicación mencionando al menos a un amigo.\n' +
+          '4. Compartir la publicación en historias y mencionar a @aihxo.camisetas.\n' +
+          'Cada comentario válido mencionando a una persona diferente cuenta como una participación.';
       }
 
       formulario.scrollIntoView({
@@ -495,7 +497,9 @@ async function cargarSorteos() {
       id,
       cumple_bases,
       requisito_comentario,
-      requisito_mencion
+      requisito_mencion,
+      requisito_historia,
+      participacion_valida
     ),
     ganadores_sorteo (
       id,
@@ -558,7 +562,7 @@ const participantesAptos =
 
 const participantesCandidatos =
   (s.participantes_sorteo || []).filter(
-    p => p.requisito_comentario && p.requisito_mencion
+    p => p.participacion_valida
   ).length;
 
 const ganadores =
@@ -718,13 +722,15 @@ async function abrirParticipantesSorteo(sorteoId, sorteoNombre) {
       </div>
 
       <div style="padding:12px 14px;border-radius:12px;background:#fff8e8;color:#7a5200;font-weight:700;margin-bottom:16px;">
-        Para entrar en el sorteo deben cumplir los 3 requisitos:
+        Bases publicadas:
         <div style="margin-top:8px;line-height:1.6;">
           1. ❤️ Dar Me gusta a la publicación<br>
           2. 👤 Seguir a @aihxo.camisetas<br>
-          3. 💬 Comentar mencionando a un amigo
+          3. 💬 Comentar mencionando a un amigo/a<br>
+          4. 📲 Compartir la publicación en historias y mencionar a @aihxo.camisetas
         </div>
-        <div style="margin-top:8px;">Solo los marcados como <b>✅ Cumple bases</b> entrarán en el sorteo.</div>
+        <div style="margin-top:8px;">Cada comentario válido mencionando a una persona diferente cuenta como <b>1 participación</b>.</div>
+        <div style="margin-top:8px;">Comentario + mención se comprueban automáticamente. Me gusta, seguimiento e historia se verifican al validar al ganador.</div>
       </div>
 
       <div style="
@@ -807,7 +813,12 @@ async function abrirParticipantesSorteo(sorteoId, sorteoNombre) {
                         onclick="toggleRequisitoParticipanteSorteo('${p.id}','requisito_mencion',${!p.requisito_mencion},'${sorteoId}','${sorteoNombre.replace(/'/g, "\\'")}')">
                         ${p.requisito_mencion ? '✅' : '⬜'} Mencionó a un amigo
                       </button>
+                      <button class="secondary" style="padding:4px 8px;margin:2px 4px 2px 0;"
+                        onclick="toggleRequisitoParticipanteSorteo('${p.id}','requisito_historia',${!p.requisito_historia},'${sorteoId}','${sorteoNombre.replace(/'/g, "\\'")}')">
+                        ${p.requisito_historia ? '✅' : '⬜'} Compartió en historias
+                      </button>
                     </div>
+                    ${p.mencionado_usuario ? `<div class="muted" style="font-size:12px;margin-top:4px;">Participación por mención a ${p.mencionado_usuario}</div>` : ''}
                     <div style="margin-top:6px;font-size:12px;font-weight:800;color:${p.cumple_bases ? '#16803c' : '#a16207'};">
                       ${p.cumple_bases ? '✅ Cumple bases' : '⏳ Pendiente de verificar'}
                     </div>
@@ -873,7 +884,9 @@ async function guardarParticipanteSorteo(sorteoId, sorteoNombre) {
       requisito_like: false,
       requisito_seguidor: false,
       requisito_comentario: false,
-      requisito_mencion: false
+      requisito_mencion: false,
+      requisito_historia: false,
+      participacion_valida: false
     });
 
   if (error) {
@@ -916,12 +929,12 @@ async function eliminarParticipanteSorteo(
   );
 }
 async function toggleRequisitoParticipanteSorteo(participanteId, campo, valor, sorteoId, sorteoNombre) {
-  const camposPermitidos = ['requisito_like','requisito_seguidor','requisito_comentario','requisito_mencion'];
+  const camposPermitidos = ['requisito_like','requisito_seguidor','requisito_comentario','requisito_mencion','requisito_historia'];
   if (!camposPermitidos.includes(campo)) return;
 
   const { data: actual, error: errorLectura } = await supabaseClient
     .from('participantes_sorteo')
-    .select('requisito_like,requisito_seguidor,requisito_comentario,requisito_mencion')
+    .select('requisito_like,requisito_seguidor,requisito_comentario,requisito_mencion,requisito_historia')
     .eq('id', participanteId)
     .single();
 
@@ -932,7 +945,7 @@ async function toggleRequisitoParticipanteSorteo(participanteId, campo, valor, s
   }
 
   const siguiente = { ...actual, [campo]: !!valor };
-  const cumple = !!(siguiente.requisito_like && siguiente.requisito_seguidor && siguiente.requisito_comentario && siguiente.requisito_mencion);
+  const cumple = !!(siguiente.requisito_like && siguiente.requisito_seguidor && siguiente.requisito_comentario && siguiente.requisito_mencion && siguiente.requisito_historia);
 
   const { error } = await supabaseClient
     .from('participantes_sorteo')
@@ -965,6 +978,7 @@ async function abrirValidacionGanadorSorteo(sorteoId) {
         requisito_seguidor,
         requisito_comentario,
         requisito_mencion,
+        requisito_historia,
         cumple_bases
       )
     `)
@@ -1001,14 +1015,16 @@ async function abrirValidacionGanadorSorteo(sorteoId) {
         <div>✅ Mencionó a un amigo</div>
         <div>${p.requisito_like ? '✅' : '⬜'} Me gusta en la publicación</div>
         <div>${p.requisito_seguidor ? '✅' : '⬜'} Sigue a @aihxo.camisetas</div>
+        <div>${p.requisito_historia ? '✅' : '⬜'} Compartió en historias y mencionó a @aihxo.camisetas</div>
       </div>
       ${!confirmado ? `
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
           <button class="secondary" onclick="marcarRequisitoGanadorSorteo('${p.id}','requisito_like',${!p.requisito_like},'${sorteoId}')">${p.requisito_like ? '↩ Quitar Me gusta' : '❤️ Confirmar Me gusta'}</button>
           <button class="secondary" onclick="marcarRequisitoGanadorSorteo('${p.id}','requisito_seguidor',${!p.requisito_seguidor},'${sorteoId}')">${p.requisito_seguidor ? '↩ Quitar seguimiento' : '👤 Confirmar que sigue'}</button>
+          <button class="secondary" onclick="marcarRequisitoGanadorSorteo('${p.id}','requisito_historia',${!p.requisito_historia},'${sorteoId}')">${p.requisito_historia ? '↩ Quitar historia' : '📲 Confirmar historia'}</button>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="primary" onclick="confirmarGanadorSorteo('${ganador.id}','${p.id}','${sorteoId}')" ${p.requisito_like && p.requisito_seguidor ? '' : 'disabled'}>✅ Confirmar ganador</button>
+          <button class="primary" onclick="confirmarGanadorSorteo('${ganador.id}','${p.id}','${sorteoId}')" ${p.requisito_like && p.requisito_seguidor && p.requisito_historia ? '' : 'disabled'}>✅ Confirmar ganador</button>
           <button class="secondary" onclick="descartarGanadorYUsarSuplente('${ganador.id}','${sorteoId}')">❌ No cumple · usar suplente</button>
         </div>
       ` : `<div style="padding:12px 14px;border-radius:12px;background:#e8f8ee;color:#16803c;font-weight:900;">✅ Todos los requisitos verificados</div>`}
@@ -1022,20 +1038,20 @@ async function abrirValidacionGanadorSorteo(sorteoId) {
 }
 
 async function marcarRequisitoGanadorSorteo(participanteId, campo, valor, sorteoId) {
-  if (!['requisito_like','requisito_seguidor'].includes(campo)) return;
-  const { data: actual, error: e1 } = await supabaseClient.from('participantes_sorteo').select('requisito_like,requisito_seguidor,requisito_comentario,requisito_mencion').eq('id', participanteId).single();
+  if (!['requisito_like','requisito_seguidor','requisito_historia'].includes(campo)) return;
+  const { data: actual, error: e1 } = await supabaseClient.from('participantes_sorteo').select('requisito_like,requisito_seguidor,requisito_comentario,requisito_mencion,requisito_historia').eq('id', participanteId).single();
   if (e1 || !actual) { console.error(e1); toast('Error cargando participante'); return; }
   const siguiente = { ...actual, [campo]: !!valor };
-  const cumple = !!(siguiente.requisito_like && siguiente.requisito_seguidor && siguiente.requisito_comentario && siguiente.requisito_mencion);
+  const cumple = !!(siguiente.requisito_like && siguiente.requisito_seguidor && siguiente.requisito_comentario && siguiente.requisito_mencion && siguiente.requisito_historia);
   const { error } = await supabaseClient.from('participantes_sorteo').update({ [campo]: !!valor, cumple_bases: cumple, verificado_at: cumple ? new Date().toISOString() : null }).eq('id', participanteId);
   if (error) { console.error(error); toast('Error actualizando requisito'); return; }
   await abrirValidacionGanadorSorteo(sorteoId);
 }
 
 async function confirmarGanadorSorteo(registroGanadorId, participanteId, sorteoId) {
-  const { data: p, error: ep } = await supabaseClient.from('participantes_sorteo').select('requisito_like,requisito_seguidor,requisito_comentario,requisito_mencion').eq('id', participanteId).single();
+  const { data: p, error: ep } = await supabaseClient.from('participantes_sorteo').select('requisito_like,requisito_seguidor,requisito_comentario,requisito_mencion,requisito_historia').eq('id', participanteId).single();
   if (ep || !p) { toast('No se pudo comprobar al ganador'); return; }
-  if (!(p.requisito_like && p.requisito_seguidor && p.requisito_comentario && p.requisito_mencion)) { toast('Falta verificar Me gusta o seguimiento'); return; }
+  if (!(p.requisito_like && p.requisito_seguidor && p.requisito_comentario && p.requisito_mencion && p.requisito_historia)) { toast('Falta verificar Me gusta, seguimiento o historia'); return; }
   const { error } = await supabaseClient.from('ganadores_sorteo').update({ estado_validacion:'confirmado', validado_at:new Date().toISOString(), motivo_invalidacion:null }).eq('id', registroGanadorId);
   if (error) { console.error(error); toast('Error confirmando ganador'); return; }
   await supabaseClient.from('sorteos').update({ estado:'finalizado' }).eq('id', sorteoId);
@@ -1101,8 +1117,7 @@ async function elegirGanadorSorteo(sorteoId) {
     .from('participantes_sorteo')
     .select('*')
     .eq('sorteo_id', sorteoId)
-    .eq('requisito_comentario', true)
-    .eq('requisito_mencion', true);
+    .eq('participacion_valida', true);
 
   if (error) {
     console.error(error);
@@ -1527,7 +1542,8 @@ window.calcularCumpleBasesSorteo = function(p) {
     p?.requisito_like &&
     p?.requisito_seguidor &&
     p?.requisito_comentario &&
-    p?.requisito_mencion
+    p?.requisito_mencion &&
+    p?.requisito_historia
   );
 };
 window.elegirGanadorSorteo = elegirGanadorSorteo;
