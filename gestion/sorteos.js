@@ -401,7 +401,11 @@ async function sincronizarInstagramSorteo(sorteoId) {
     });
 
     if ((data.comentarios || 0) === 0) {
-      toast('Instagram devuelve 0 comentarios. Si el Reel sí tiene comentarios, completa la revisión/publicación de la app en Meta para acceder a datos reales.');
+      toast(
+        'Instagram API: Reel indica ' +
+        (data.comments_count_media ?? '—') +
+        ' comentarios · lista recibida 0'
+      );
     } else {
       toast(
         'Instagram: ' +
