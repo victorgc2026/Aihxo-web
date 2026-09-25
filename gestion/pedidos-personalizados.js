@@ -679,6 +679,8 @@
 
     btn.disabled = true;
     btn.textContent = 'GUARDANDO...';
+    let createdOrder = null;
+    let itemsSaved = false;
 
     try {
       const customer = await getOrCreateCustomer(customerName, contact);
@@ -729,13 +731,19 @@
         .select()
         .single();
       if (orderError) throw orderError;
+      createdOrder = order;
 
       const rows = lines.map(({_line, ...x}) => ({ ...x, order_id: order.id }));
       const { data: savedItems, error: itemError } = await supabaseClient
         .from('custom_order_items')
         .insert(rows)
         .select();
-      if (itemError) throw itemError;
+      if (itemError) {
+        await supabaseClient.from('orders').delete().eq('id', order.id);
+        createdOrder = null;
+        throw itemError;
+      }
+      itemsSaved = true;
 
       const savedByLine = {};
       (savedItems || []).forEach(x => savedByLine[x.line_no] = x);
@@ -759,11 +767,34 @@
       setView('custom-orders');
     } catch (err) {
       console.error(err);
+      if (createdOrder && itemsSaved) {
+        await loadAll();
+        closeDrawer();
+        toast('Pedido guardado, pero algún archivo no se pudo subir');
+        setView('custom-orders');
+        return;
+      }
       toast('No se pudo guardar: ' + (err.message || err));
       btn.disabled = false;
       btn.textContent = 'GUARDAR PEDIDO PERSONALIZADO';
     }
   }
+
+  window.subirArchivoPedidoPersonalizado = async function(orderId, itemId, inputId) {
+    const input = document.getElementById(inputId);
+    const files = Array.from(input?.files || []);
+    if (!files.length) { toast('Selecciona al menos un archivo'); return; }
+    try {
+      for (const file of files) {
+        await uploadCustomOrderFile(orderId, itemId || null, file, itemId ? 'cliente_articulo' : 'cliente');
+      }
+      toast('Archivo añadido');
+      abrirPedidoPersonalizado(orderId);
+    } catch (err) {
+      console.error(err);
+      toast('No se pudo subir el archivo: ' + (err.message || err));
+    }
+  };
 
   window.abrirPedidoPersonalizado = async function(id) {
     const order = customOrderCache.find(o => o.id === id) || orders.find(o => o.id === id);
@@ -819,14 +850,21 @@
         <button class="primary" type="button" onclick="guardarCabeceraPedidoPersonalizado('${id}')">Guardar cambios</button>
       </div>
 
-      ${byItem.general?.length ? `
-        <div class="card" style="padding:16px;margin-top:12px;box-shadow:none;">
-          <h3 style="margin-top:0;">Archivos generales del cliente</h3>
-          <div style="display:grid;gap:8px;">
+      <div class="card" style="padding:16px;margin-top:12px;box-shadow:none;">
+        <h3 style="margin-top:0;">Archivos generales del cliente</h3>
+        ${byItem.general?.length ? `
+          <div style="display:grid;gap:8px;margin-bottom:12px;">
             ${byItem.general.map(f => `<a class="secondary" href="${E(f.signed_url)}" target="_blank" rel="noopener">📎 ${E(f.file_name)}</a>`).join('')}
           </div>
+        ` : '<div class="muted" style="margin-bottom:10px;">Sin archivos generales.</div>'}
+        <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+          <div class="field" style="flex:1;min-width:220px;margin:0;">
+            <label>Añadir archivo</label>
+            <input id="codGeneralFiles" type="file" multiple accept="image/*,application/pdf">
+          </div>
+          <button class="secondary" type="button" onclick="subirArchivoPedidoPersonalizado('${id}', '', 'codGeneralFiles')">Subir</button>
         </div>
-      ` : ''}
+      </div>
 
       <div style="display:grid;gap:12px;margin-top:12px;">
         ${allItems.map(i => `
@@ -848,6 +886,13 @@
             <div style="margin-top:10px;"><span class="muted">Personalización</span><br><b>${E(i.personalization_name || '—')}</b></div>
             ${i.notes ? `<div class="muted" style="margin-top:8px;">${E(i.notes)}</div>` : ''}
             ${byItem[i.id]?.length ? `<div style="display:grid;gap:6px;margin-top:10px;">${byItem[i.id].map(f=>`<a class="secondary" href="${E(f.signed_url)}" target="_blank" rel="noopener">📎 ${E(f.file_name)}</a>`).join('')}</div>` : ''}
+            <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:10px;">
+              <div class="field" style="flex:1;min-width:200px;margin:0;">
+                <label>Añadir archivo a este artículo</label>
+                <input id="codItemFiles-${i.id}" type="file" multiple accept="image/*,application/pdf">
+              </div>
+              <button class="secondary small" type="button" onclick="subirArchivoPedidoPersonalizado('${id}', '${i.id}', 'codItemFiles-${i.id}')">Subir</button>
+            </div>
           </div>
         `).join('')}
       </div>
