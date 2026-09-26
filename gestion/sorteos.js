@@ -973,6 +973,16 @@ async function toggleRequisitoParticipanteSorteo(participanteId, campo, valor, s
 }
 
 async function abrirValidacionGanadorSorteo(sorteoId) {
+  const { data: sorteoInfo, error: errorSorteoInfo } = await supabaseClient
+    .from('sorteos')
+    .select('instagram_post_url')
+    .eq('id', sorteoId)
+    .single();
+
+  if (errorSorteoInfo) {
+    console.error(errorSorteoInfo);
+  }
+
   const { data, error } = await supabaseClient
     .from('ganadores_sorteo')
     .select(`
@@ -1019,7 +1029,33 @@ async function abrirValidacionGanadorSorteo(sorteoId) {
     <div class="card" style="padding:18px;">
       <h3 style="margin-top:0;">🏆 ${confirmado ? 'Ganador confirmado' : 'Ganador provisional'}</h3>
       <div style="font-size:20px;font-weight:900;margin-bottom:4px;">${p.nombre || 'Ganador'}</div>
-      <div class="muted" style="margin-bottom:16px;">${p.usuario_red || ''}</div>
+      <div class="muted" style="margin-bottom:12px;">${p.usuario_red || ''}</div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        ${p.usuario_red ? `
+          <a
+            class="secondary"
+            href="https://www.instagram.com/${encodeURIComponent(String(p.usuario_red).replace(/^@/,''))}/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;"
+          >
+            👤 Abrir perfil en Instagram
+          </a>
+        ` : ''}
+        ${sorteoInfo?.instagram_post_url ? `
+          <a
+            class="secondary"
+            href="${sorteoInfo.instagram_post_url}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;"
+          >
+            📲 Abrir publicación del sorteo
+          </a>
+        ` : ''}
+      </div>
+
       <div style="padding:14px;border-radius:14px;background:#f5f8fc;margin-bottom:16px;line-height:1.8;">
         <div>✅ Comentó en la publicación</div>
         <div>✅ Mencionó a un amigo</div>
