@@ -26,6 +26,31 @@
     return '';
   }
 
+
+  const FN_URL = 'https://zoiesxtchnesrilpuqek.supabase.co/functions/v1/google-drive-oauth';
+
+  async function fnFetch(url, options={}){
+    const {data:{session}}=await supabaseClient.auth.getSession();
+    if(!session) throw new Error('Sesión no disponible');
+    const headers=new Headers(options.headers||{});
+    headers.set('Authorization','Bearer '+session.access_token);
+    return fetch(url,{...options,headers});
+  }
+
+  async function driveStatus(){
+    const r=await fnFetch(FN_URL+'?action=status');
+    const j=await r.json();
+    if(!r.ok) throw new Error(j.error||'No se pudo consultar Drive');
+    return j;
+  }
+
+  async function startDriveOAuth(){
+    const r=await fnFetch(FN_URL+'?action=start');
+    const j=await r.json();
+    if(!r.ok||!j.url) throw new Error(j.error||'No se pudo iniciar Google Drive');
+    location.href=j.url;
+  }
+
   async function loadAssets(){
     const {data,error}=await supabaseClient
       .from('drive_assets')
@@ -37,8 +62,8 @@
 
   window.driveDisenosView = async function(c){
     c.innerHTML='<div class="page"><div class="card">Cargando Drive…</div></div>';
-    let assets=[];
-    try{ assets=await loadAssets(); }
+    let assets=[]; let status={connected:false,email:null};
+    try{ [assets,status]=await Promise.all([loadAssets(),driveStatus()]); }
     catch(e){ console.error(e); }
 
     c.innerHTML=`
@@ -49,6 +74,16 @@
             <div class="muted">Repositorio central de archivos de AIHXO</div>
           </div>
           <a class="primary" href="${DRIVE_ROOT}" target="_blank" rel="noopener" style="text-decoration:none">Abrir Drive</a>
+        </div>
+
+        <div class="card" style="margin-bottom:18px">
+          <div class="section">
+            <div>
+              <h3 style="margin:0">Conexión con Google Drive</h3>
+              <div class="muted">${status.connected ? 'Conectado'+(status.email?' como '+esc(status.email):'') : 'Pendiente de autorización'}</div>
+            </div>
+            <button id="driveConnectBtn" class="${status.connected?'secondary':'primary'}">${status.connected?'Reconectar Drive':'Conectar Google Drive'}</button>
+          </div>
         </div>
 
         <div class="grid two" style="margin-bottom:18px">
@@ -65,11 +100,47 @@
         <div class="card" style="margin-bottom:18px">
           <div class="section">
             <div>
-              <h3 style="margin:0">Añadir archivo de Drive</h3>
-              <div class="muted">Registra un diseño que ya esté subido a la cuenta de AIHXO.</div>
+              <h3 style="margin:0">Subir archivo a Drive</h3>
+              <div class="muted">Sube un PNG, JPG, WEBP o PDF directamente a la carpeta de AIHXO.</div>
             </div>
           </div>
-          <form id="driveAssetForm" class="form">
+          <form id="driveUploadForm" class="form">
+            <div class="field"><label>Archivo</label><input name="file" type="file" required accept="image/png,image/jpeg,image/webp,application/pdf"></div>
+            <div class="formgrid">
+              <div class="field"><label>Carpeta / tipo</label>
+                <select name="folder_kind">
+                  ${FOLDERS.map(f=>`<option value="${f.key}">${f.title}</option>`).join('')}
+                </select>
+              </div>
+              <div class="field"><label>Zona</label>
+                <select name="placement">
+                  <option value="">Sin especificar</option>
+                  <option value="front">Delantera</option>
+                  <option value="back">Trasera</option>
+                  <option value="left_chest">Pecho izquierdo</option>
+                  <option value="right_chest">Pecho derecho</option>
+                </select>
+              </div>
+            </div>
+            <div class="formgrid">
+              <div class="field"><label>Talla</label><input name="shirt_size" placeholder="Ej. M / 7-8"></div>
+              <div class="field"><label>Pedido</label>
+                <select name="order_id"><option value="">Sin pedido</option>
+                  ${(window.orders||[]).map(o=>`<option value="${o.id}">${esc(o.order_number)} · ${esc(o.customer_name)}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div class="formgrid">
+              <div class="field"><label>Ancho cm</label><input name="width_cm" type="number" step=".1" min="0"></div>
+              <div class="field"><label>Alto cm</label><input name="height_cm" type="number" step=".1" min="0"></div>
+            </div>
+            <button class="primary" type="submit" ${status.connected?'':'disabled'}>${status.connected?'Subir a Drive':'Conecta Drive primero'}</button>
+          </form>
+        </div>
+
+        <details class="card" style="margin-bottom:18px">
+          <summary style="cursor:pointer;font-weight:900">Registrar un archivo que ya está en Drive</summary>
+          <form id="driveAssetForm" class="form" style="margin-top:16px">
             <div class="field"><label>Nombre del archivo</label><input name="file_name" required placeholder="Ej. Lía · Trasera DTF.png"></div>
             <div class="field"><label>Enlace de Google Drive</label><input name="drive_url" required placeholder="Pega aquí el enlace del archivo"></div>
             <div class="formgrid">
@@ -102,8 +173,7 @@
             </div>
             <button class="primary" type="submit">Guardar en Gestión</button>
           </form>
-          <div class="muted" style="margin-top:12px">La subida directa desde Gestión se activará al conectar Google OAuth. Hasta entonces puedes subir desde Drive y registrar aquí el enlace.</div>
-        </div>
+        </details>
 
         <div class="card">
           <div class="section"><div><h3 style="margin:0">Archivos registrados</h3><div class="muted">${assets.length} archivo${assets.length===1?'':'s'}</div></div></div>
@@ -121,6 +191,51 @@
           </div>
         </div>
       </div>`;
+
+    const connect=document.getElementById('driveConnectBtn');
+    if(connect) connect.onclick=async()=>{try{connect.disabled=true;connect.textContent='Abriendo Google…';await startDriveOAuth()}catch(e){console.error(e);toast(e.message||'No se pudo abrir Google');connect.disabled=false;connect.textContent='Conectar Google Drive'}};
+
+    const uploadForm=document.getElementById('driveUploadForm');
+    if(uploadForm) uploadForm.onsubmit=async e=>{
+      e.preventDefault();
+      const fd=new FormData(uploadForm);
+      const file=fd.get('file');
+      if(!(file instanceof File)||!file.size){toast('Selecciona un archivo');return}
+      const btn=e.submitter; if(btn){btn.disabled=true;btn.textContent='Subiendo…'}
+      try{
+        const apiForm=new FormData();
+        apiForm.append('action','upload');
+        apiForm.append('folder_kind',String(fd.get('folder_kind')||''));
+        apiForm.append('file',file,file.name);
+        const r=await fnFetch(FN_URL,{method:'POST',body:apiForm});
+        const j=await r.json();
+        if(!r.ok) throw new Error(j.error||'No se pudo subir a Drive');
+        const folder=FOLDERS.find(x=>x.key===fd.get('folder_kind'));
+        const {data:{session}}=await supabaseClient.auth.getSession();
+        const payload={
+          google_file_id:j.id,
+          file_name:j.name||file.name,
+          mime_type:j.mimeType||file.type||null,
+          google_folder_id:folder?.id||null,
+          folder_kind:String(fd.get('folder_kind')||''),
+          order_id:fd.get('order_id')||null,
+          placement:fd.get('placement')||null,
+          shirt_size:String(fd.get('shirt_size')||'').trim()||null,
+          width_cm:fd.get('width_cm')?Number(fd.get('width_cm')):null,
+          height_cm:fd.get('height_cm')?Number(fd.get('height_cm')):null,
+          web_view_link:j.webViewLink||('https://drive.google.com/file/d/'+j.id+'/view'),
+          uploaded_by:session?.user?.email||null,
+          source:'gestion'
+        };
+        const {error}=await supabaseClient.from('drive_assets').insert(payload);
+        if(error) throw error;
+        toast('Archivo subido a Google Drive');
+        window.driveDisenosView(c);
+      }catch(err){
+        console.error(err);toast(err.message||'No se pudo subir el archivo');
+        if(btn){btn.disabled=false;btn.textContent='Subir a Drive'}
+      }
+    };
 
     const form=document.getElementById('driveAssetForm');
     if(form) form.onsubmit=async e=>{
