@@ -131,14 +131,25 @@
 
  async function showPurchaseInvoiceReview(){
    const b=document.querySelector('#drawerBody');if(!b)return;
-   const [{data:items,error:ie},{data:suppliers,error:se}]=await Promise.all([
-     supabaseClient.from('base_stock_items').select('id,supplier,supplier_model,size,color,unit_cost').order('supplier_model').order('size').order('color'),
-     supabaseClient.from('suppliers').select('id,name').order('name')
-   ]);
-   if(ie||se){toast('No se pudo preparar la factura');return}
+   let items=[];
+   try{
+     if(typeof window.aihxoPurchaseStockOptions==='function'){
+       items=await window.aihxoPurchaseStockOptions();
+     }else{
+       const stockRes=await supabaseClient.from('base_stock_items').select('id,supplier,supplier_model,size,color,unit_cost').order('supplier_model').order('size').order('color');
+       if(stockRes.error) throw stockRes.error;
+       items=stockRes.data||[];
+     }
+   }catch(error){
+     console.error(error);
+     toast('No se pudieron cargar las prendas');
+     return;
+   }
+   const {data:suppliers,error:se}=await supabaseClient.from('suppliers').select('id,name').order('name');
+   if(se){toast('No se pudo preparar la factura');return}
    const x=purchaseInvoiceData||{}, rawLines=Array.isArray(x.lines)?x.lines:[];
    const guessSupplier=(suppliers||[]).find(s=>String(x.supplier_name||'').toLowerCase().includes(String(s.name||'').toLowerCase())||String(s.name||'').toLowerCase().includes(String(x.supplier_name||'').toLowerCase()));
-   const opts=(items||[]).map(i=>`<option value="${i.id}" data-cost="${N(i.unit_cost)}">${E(i.supplier_model||i.supplier||'Prenda')} · ${E(i.size||'')} · ${E(i.color||'')}</option>`).join('');
+   const opts=(items||[]).map(i=>`<option value="${i.id}" data-cost="${N(i.unit_cost)}">${i._virtual?'🆕 ':''}${E(i.supplier_model||i.supplier||'Prenda')} · ${E(i.size||'')} · ${E(i.color||'')}</option>`).join('');
    const lines=rawLines.length?rawLines:[{description:'Prenda',quantity:1,unit_price:0,total:0}];
 
    b.innerHTML=`<h2>✅ Revisar factura de compra</h2>
@@ -194,6 +205,15 @@
      const up=await supabaseClient.storage.from(BUCKET).upload(path,purchaseInvoiceFile,{contentType:purchaseInvoiceFile.type||'application/octet-stream',upsert:false});
      if(up.error)throw up.error;
 
+     const supplierName=form.querySelector('select[name="supplier_id"]')?.selectedOptions?.[0]?.textContent?.trim()||'';
+     const resolvedRows=[];
+     for(const row of rows){
+       const itemId=typeof window.aihxoResolvePurchaseItemId==='function'
+         ? await window.aihxoResolvePurchaseItemId(row.item_id,row.unit_cost,supplierName)
+         : row.item_id;
+       resolvedRows.push({...row,item_id:itemId});
+     }
+
      const payload={
        supplier_id:supplierId||null,purchase_number:ref,description:String(fd.get('description')||'Compra').trim(),
        amount:N(fd.get('amount')),purchase_date:fd.get('purchase_date')||today(),status:'Pedido',
@@ -203,7 +223,7 @@
      const {data:purchase,error}=await supabaseClient.from('purchases').insert(payload).select('id').single();
      if(error){await supabaseClient.storage.from(BUCKET).remove([path]);throw error}
      if(rows.length){
-       const {error:le}=await supabaseClient.from('purchase_lines').insert(rows.map(r=>({...r,purchase_id:purchase.id})));
+       const {error:le}=await supabaseClient.from('purchase_lines').insert(resolvedRows.map(r=>({...r,purchase_id:purchase.id})));
        if(le){
          await supabaseClient.from('purchases').delete().eq('id',purchase.id);
          await supabaseClient.storage.from(BUCKET).remove([path]);
