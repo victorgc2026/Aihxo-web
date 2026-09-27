@@ -51,7 +51,103 @@
   }
  };
 
- async function stockOptions(){const {data}=await supabaseClient.from('base_stock_items').select('id,supplier,supplier_model,size,color,unit_cost').order('supplier_model').order('color').order('size');return data||[]}
+ async function stockOptions(){
+  const [stockRes,garmentsRes]=await Promise.all([
+   supabaseClient.from('base_stock_items').select('id,garment_id,garment_type,supplier,supplier_model,audience,size,color,unit_cost').order('supplier_model').order('color').order('size'),
+   supabaseClient.from('garments').select('id,manufacturer,model,garment_type,audience,sizes,colors,active').eq('active',true).order('manufacturer').order('model')
+  ]);
+  if(stockRes.error) throw stockRes.error;
+  if(garmentsRes.error) throw garmentsRes.error;
+
+  const items=stockRes.data||[];
+  const garments=garmentsRes.data||[];
+  const norm=v=>String(v??'').trim().toLocaleLowerCase('es-ES');
+  const existing=new Set(
+   items
+    .filter(i=>i.garment_id)
+    .map(i=>[String(i.garment_id),norm(i.size),norm(i.color)].join('|'))
+  );
+  const virtual=[];
+
+  garments.forEach(g=>{
+   const sizes=(Array.isArray(g.sizes)&&g.sizes.length)?g.sizes:[''];
+   const colors=(Array.isArray(g.colors)&&g.colors.length)?g.colors:[''];
+   sizes.forEach(size=>{
+    colors.forEach(color=>{
+     const key=[String(g.id),norm(size),norm(color)].join('|');
+     if(existing.has(key)) return;
+     virtual.push({
+      id:'new|'+g.id+'|'+encodeURIComponent(String(size??''))+'|'+encodeURIComponent(String(color??'')),
+      garment_id:g.id,
+      garment_type:g.garment_type||'Prenda',
+      supplier:g.manufacturer||'',
+      supplier_model:g.model||'Prenda',
+      audience:g.audience||'',
+      size:String(size??''),
+      color:String(color??''),
+      unit_cost:0,
+      _virtual:true
+     });
+    });
+   });
+  });
+
+  return [...items,...virtual].sort((a,b)=>
+   String(a.supplier_model||a.supplier||'').localeCompare(String(b.supplier_model||b.supplier||''),'es') ||
+   String(a.color||'').localeCompare(String(b.color||''),'es') ||
+   String(a.size||'').localeCompare(String(b.size||''),'es')
+  );
+ }
+
+ async function resolvePurchaseItemId(value,unitCost=0,supplierName=''){
+  const raw=String(value||'');
+  if(!raw.startsWith('new|')) return raw;
+
+  const parts=raw.split('|');
+  const garmentId=parts[1]||'';
+  const size=decodeURIComponent(parts[2]||'');
+  const color=decodeURIComponent(parts[3]||'');
+  if(!garmentId) throw new Error('Prenda base no válida');
+
+  const {data:g,error:ge}=await supabaseClient
+   .from('garments')
+   .select('id,manufacturer,model,garment_type,audience')
+   .eq('id',garmentId)
+   .single();
+  if(ge||!g) throw ge||new Error('No se encontró la prenda base');
+
+  const {data:found,error:fe}=await supabaseClient
+   .from('base_stock_items')
+   .select('id')
+   .eq('garment_id',garmentId)
+   .eq('size',size)
+   .eq('color',color)
+   .limit(1);
+  if(fe) throw fe;
+  if(found?.length) return found[0].id;
+
+  const {data:created,error:ce}=await supabaseClient
+   .from('base_stock_items')
+   .insert({
+    garment_id:garmentId,
+    garment_type:g.garment_type||'Prenda',
+    supplier:String(supplierName||g.manufacturer||'').trim(),
+    supplier_model:g.model||'Prenda',
+    audience:g.audience||null,
+    size:size||null,
+    color:color||null,
+    quantity:0,
+    min_stock:3,
+    unit_cost:N(unitCost)
+   })
+   .select('id')
+   .single();
+  if(ce) throw ce;
+  return created.id;
+ }
+
+ window.aihxoPurchaseStockOptions=stockOptions;
+ window.aihxoResolvePurchaseItemId=resolvePurchaseItemId;
 
  window.nuevaCompra=async function(){
   const ss=window._aihxoSuppliers||[], items=await stockOptions();
@@ -90,10 +186,19 @@
         return;
       }
 
+      const supplierName=ss.find(x=>String(x.id)===String(payload.supplier_id))?.name||'';
+      const rowsResolved=[];
+      for(const rowDraft of rowsDraft){
+        rowsResolved.push({
+          ...rowDraft,
+          item_id:await resolvePurchaseItemId(rowDraft.item_id,rowDraft.unit_cost,supplierName)
+        });
+      }
+
       const {data:purchase,error}=await supabaseClient.from('purchases').insert(payload).select('id').single();
       if(error) throw error;
 
-      const {error:le}=await supabaseClient.from('purchase_lines').insert(rowsDraft.map(x=>({...x,purchase_id:purchase.id})));
+      const {error:le}=await supabaseClient.from('purchase_lines').insert(rowsResolved.map(x=>({...x,purchase_id:purchase.id})));
       if(le){
         await supabaseClient.from('purchases').delete().eq('id',purchase.id);
         throw le;
@@ -112,8 +217,65 @@
  };
 
  window.editarLineasCompra=async function(purchaseId){
-  const [itemsRes,linesRes]=await Promise.all([supabaseClient.from('base_stock_items').select('id,supplier,supplier_model,size,color,unit_cost').order('supplier_model'),supabaseClient.from('purchase_lines').select('*').eq('purchase_id',purchaseId)]);const items=itemsRes.data||[], current=linesRes.data||[];
-  document.getElementById('purchaseLinesModal')?.remove();const modal=document.createElement('div');modal.id='purchaseLinesModal';modal.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:flex-end';modal.innerHTML=`<div style="background:#fff;color:#111;width:100%;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:20px"><h2>📦 Líneas de compra</h2><div id="plEdit"></div><button id="plAdd" class="secondary" type="button">＋ Añadir</button><button id="plSave" class="primary" type="button" style="width:100%;margin-top:12px">Guardar líneas</button><button id="plCancel" class="secondary" type="button" style="width:100%;margin-top:8px">Cancelar</button></div>`;document.body.appendChild(modal);const box=modal.querySelector('#plEdit');const add=(v={})=>{const r=document.createElement('div');r.style.cssText='display:grid;grid-template-columns:1fr 80px 80px 38px;gap:6px;margin-bottom:7px';r.innerHTML=`<select class="i"><option value="">Prenda</option>${items.map(i=>`<option value="${i.id}" ${i.id===v.item_id?'selected':''}>${esc(i.supplier_model||i.supplier||'Prenda')} · ${esc(i.size||'')} · ${esc(i.color||'')}</option>`).join('')}</select><input class="q" type="number" min="0" value="${N(v.ordered_quantity)}"><input class="r" type="number" min="0" value="${N(v.received_quantity)}" disabled><button type="button" class="x">✕</button>`;r.querySelector('.x').onclick=()=>r.remove();box.appendChild(r)};current.forEach(add);if(!current.length)add();modal.querySelector('#plAdd').onclick=()=>add();modal.querySelector('#plCancel').onclick=()=>modal.remove();modal.querySelector('#plSave').onclick=async()=>{const rows=[...box.children].map(r=>({purchase_id:purchaseId,item_id:r.querySelector('.i').value,ordered_quantity:N(r.querySelector('.q').value),received_quantity:N(r.querySelector('.r').value)})).filter(x=>x.item_id);await supabaseClient.from('purchase_lines').delete().eq('purchase_id',purchaseId);if(rows.length){const {error}=await supabaseClient.from('purchase_lines').insert(rows);if(error){console.error(error);toast('No se pudieron guardar las líneas');return}}toast('Líneas actualizadas');modal.remove();comprasView($('#view'))};
+  const [items,linesRes,purchaseRes]=await Promise.all([
+   stockOptions(),
+   supabaseClient.from('purchase_lines').select('*').eq('purchase_id',purchaseId),
+   supabaseClient.from('purchases').select('supplier_id').eq('id',purchaseId).single()
+  ]);
+  const current=linesRes.data||[];
+  const purchaseSupplierId=purchaseRes.data?.supplier_id||'';
+  const purchaseSupplierName=(window._aihxoSuppliers||[]).find(x=>String(x.id)===String(purchaseSupplierId))?.name||'';
+
+  document.getElementById('purchaseLinesModal')?.remove();
+  const modal=document.createElement('div');
+  modal.id='purchaseLinesModal';
+  modal.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:flex-end';
+  modal.innerHTML=`<div style="background:#fff;color:#111;width:100%;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:20px"><h2>📦 Líneas de compra</h2><div id="plEdit"></div><button id="plAdd" class="secondary" type="button">＋ Añadir</button><button id="plSave" class="primary" type="button" style="width:100%;margin-top:12px">Guardar líneas</button><button id="plCancel" class="secondary" type="button" style="width:100%;margin-top:8px">Cancelar</button></div>`;
+  document.body.appendChild(modal);
+
+  const box=modal.querySelector('#plEdit');
+  const add=(v={})=>{
+   const r=document.createElement('div');
+   r.style.cssText='display:grid;grid-template-columns:1fr 80px 80px 38px;gap:6px;margin-bottom:7px';
+   r.innerHTML=`<select class="i"><option value="">Prenda</option>${items.map(i=>`<option value="${i.id}" ${i.id===v.item_id?'selected':''}>${i._virtual?'🆕 ':''}${esc(i.supplier_model||i.supplier||'Prenda')} · ${esc(i.size||'')} · ${esc(i.color||'')}</option>`).join('')}</select><input class="q" type="number" min="0" value="${N(v.ordered_quantity)}"><input class="r" type="number" min="0" value="${N(v.received_quantity)}" disabled><button type="button" class="x">✕</button>`;
+   r.querySelector('.x').onclick=()=>r.remove();
+   box.appendChild(r);
+  };
+  current.forEach(add);
+  if(!current.length)add();
+
+  modal.querySelector('#plAdd').onclick=()=>add();
+  modal.querySelector('#plCancel').onclick=()=>modal.remove();
+  modal.querySelector('#plSave').onclick=async()=>{
+   try{
+    const drafts=[...box.children].map(r=>({
+     purchase_id:purchaseId,
+     item_id:r.querySelector('.i').value,
+     ordered_quantity:N(r.querySelector('.q').value),
+     received_quantity:N(r.querySelector('.r').value)
+    })).filter(x=>x.item_id);
+
+    const rows=[];
+    for(const draft of drafts){
+     rows.push({
+      ...draft,
+      item_id:await resolvePurchaseItemId(draft.item_id,0,purchaseSupplierName)
+     });
+    }
+
+    await supabaseClient.from('purchase_lines').delete().eq('purchase_id',purchaseId);
+    if(rows.length){
+     const {error}=await supabaseClient.from('purchase_lines').insert(rows);
+     if(error) throw error;
+    }
+    toast('Líneas actualizadas');
+    modal.remove();
+    comprasView($('#view'));
+   }catch(error){
+    console.error(error);
+    toast('No se pudieron guardar las líneas');
+   }
+  };
  };
 
  const old=window.setView;window.setView=function(v){if(v==='profitability'||v==='purchases'){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));$('#title').textContent=v==='profitability'?'Rentabilidad':'Compras';(v==='profitability'?rentabilidadView:comprasView)($('#view'));closeMobileMenu();return}return old(v)};
