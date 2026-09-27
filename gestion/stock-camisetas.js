@@ -40,10 +40,15 @@ window.renderStockCamisetas = async function () {
 
       <div style="
         display:grid;
-        grid-template-columns:1fr 1fr;
+        grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
         gap:8px;
         margin-bottom:15px;
       ">
+        <select id="filtroModeloCamisetas"
+                onchange="cargarStockCamisetas()">
+          <option value="">Todos los modelos</option>
+        </select>
+
         <select id="filtroColorCamisetas"
                 onchange="cargarStockCamisetas()">
           <option value="">Todos los colores</option>
@@ -80,6 +85,9 @@ window.cargarStockCamisetas = async function () {
   const contenedor = document.getElementById("listaStockCamisetas");
   if (!contenedor) return;
 
+  const modelo =
+    document.getElementById("filtroModeloCamisetas")?.value || "";
+
   const color =
     document.getElementById("filtroColorCamisetas")?.value || "";
 
@@ -92,6 +100,7 @@ window.cargarStockCamisetas = async function () {
     .order("color")
     .order("size");
 
+  if (modelo) consulta = consulta.eq("supplier_model", modelo);
   if (color) consulta = consulta.eq("color", color);
   if (talla) consulta = consulta.eq("size", talla);
 
@@ -1142,17 +1151,30 @@ window.verHistorialCamiseta = async function (id) {
 
 window.cargarFiltrosCamisetas = async function () {
 
+  const modeloActual =
+    document.getElementById("filtroModeloCamisetas")?.value || "";
+  const colorActual =
+    document.getElementById("filtroColorCamisetas")?.value || "";
+  const tallaActual =
+    document.getElementById("filtroTallaCamisetas")?.value || "";
+
   const { data, error } = await supabaseClient
     .from("base_stock_items")
-    .select("color,size");
+    .select("supplier_model,color,size");
 
   if (error) return;
+
+  const modelos = [
+    ...new Set(
+      (data || []).map(x => x.supplier_model).filter(Boolean)
+    )
+  ].sort((a,b) => String(a).localeCompare(String(b), "es", {sensitivity:"base"}));
 
   const colores = [
     ...new Set(
       (data || []).map(x => x.color).filter(Boolean)
     )
-  ].sort();
+  ].sort((a,b) => String(a).localeCompare(String(b), "es", {sensitivity:"base"}));
 
   const tallas = [
     ...new Set(
@@ -1160,11 +1182,25 @@ window.cargarFiltrosCamisetas = async function () {
     )
   ];
 
+  const filtroModelo =
+    document.getElementById("filtroModeloCamisetas");
+
   const filtroColor =
     document.getElementById("filtroColorCamisetas");
 
   const filtroTalla =
     document.getElementById("filtroTallaCamisetas");
+
+  if (filtroModelo) {
+    filtroModelo.innerHTML =
+      `<option value="">Todos los modelos</option>` +
+      modelos.map(x =>
+        `<option value="${escapeStock(x)}">
+          ${escapeStock(x)}
+        </option>`
+      ).join("");
+    filtroModelo.value = modeloActual;
+  }
 
   if (filtroColor) {
     filtroColor.innerHTML =
@@ -1174,6 +1210,7 @@ window.cargarFiltrosCamisetas = async function () {
           ${escapeStock(x)}
         </option>`
       ).join("");
+    filtroColor.value = colorActual;
   }
 
   if (filtroTalla) {
@@ -1184,6 +1221,7 @@ window.cargarFiltrosCamisetas = async function () {
           ${escapeStock(x)}
         </option>`
       ).join("");
+    filtroTalla.value = tallaActual;
   }
 };
 
