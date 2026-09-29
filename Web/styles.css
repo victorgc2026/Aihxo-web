@@ -773,9 +773,27 @@ body.aihxo-v33{
   padding-bottom:60px;
 }
 
-/* Los filtros permanecen funcionales en código, pero no saturan la portada */
-#coleccion > .filters{
-  display:none !important;
+/* Filtro de público simplificado: solo Todos / Kids / Adulto */
+#coleccion > .filters.collection-audience-filters{
+  display:flex !important;
+  width:auto;
+  overflow:visible;
+  gap:8px;
+  padding:16px 0 22px;
+}
+#coleccion > .filters.collection-audience-filters button{
+  border:1px solid #dfe5ee !important;
+  background:#fff !important;
+  color:#07152f !important;
+  padding:9px 14px;
+  font-size:12px;
+  letter-spacing:.7px;
+  font-weight:900;
+}
+#coleccion > .filters.collection-audience-filters button.active{
+  background:#07152f !important;
+  color:#DFFF00 !important;
+  border-color:#07152f !important;
 }
 
 /* Máximo 6 diseños en portada hasta pulsar “ver toda” */
@@ -1007,5 +1025,18 @@ body.aihxo-v33{
   }
   footer{
     padding:26px 20px;
+  }
+}
+
+@media(max-width:600px){
+  #coleccion > .filters.collection-audience-filters{
+    padding:12px 0 18px !important;
+    gap:7px !important;
+  }
+  #coleccion > .filters.collection-audience-filters button{
+    flex:1 1 0 !important;
+    text-align:center;
+    padding:9px 8px !important;
+    font-size:11px !important;
   }
 }
