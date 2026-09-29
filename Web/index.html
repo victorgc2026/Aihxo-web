@@ -542,6 +542,9 @@ const productos = (data || [])
     if(af && bf) return featuredRank.get(String(a.id)) - featuredRank.get(String(b.id));
     if(af) return -1;
     if(bf) return 1;
+    const ao=a.web_sort_order==null?9999:Number(a.web_sort_order);
+    const bo=b.web_sort_order==null?9999:Number(b.web_sort_order);
+    if(ao!==bo)return ao-bo;
     const pa = prioridad[a.commercial_visibility || 'normal'] || 3;
     const pb = prioridad[b.commercial_visibility || 'normal'] || 3;
     return pa - pb;
