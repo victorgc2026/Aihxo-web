@@ -293,6 +293,8 @@ const catalogSB = supabase.createClient(
 );
 
 let AIHXO_HOME_CONFIG = null;
+let AIHXO_WEB_PROMOTIONS = [];
+let AIHXO_WEB_CAMPAIGNS = [];
 
 function setWebText(selector, value){
   const el=document.querySelector(selector);
@@ -398,10 +400,41 @@ function aplicarConfiguracionWebAIHXO(config){
     if(footer.legal_label!==undefined)legalLink.textContent=footer.legal_label;
     if(footer.legal_href)legalLink.setAttribute('href',footer.legal_href);
   }
+
+  const seo=cfg.seo||{};
+  if(seo.title) document.title=seo.title;
+  const setMeta=(selector,value,attr='content')=>{
+    const el=document.querySelector(selector);
+    if(el && value)el.setAttribute(attr,value);
+  };
+  setMeta('meta[name="description"]',seo.description);
+  setMeta('meta[property="og:title"]',seo.title);
+  setMeta('meta[property="og:description"]',seo.description);
+  setMeta('meta[property="og:image"]',seo.image);
+  setMeta('meta[name="twitter:title"]',seo.title);
+  setMeta('meta[name="twitter:description"]',seo.description);
+  setMeta('meta[name="twitter:image"]',seo.image);
+
+  const order=Array.isArray(cfg.layout_order)?cfg.layout_order:[];
+  const main=document.querySelector('main');
+  if(main && order.length){
+    order.forEach(id=>{
+      const el=document.getElementById(id);
+      if(el && el.parentElement===main)main.appendChild(el);
+    });
+  }
 }
 
 async function cargarConfiguracionWebAIHXO(){
   try{
+    const params=new URLSearchParams(location.search);
+    if(params.get('aihxo-preview')==='1'){
+      const raw=localStorage.getItem('aihxo_web_preview_config');
+      if(raw){
+        aplicarConfiguracionWebAIHXO(JSON.parse(raw));
+        return;
+      }
+    }
     const {data,error}=await catalogSB
       .from('web_home_settings')
       .select('config')
@@ -413,6 +446,63 @@ async function cargarConfiguracionWebAIHXO(){
     console.error('Error cargando configuración web:',error);
     aplicarConfiguracionWebAIHXO({collection:{home_limit:6}});
   }
+}
+
+function webNowActive(x){
+  if(!x || x.enabled===false)return false;
+  const now=Date.now();
+  if(x.start_at && new Date(x.start_at).getTime()>now)return false;
+  if(x.end_at && new Date(x.end_at).getTime()<now)return false;
+  return true;
+}
+
+async function cargarCampanasYPromocionesAIHXO(){
+  try{
+    const [{data:campaigns,error:ce},{data:promos,error:pe}]=await Promise.all([
+      catalogSB.from('web_campaigns').select('*').eq('enabled',true).order('priority'),
+      catalogSB.from('web_promotions').select('*').eq('enabled',true).order('priority')
+    ]);
+    if(ce)throw ce;if(pe)throw pe;
+    AIHXO_WEB_CAMPAIGNS=(campaigns||[]).filter(webNowActive);
+    AIHXO_WEB_PROMOTIONS=(promos||[]).filter(webNowActive);
+    renderBannerAIHXO();
+  }catch(error){
+    console.error('Error cargando campañas/promociones:',error);
+    AIHXO_WEB_CAMPAIGNS=[];AIHXO_WEB_PROMOTIONS=[];
+  }
+}
+
+function renderBannerAIHXO(){
+  document.getElementById('aihxo-campaign-banner')?.remove();
+  const campaign=AIHXO_WEB_CAMPAIGNS[0];
+  if(!campaign)return;
+  const box=document.createElement('div');
+  box.id='aihxo-campaign-banner';
+  box.style.cssText='background:#07152f;color:#fff;padding:12px 16px;text-align:center;font-weight:800;position:relative;z-index:20;';
+  const link=campaign.button_label && campaign.button_href
+    ? ` <a href="${escCatalog(campaign.button_href)}" style="color:#DFFF00;text-decoration:underline;text-underline-offset:3px;margin-left:6px;">${escCatalog(campaign.button_label)}</a>`
+    : '';
+  box.innerHTML=`<span>${escCatalog(campaign.title||'')}${campaign.body? ' · '+escCatalog(campaign.body):''}</span>${link}`;
+  const hero=document.querySelector('.hero');
+  if(hero)hero.insertAdjacentElement('beforebegin',box);
+}
+
+function promoParaProductoAIHXO(p){
+  const audience=String(p.web_audience || (String(p.category||'').toLowerCase().includes('infantil')?'infantil':String(p.category||'').toLowerCase().includes('adulto')?'adulto':'')).toLowerCase();
+  return AIHXO_WEB_PROMOTIONS.find(pr=>{
+    if(pr.scope_type==='all')return true;
+    if(pr.scope_type==='audience')return String(pr.audience||'').toLowerCase()===audience;
+    if(pr.scope_type==='products')return Array.isArray(pr.product_ids) && pr.product_ids.map(String).includes(String(p.id));
+    return false;
+  })||null;
+}
+
+function precioConPromoAIHXO(base,promo){
+  const n=Number(base||0);
+  if(!promo)return n;
+  if(promo.discount_type==='percent')return Math.max(0,n*(1-(Number(promo.discount_value||0)/100)));
+  if(promo.discount_type==='fixed')return Math.max(0,n-Number(promo.discount_value||0));
+  return n;
 }
 
 function escCatalog(v){
@@ -496,9 +586,9 @@ const guiaTallasUrl =
   p.garment_id
     ? (guiasPorPrenda[p.garment_id] || '')
     : '';
-      const esInfantil = categoria.includes('infantil');
-      const esAdulto = categoria.includes('adulto');
-      const esNovedad = categoria.includes('novedad');
+      const esInfantil = (p.web_audience || '').toLowerCase()==='infantil' || categoria.includes('infantil');
+      const esAdulto = (p.web_audience || '').toLowerCase()==='adulto' || categoria.includes('adulto');
+      const esNovedad = p.web_novelty===true || categoria.includes('novedad');
 
       const filtros = [
         filtro,
@@ -517,10 +607,10 @@ const guiaTallasUrl =
       const oferta = p.price_one_print != null
         ? Number(p.price_one_print)
         : null;
-
-      const precioMostrar = oferta !== null && oferta > 0
-        ? oferta
-        : precio;
+      const precioBaseMostrar = oferta !== null && oferta > 0 ? oferta : precio;
+      const promoWeb = promoParaProductoAIHXO(p);
+      const precioMostrar = precioConPromoAIHXO(precioBaseMostrar,promoWeb);
+      const hayPromoWeb = !!promoWeb && precioMostrar < precioBaseMostrar;
       const tallas = String(p.size || '')
   .split(',')
   .map(x => x.trim())
@@ -562,33 +652,19 @@ const colores = String(p.color || '')
   align-items:center;
   gap:10px;
   margin:8px 0 4px;
+  flex-wrap:wrap;
 ">
-  ${oferta !== null && oferta > 0 ? `
-    <span style="
-      font-size:15px;
-      color:#8a94a6;
-      text-decoration:line-through;
-      font-weight:700;
-    ">
-      ${precio.toFixed(2).replace('.', ',')} €
+  ${(hayPromoWeb || (oferta !== null && oferta > 0)) ? `
+    <span style="font-size:15px;color:#8a94a6;text-decoration:line-through;font-weight:700;">
+      ${(hayPromoWeb ? precioBaseMostrar : precio).toFixed(2).replace('.', ',')} €
     </span>
+  ` : ''}
+  <strong style="font-size:24px;color:#07152f;font-weight:950;">
+    ${precioMostrar.toFixed(2).replace('.', ',')} €
+  </strong>
+  ${hayPromoWeb ? `<span style="background:#DFFF00;color:#07152f;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:950;">${escaparHTML(promoWeb.label || 'OFERTA')}</span>` : ''}
+</div>
 
-    <strong style="
-      font-size:24px;
-      color:#07152f;
-      font-weight:950;
-    ">
-      ${oferta.toFixed(2).replace('.', ',')} €
-    </strong>
-  ` : `
-    <strong style="
-      font-size:24px;
-      color:#07152f;
-      font-weight:950;
-    ">
-      ${precio.toFixed(2).replace('.', ',')} €
-    </strong>
-  `}
 </div>
 
 <details class="aihxo-product-details">
@@ -1707,7 +1783,7 @@ abrirModalCuponAIHXO({
   mensajeBase: mensajeConCantidad
 });
 }
-    cargarConfiguracionWebAIHXO().finally(() => cargarDisenosPropiosAutomaticos());
+    Promise.all([cargarConfiguracionWebAIHXO(),cargarCampanasYPromocionesAIHXO()]).finally(() => cargarDisenosPropiosAutomaticos());
 </script>
  <!-- =========================
      MODAL CUPONES AIHXO
