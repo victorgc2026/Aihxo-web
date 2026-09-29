@@ -376,7 +376,28 @@ function aplicarConfiguracionWebAIHXO(config){
   setWebText('#contacto .heading h2',contact.title);
   const contactLinks=document.querySelectorAll('#contacto .contacts a');
   const flags=[contact.show_whatsapp,contact.show_instagram,contact.show_tiktok,contact.show_email];
-  contactLinks.forEach((el,i)=>{ if(flags[i]!==undefined)el.style.display=flags[i]===false?'none':''; });
+  const hrefs=[
+    contact.whatsapp_url,
+    contact.instagram_url,
+    contact.tiktok_url,
+    contact.email ? 'mailto:'+contact.email : ''
+  ];
+  contactLinks.forEach((el,i)=>{
+    if(flags[i]!==undefined)el.style.display=flags[i]===false?'none':'';
+    if(hrefs[i])el.setAttribute('href',hrefs[i]);
+  });
+  const emailSmall=contactLinks[3]?.querySelector('small');
+  if(emailSmall && contact.email)emailSmall.textContent=contact.email;
+
+  const footer=cfg.footer||{};
+  setWebVisible('footer',footer.enabled!==false);
+  const footerPs=document.querySelectorAll('footer p');
+  if(footerPs[0] && footer.line1!==undefined)footerPs[0].textContent=footer.line1;
+  const legalLink=document.querySelector('footer p a');
+  if(legalLink){
+    if(footer.legal_label!==undefined)legalLink.textContent=footer.legal_label;
+    if(footer.legal_href)legalLink.setAttribute('href',footer.legal_href);
+  }
 }
 
 async function cargarConfiguracionWebAIHXO(){
