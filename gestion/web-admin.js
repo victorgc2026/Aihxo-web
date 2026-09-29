@@ -464,21 +464,32 @@
       supabaseClient.from('web_promotions').select('*').order('priority').order('created_at',{ascending:false})
     ]);
     if(ce||pe){console.error(ce||pe);toast('No se pudieron cargar campañas');return;}
+    window._aihxoWebCampaigns=campaigns||[];
+    window._aihxoWebPromos=promos||[];
     $('#drawer').classList.remove('hidden');
     $('#drawerBody').innerHTML=`
       <div class="section"><div><h2>📣 Campañas y promociones</h2><div class="muted">Banners temporales y descuentos sin cambiar el precio base.</div></div></div>
       <div class="card" style="padding:16px;">
         <div class="section"><h3 style="margin:0;">Banners</h3><button class="primary small" onclick="editarCampanaWeb()">＋ Banner</button></div>
         <div style="display:grid;gap:8px;">
-          ${(campaigns||[]).map(x=>`<div style="border:1px solid #e5e9f0;border-radius:12px;padding:10px;"><div style="display:flex;justify-content:space-between;gap:8px;"><div><b>${E(x.name)}</b><div class="muted">${E(x.title)} · prioridad ${x.priority}</div></div><button class="secondary small" onclick='editarCampanaWeb(${JSON.stringify(x)})'>Editar</button></div></div>`).join('')||'<div class="empty">Sin banners.</div>'}
+          ${(campaigns||[]).map(x=>`<div style="border:1px solid #e5e9f0;border-radius:12px;padding:10px;"><div style="display:flex;justify-content:space-between;gap:8px;"><div><b>${E(x.name)}</b><div class="muted">${E(x.title)} · prioridad ${x.priority}</div></div><button class="secondary small" onclick="editarCampanaWebPorId('${x.id}')">Editar</button></div></div>`).join('')||'<div class="empty">Sin banners.</div>'}
         </div>
       </div>
       <div class="card" style="padding:16px;margin-top:12px;">
         <div class="section"><h3 style="margin:0;">Promociones</h3><button class="primary small" onclick="editarPromocionWeb()">＋ Promoción</button></div>
         <div style="display:grid;gap:8px;">
-          ${(promos||[]).map(x=>`<div style="border:1px solid #e5e9f0;border-radius:12px;padding:10px;"><div style="display:flex;justify-content:space-between;gap:8px;"><div><b>${E(x.name)}</b><div class="muted">${E(x.label||'')} · ${E(x.discount_type)} ${x.discount_value}</div></div><button class="secondary small" onclick='editarPromocionWeb(${JSON.stringify(x)})'>Editar</button></div></div>`).join('')||'<div class="empty">Sin promociones.</div>'}
+          ${(promos||[]).map(x=>`<div style="border:1px solid #e5e9f0;border-radius:12px;padding:10px;"><div style="display:flex;justify-content:space-between;gap:8px;"><div><b>${E(x.name)}</b><div class="muted">${E(x.label||'')} · ${E(x.discount_type)} ${x.discount_value}</div></div><button class="secondary small" onclick="editarPromocionWebPorId('${x.id}')">Editar</button></div></div>`).join('')||'<div class="empty">Sin promociones.</div>'}
         </div>
       </div>`;
+  };
+
+  window.editarCampanaWebPorId=function(id){
+    const x=(window._aihxoWebCampaigns||[]).find(v=>String(v.id)===String(id));
+    editarCampanaWeb(x||{});
+  };
+  window.editarPromocionWebPorId=function(id){
+    const x=(window._aihxoWebPromos||[]).find(v=>String(v.id)===String(id));
+    editarPromocionWeb(x||{});
   };
 
   window.editarCampanaWeb=function(x={}){
