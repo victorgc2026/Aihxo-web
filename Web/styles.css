@@ -796,10 +796,7 @@ body.aihxo-v33{
   border-color:#07152f !important;
 }
 
-/* Máximo 6 diseños en portada hasta pulsar “ver toda” */
-#coleccion:not(.is-expanded) #disenosPropiosAutomaticos .product:nth-child(n+7){
-  display:none !important;
-}
+/* El límite inicial de diseños lo controla Gestión mediante la configuración de la web. */
 .home-collection-more{
   display:flex;
   justify-content:center;
