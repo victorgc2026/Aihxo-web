@@ -292,6 +292,108 @@ const catalogSB = supabase.createClient(
   'sb_publishable_-DyRFQxtVvvwiPlvkZyUtA_upKb2W7T'
 );
 
+let AIHXO_HOME_CONFIG = null;
+
+function setWebText(selector, value){
+  const el=document.querySelector(selector);
+  if(el && value !== undefined && value !== null) el.textContent=String(value);
+}
+function setWebVisible(selector, visible){
+  const el=document.querySelector(selector);
+  if(el) el.style.display = visible === false ? 'none' : '';
+}
+function applyHomeLimit(limit){
+  const n=Math.max(1,Math.min(12,Number(limit||6)));
+  let style=document.getElementById('aihxo-home-limit-style');
+  if(!style){
+    style=document.createElement('style');
+    style.id='aihxo-home-limit-style';
+    document.head.appendChild(style);
+  }
+  style.textContent=`#coleccion:not(.is-expanded) #disenosPropiosAutomaticos .product:nth-child(n+${n+1}){display:none!important;}`;
+}
+function aplicarConfiguracionWebAIHXO(config){
+  const cfg=config||{};
+  AIHXO_HOME_CONFIG=cfg;
+
+  const hero=cfg.hero||{};
+  setWebVisible('.hero',hero.enabled!==false);
+  setWebText('.hero .mini',hero.mini);
+  const heroH1=document.querySelector('.hero h1');
+  if(heroH1 && (hero.title!==undefined || hero.accent!==undefined)){
+    heroH1.innerHTML=`${escCatalog(hero.title||'')}<br><span>${escCatalog(hero.accent||'')}</span>`;
+  }
+  setWebText('.hero p',hero.description);
+  const heroBtns=document.querySelectorAll('.hero .buttons a');
+  if(heroBtns[0]){
+    if(hero.primary_label!==undefined) heroBtns[0].textContent=hero.primary_label;
+    if(hero.primary_href) heroBtns[0].setAttribute('href',hero.primary_href);
+  }
+  if(heroBtns[1]){
+    if(hero.secondary_label!==undefined) heroBtns[1].textContent=hero.secondary_label;
+    if(hero.secondary_href) heroBtns[1].setAttribute('href',hero.secondary_href);
+  }
+
+  const paths=Array.isArray(cfg.paths)?cfg.paths:[];
+  const pathEls=document.querySelectorAll('.brand-paths .brand-path');
+  pathEls.forEach((el,i)=>{
+    const p=paths[i];
+    if(!p)return;
+    el.style.display=p.enabled===false?'none':'';
+    if(p.href)el.setAttribute('href',p.href);
+    const strong=el.querySelector('strong'); if(strong&&p.title!==undefined)strong.textContent=p.title;
+    const span=el.querySelector('span'); if(span&&p.text!==undefined)span.textContent=p.text;
+  });
+
+  const col=cfg.collection||{};
+  setWebVisible('#coleccion',col.enabled!==false);
+  setWebText('#coleccion .heading span',col.kicker);
+  setWebText('#coleccion .heading h2',col.title);
+  setWebText('#coleccion .heading p',col.description);
+  applyHomeLimit(col.home_limit||6);
+
+  const per=cfg.personaliza||{};
+  setWebVisible('#personaliza',per.enabled!==false);
+  setWebText('#personaliza > div > span',per.kicker);
+  setWebText('#personaliza h2',per.title);
+  setWebText('#personaliza p',per.description);
+  setWebText('#openPersonalCatalog',per.button_label);
+
+  const mem=cfg.memories||{};
+  setWebVisible('#x-memories',mem.enabled!==false);
+  setWebText('#x-memories .memories-kicker',mem.kicker);
+  setWebText('#x-memories h2',mem.title);
+  setWebText('#x-memories p',mem.description);
+  const memLink=document.querySelector('#x-memories .memories-coming');
+  if(memLink){
+    if(mem.button_label!==undefined)memLink.textContent=mem.button_label;
+    if(mem.href)memLink.setAttribute('href',mem.href);
+  }
+
+  const contact=cfg.contact||{};
+  setWebVisible('#contacto',contact.enabled!==false);
+  setWebText('#contacto .heading span',contact.kicker);
+  setWebText('#contacto .heading h2',contact.title);
+  const contactLinks=document.querySelectorAll('#contacto .contacts a');
+  const flags=[contact.show_whatsapp,contact.show_instagram,contact.show_tiktok,contact.show_email];
+  contactLinks.forEach((el,i)=>{ if(flags[i]!==undefined)el.style.display=flags[i]===false?'none':''; });
+}
+
+async function cargarConfiguracionWebAIHXO(){
+  try{
+    const {data,error}=await catalogSB
+      .from('web_home_settings')
+      .select('config')
+      .eq('id','home')
+      .maybeSingle();
+    if(error)throw error;
+    aplicarConfiguracionWebAIHXO(data?.config||{collection:{home_limit:6}});
+  }catch(error){
+    console.error('Error cargando configuración web:',error);
+    aplicarConfiguracionWebAIHXO({collection:{home_limit:6}});
+  }
+}
+
 function escCatalog(v){
   return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 }
@@ -316,9 +418,19 @@ async function cargarDisenosPropiosAutomaticos() {
   baja: 4
 };
 
+const featuredIds = Array.isArray(AIHXO_HOME_CONFIG?.collection?.featured_product_ids)
+  ? AIHXO_HOME_CONFIG.collection.featured_product_ids
+  : [];
+const featuredRank = new Map(featuredIds.map((id,index)=>[String(id),index]));
+
 const productos = (data || [])
   .filter(p => (p.commercial_visibility || 'normal') !== 'oculto')
   .sort((a, b) => {
+    const af=featuredRank.has(String(a.id));
+    const bf=featuredRank.has(String(b.id));
+    if(af && bf) return featuredRank.get(String(a.id)) - featuredRank.get(String(b.id));
+    if(af) return -1;
+    if(bf) return 1;
     const pa = prioridad[a.commercial_visibility || 'normal'] || 3;
     const pb = prioridad[b.commercial_visibility || 'normal'] || 3;
     return pa - pb;
@@ -1574,7 +1686,7 @@ abrirModalCuponAIHXO({
   mensajeBase: mensajeConCantidad
 });
 }
-    cargarDisenosPropiosAutomaticos();
+    cargarConfiguracionWebAIHXO().finally(() => cargarDisenosPropiosAutomaticos());
 </script>
  <!-- =========================
      MODAL CUPONES AIHXO
