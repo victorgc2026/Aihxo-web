@@ -47,7 +47,17 @@
       show_whatsapp:true,
       show_instagram:true,
       show_tiktok:true,
-      show_email:true
+      show_email:true,
+      whatsapp_url:'https://wa.me/34634344174',
+      instagram_url:'https://www.instagram.com/aihxo.camisetas/',
+      tiktok_url:'https://www.tiktok.com/@aihxo.camisetas',
+      email:'hola@aihxo.es'
+    },
+    footer:{
+      enabled:true,
+      line1:'AIHXO · Colección propia · Personalizaciones',
+      legal_label:'Envíos, cambios y devoluciones',
+      legal_href:'envios-devoluciones/'
     }
   };
 
@@ -130,6 +140,17 @@
           <div style="font-weight:900;">PUBLICACIÓN DIRECTA</div>
           <div style="opacity:.76;margin-top:4px;">Al guardar, los cambios quedan disponibles en aihxo.es.</div>
           ${updatedAt?`<div style="opacity:.6;font-size:12px;margin-top:6px;">Última edición: ${new Date(updatedAt).toLocaleString('es-ES')}</div>`:''}
+        </div>
+
+        <div class="card" style="padding:18px;margin-bottom:14px;">
+          <h3 style="margin-top:0;">Centro de contenido</h3>
+          <div class="muted" style="margin-bottom:12px;">Desde aquí puedes saltar a las partes de Gestión que alimentan la web.</div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
+            <button type="button" class="secondary" onclick="setView('products')">👕 Productos</button>
+            <button type="button" class="secondary" onclick="abrirNuevoDisenoPropio()">🎨 Diseños AIHXO</button>
+            <button type="button" class="secondary" onclick="setView('garments')">🧵 Prendas base</button>
+            <button type="button" class="secondary" onclick="setView('coupons')">🎟️ Cupones</button>
+          </div>
         </div>
 
         <form id="webAdminForm" style="display:grid;gap:14px;">
@@ -221,11 +242,26 @@
               ${textField('waContactKicker','Etiqueta',cfg.contact.kicker)}
               ${textField('waContactTitle','Título',cfg.contact.title)}
             </div>
-            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px;">
               ${boolField('waContactWhatsApp','WhatsApp',cfg.contact.show_whatsapp)}
               ${boolField('waContactInstagram','Instagram',cfg.contact.show_instagram)}
               ${boolField('waContactTikTok','TikTok',cfg.contact.show_tiktok)}
               ${boolField('waContactEmail','Email',cfg.contact.show_email)}
+            </div>
+            <div class="formgrid">
+              ${textField('waContactWhatsAppUrl','URL WhatsApp',cfg.contact.whatsapp_url)}
+              ${textField('waContactInstagramUrl','URL Instagram',cfg.contact.instagram_url)}
+              ${textField('waContactTikTokUrl','URL TikTok',cfg.contact.tiktok_url)}
+              ${textField('waContactEmailValue','Email',cfg.contact.email)}
+            </div>
+          </div>
+
+          <div class="card" style="padding:18px;">
+            <div class="section"><div><h3 style="margin:0;">7 · Pie de página</h3></div>${boolField('waFooterEnabled','Mostrar pie',cfg.footer?.enabled!==false)}</div>
+            ${textField('waFooterLine1','Texto principal',cfg.footer?.line1||'')}
+            <div class="formgrid">
+              ${textField('waFooterLegalLabel','Texto enlace legal',cfg.footer?.legal_label||'')}
+              ${textField('waFooterLegalHref','Destino enlace legal',cfg.footer?.legal_href||'')}
             </div>
           </div>
 
@@ -317,7 +353,18 @@
           show_whatsapp:chk('waContactWhatsApp'),
           show_instagram:chk('waContactInstagram'),
           show_tiktok:chk('waContactTikTok'),
-          show_email:chk('waContactEmail')
+          show_email:chk('waContactEmail'),
+          whatsapp_url:val('waContactWhatsAppUrl'),
+          instagram_url:val('waContactInstagramUrl'),
+          tiktok_url:val('waContactTikTokUrl'),
+          email:val('waContactEmailValue')
+        },
+        footer:{
+          ...currentConfig.footer,
+          enabled:chk('waFooterEnabled'),
+          line1:val('waFooterLine1'),
+          legal_label:val('waFooterLegalLabel'),
+          legal_href:val('waFooterLegalHref')
         }
       };
 
