@@ -472,15 +472,26 @@
       <div class="card" style="padding:16px;">
         <div class="section"><h3 style="margin:0;">Banners</h3><button class="primary small" onclick="editarCampanaWeb()">＋ Banner</button></div>
         <div style="display:grid;gap:8px;">
-          ${(campaigns||[]).map(x=>`<div style="border:1px solid #e5e9f0;border-radius:12px;padding:10px;"><div style="display:flex;justify-content:space-between;gap:8px;"><div><b>${E(x.name)}</b><div class="muted">${E(x.title)} · prioridad ${x.priority}</div></div><button class="secondary small" onclick="editarCampanaWebPorId('${x.id}')">Editar</button></div></div>`).join('')||'<div class="empty">Sin banners.</div>'}
+          ${(campaigns||[]).map(x=>`<div style="border:1px solid #e5e9f0;border-radius:12px;padding:10px;"><div style="display:flex;justify-content:space-between;gap:8px;"><div><b>${E(x.name)}</b><div class="muted">${E(x.title)} · prioridad ${x.priority}</div></div><div style="display:flex;gap:6px;"><button class="secondary small" onclick="editarCampanaWebPorId('${x.id}')">Editar</button><button class="secondary small" onclick="eliminarCampanaWeb('${x.id}')">Eliminar</button></div></div></div>`).join('')||'<div class="empty">Sin banners.</div>'}
         </div>
       </div>
       <div class="card" style="padding:16px;margin-top:12px;">
         <div class="section"><h3 style="margin:0;">Promociones</h3><button class="primary small" onclick="editarPromocionWeb()">＋ Promoción</button></div>
         <div style="display:grid;gap:8px;">
-          ${(promos||[]).map(x=>`<div style="border:1px solid #e5e9f0;border-radius:12px;padding:10px;"><div style="display:flex;justify-content:space-between;gap:8px;"><div><b>${E(x.name)}</b><div class="muted">${E(x.label||'')} · ${E(x.discount_type)} ${x.discount_value}</div></div><button class="secondary small" onclick="editarPromocionWebPorId('${x.id}')">Editar</button></div></div>`).join('')||'<div class="empty">Sin promociones.</div>'}
+          ${(promos||[]).map(x=>`<div style="border:1px solid #e5e9f0;border-radius:12px;padding:10px;"><div style="display:flex;justify-content:space-between;gap:8px;"><div><b>${E(x.name)}</b><div class="muted">${E(x.label||'')} · ${E(x.discount_type)} ${x.discount_value}</div></div><div style="display:flex;gap:6px;"><button class="secondary small" onclick="editarPromocionWebPorId('${x.id}')">Editar</button><button class="secondary small" onclick="eliminarPromocionWeb('${x.id}')">Eliminar</button></div></div></div>`).join('')||'<div class="empty">Sin promociones.</div>'}
         </div>
       </div>`;
+  };
+
+  window.eliminarCampanaWeb=async function(id){
+    if(!confirm('¿Eliminar este banner?'))return;
+    const {error}=await supabaseClient.from('web_campaigns').delete().eq('id',id);
+    if(error){toast(error.message);return;}toast('Banner eliminado');gestionarCampanasWeb();
+  };
+  window.eliminarPromocionWeb=async function(id){
+    if(!confirm('¿Eliminar esta promoción?'))return;
+    const {error}=await supabaseClient.from('web_promotions').delete().eq('id',id);
+    if(error){toast(error.message);return;}toast('Promoción eliminada');gestionarCampanasWeb();
   };
 
   window.editarCampanaWebPorId=function(id){
