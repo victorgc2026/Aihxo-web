@@ -95,14 +95,10 @@
     <h2>Selección AIHXO</h2>
     <p>Una selección de diseños con identidad propia. Entra en cada pieza para ver tallas, colores y detalles.</p>
   </div>
-  <div class="filters" aria-hidden="true">
-    <button class="active" data-collection-filter="all">Todo</button>
-    <button data-collection-filter="camiseta">Camisetas</button>
-    <button data-collection-filter="sudadera">Sudaderas</button>
-    <button data-collection-filter="infantil">Infantil</button>
-    <button data-collection-filter="adulto">Adulto</button>
-    <button data-collection-filter="tote">Tote Bags</button>
-    <button data-collection-filter="novedad">Novedades</button>
+  <div class="filters collection-audience-filters" aria-label="Filtrar colección AIHXO">
+    <button class="active" data-collection-filter="all">TODOS</button>
+    <button data-collection-filter="infantil">KIDS</button>
+    <button data-collection-filter="adulto">ADULTO</button>
   </div>
   <div class="products" id="collectionGrid">
     <div id="disenosPropiosAutomaticos" style="display:contents;"></div>
@@ -238,6 +234,17 @@ document.querySelectorAll('[data-collection-filter]').forEach(btn => {
     document.querySelectorAll('[data-collection-filter]').forEach(x => x.classList.remove('active'));
     btn.classList.add('active');
     const filter = btn.dataset.collectionFilter;
+
+    if (collectionSection) {
+      if (filter === 'all') {
+        collectionSection.classList.remove('is-expanded');
+        if (collectionToggle) collectionToggle.textContent = 'VER TODA LA COLECCIÓN';
+      } else {
+        collectionSection.classList.add('is-expanded');
+        if (collectionToggle) collectionToggle.textContent = 'VER MENOS';
+      }
+    }
+
     document.querySelectorAll('#collectionGrid .product').forEach(card => {
       const cats = (card.dataset.collectionCat || '').split(' ');
       card.hidden = !(filter === 'all' || cats.includes(filter));
