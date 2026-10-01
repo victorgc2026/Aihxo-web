@@ -3,6 +3,43 @@
   const N=v=>Number(v||0);
   const E=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const norm=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9/]+/g,' ').replace(/\s+/g,' ').trim();
+  const itemLabel=i=>`${i._virtual?'🆕 ':''}${i.supplier_model||i.supplier||'Prenda'} · ${i.size||''} · ${i.color||''}`;
+
+  function bindRecoverySearch(root,items){
+    root.querySelectorAll('.irrSearch').forEach(input=>{
+      const row=input.closest('.invoiceRecoveredRow');
+      const hidden=row.querySelector('.irrItem');
+      const results=row.querySelector('.irrResults');
+      const cost=row.querySelector('.irrCost');
+
+      const render=()=>{
+        const terms=norm(input.value).split(/\s+/).filter(Boolean);
+        const matches=(items||[]).filter(i=>{
+          const hay=norm(itemLabel(i)+' '+(i.supplier||'')+' '+(i.garment_type||''));
+          return !terms.length || terms.every(t=>hay.includes(t));
+        }).slice(0,12);
+
+        results.innerHTML=matches.length
+          ? matches.map(i=>`<button type="button" class="irrResult" data-id="${E(i.id)}" style="display:block;width:100%;text-align:left;padding:10px 12px;border:0;border-bottom:1px solid #eef1f4;background:#fff;color:#111">${E(itemLabel(i))}</button>`).join('')
+          : '<div style="padding:10px;color:#667085">Sin resultados</div>';
+        results.style.display='block';
+
+        results.querySelectorAll('.irrResult').forEach(btn=>btn.onclick=()=>{
+          const item=(items||[]).find(i=>String(i.id)===String(btn.dataset.id));
+          if(!item)return;
+          hidden.value=item.id;
+          input.value=itemLabel(item);
+          results.style.display='none';
+          if(!N(cost.value)) cost.value=N(item.unit_cost).toFixed(2);
+          row.querySelector('.irrWarn')?.remove();
+        });
+      };
+
+      input.addEventListener('focus',render);
+      input.addEventListener('input',()=>{hidden.value='';render()});
+      input.addEventListener('blur',()=>setTimeout(()=>{results.style.display='none'},180));
+    });
+  }
 
   function invoiceLineIsStock(line){
     const d=norm(line?.description);
@@ -81,12 +118,6 @@
       modal.id='invoiceLinesRecoveryModal';
       modal.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.48);display:flex;align-items:flex-end;justify-content:center';
 
-      const options=(selected='')=>
-        '<option value="">— Selecciona prenda —</option>'+
-        (items||[]).map(i=>`<option value="${E(i.id)}" ${String(i.id)===String(selected)?'selected':''}>
-          ${i._virtual?'🆕 ':''}${E(i.supplier_model||i.supplier||'Prenda')} · ${E(i.size||'')} · ${E(i.color||'')}
-        </option>`).join('');
-
       modal.innerHTML=`<div style="background:#fff;color:#111;width:100%;max-width:760px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:20px;box-sizing:border-box">
         <h2 style="margin-top:0">📄 Líneas recuperadas de la factura</h2>
         <div style="color:#667085;margin-bottom:14px">
@@ -99,12 +130,16 @@
             const unit=N(line.unit_price??line.price??(qty?N(line.subtotal??line.total)/qty:0));
             return `<div class="invoiceRecoveredRow" style="border:1px solid #e4e7ec;border-radius:14px;padding:12px">
               <div style="font-weight:800;margin-bottom:8px">${E(line.description||('Línea '+(idx+1)))}</div>
-              <div style="display:grid;grid-template-columns:minmax(0,1fr) 82px 95px;gap:7px">
-                <select class="irrItem">${options(guessed)}</select>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 82px 95px;gap:7px;align-items:start">
+                <div style="position:relative">
+                  <input class="irrSearch" autocomplete="off" placeholder="Escribe modelo, talla o color…" value="${E((items||[]).find(i=>String(i.id)===String(guessed)) ? itemLabel((items||[]).find(i=>String(i.id)===String(guessed))) : '')}">
+                  <input class="irrItem" type="hidden" value="${E(guessed)}">
+                  <div class="irrResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:60;max-height:260px;overflow:auto;border:1px solid #d0d5dd;border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(0,0,0,.14)"></div>
+                </div>
                 <input class="irrQty" type="number" min="1" step="1" value="${qty}" title="Cantidad">
                 <input class="irrCost" type="number" min="0" step=".01" value="${unit.toFixed(2)}" title="Coste €/ud">
               </div>
-              ${guessed?'':'<div style="margin-top:7px;color:#b54708;font-size:12px">⚠️ Revisa esta línea: no he encontrado una coincidencia segura.</div>'}
+              ${guessed?'':'<div class="irrWarn" style="margin-top:7px;color:#b54708;font-size:12px">⚠️ Revisa esta línea: no he encontrado una coincidencia segura.</div>'}
             </div>`;
           }).join('')}
         </div>
@@ -113,6 +148,7 @@
       </div>`;
 
       document.body.appendChild(modal);
+      bindRecoverySearch(modal,items);
 
       const close=v=>{modal.remove();resolve(v);};
       modal.querySelector('#irrCancel').onclick=()=>close(false);
