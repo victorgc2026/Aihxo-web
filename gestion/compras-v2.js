@@ -3,6 +3,49 @@
  const N=v=>Number(v||0);
  const E=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
  const EUR=v=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(N(v));
+ const normSearch=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+ const itemLabel=i=>`${i._virtual?'🆕 ':''}${i.supplier_model||i.supplier||'Prenda'} · ${i.size||''} · ${i.color||''}`;
+
+ function bindItemSearch(root,items,{inputClass,hiddenClass,resultsClass,costClass}){
+   root.querySelectorAll('.'+inputClass).forEach(input=>{
+     const row=input.closest('[data-item-search-row]')||input.parentElement;
+     const hidden=row.querySelector('.'+hiddenClass);
+     const results=row.querySelector('.'+resultsClass);
+     const cost=costClass?row.querySelector('.'+costClass):null;
+
+     const render=()=>{
+       const q=normSearch(input.value);
+       const terms=q.split(/\s+/).filter(Boolean);
+       const matches=(items||[])
+         .filter(i=>{
+           const hay=normSearch(itemLabel(i)+' '+(i.supplier||'')+' '+(i.garment_type||''));
+           return !terms.length || terms.every(t=>hay.includes(t));
+         })
+         .slice(0,12);
+
+       results.innerHTML=matches.length
+         ? matches.map(i=>`<button type="button" class="itemSearchResult" data-id="${E(i.id)}" style="display:block;width:100%;text-align:left;padding:10px 12px;border:0;border-bottom:1px solid #eef1f4;background:#fff;color:#111">${E(itemLabel(i))}</button>`).join('')
+         : '<div style="padding:10px;color:#667085">Sin resultados</div>';
+
+       results.style.display='block';
+
+       results.querySelectorAll('.itemSearchResult').forEach(btn=>{
+         btn.onclick=()=>{
+           const item=(items||[]).find(i=>String(i.id)===String(btn.dataset.id));
+           if(!item)return;
+           hidden.value=item.id;
+           input.value=itemLabel(item);
+           results.style.display='none';
+           if(cost && !N(cost.value)) cost.value=N(item.unit_cost).toFixed(2);
+         };
+       });
+     };
+
+     input.addEventListener('focus',render);
+     input.addEventListener('input',()=>{hidden.value='';render()});
+     input.addEventListener('blur',()=>setTimeout(()=>{results.style.display='none'},180));
+   });
+ }
 
  async function loadBasic(c){
    c.innerHTML='<div class="page"><div class="card">⏳ Cargando compras…</div></div>';
@@ -149,7 +192,6 @@
    if(se){toast('No se pudo preparar la factura');return}
    const x=purchaseInvoiceData||{}, rawLines=Array.isArray(x.lines)?x.lines:[];
    const guessSupplier=(suppliers||[]).find(s=>String(x.supplier_name||'').toLowerCase().includes(String(s.name||'').toLowerCase())||String(s.name||'').toLowerCase().includes(String(x.supplier_name||'').toLowerCase()));
-   const opts=(items||[]).map(i=>`<option value="${i.id}" data-cost="${N(i.unit_cost)}">${i._virtual?'🆕 ':''}${E(i.supplier_model||i.supplier||'Prenda')} · ${E(i.size||'')} · ${E(i.color||'')}</option>`).join('');
    const lines=rawLines.length?rawLines:[{description:'Prenda',quantity:1,unit_price:0,total:0}];
 
    b.innerHTML=`<h2>✅ Revisar factura de compra</h2>
@@ -164,7 +206,13 @@
            ${lines.map((l,i)=>`<div class="pciLine" style="border-top:1px solid #e6eaf0;padding-top:10px">
              <div style="font-weight:800">${E(l.description||('Concepto '+(i+1)))}</div>
              <div class="formgrid" style="margin-top:8px">
-               <div class="field"><label>Prenda / variante</label><select class="pciItem"><option value="">No añadir a stock</option>${opts}</select></div>
+               <div class="field" data-item-search-row style="position:relative">
+                 <label>Prenda / variante</label>
+                 <input class="pciItemSearch" autocomplete="off" placeholder="Escribe modelo, talla o color…">
+                 <input class="pciItem" type="hidden" value="">
+                 <div class="pciItemResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:50;max-height:260px;overflow:auto;border:1px solid #d0d5dd;border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(0,0,0,.14)"></div>
+                 <button type="button" class="pciClear secondary" style="margin-top:6px;padding:7px 10px">No añadir a stock</button>
+               </div>
                <div class="field"><label>Cantidad</label><input class="pciQty" type="number" min="0" step="1" value="${Math.max(0,N(l.quantity)||1)}"></div>
              </div>
              <div class="field"><label>Coste unitario €</label><input class="pciCost" type="number" min="0" step=".01" value="${N(l.unit_price??l.price??(N(l.quantity)?N(l.total)/N(l.quantity):0)).toFixed(2)}"></div>
@@ -175,10 +223,18 @@
        <button class="primary" type="submit" style="width:100%">Guardar compra desde factura</button>
        <button class="secondary" type="button" id="pciChooseAgain" style="width:100%;margin-top:8px">Elegir otro archivo</button>
      </form>`;
-   b.querySelectorAll('.pciItem').forEach(sel=>sel.addEventListener('change',()=>{
-     const row=sel.closest('.pciLine'),op=sel.selectedOptions[0],cost=row.querySelector('.pciCost');
-     if(sel.value&&(!N(cost.value)))cost.value=op?.dataset.cost||'';
-   }));
+   bindItemSearch(b,items,{
+     inputClass:'pciItemSearch',
+     hiddenClass:'pciItem',
+     resultsClass:'pciItemResults',
+     costClass:'pciCost'
+   });
+   b.querySelectorAll('.pciClear').forEach(btn=>btn.onclick=()=>{
+     const row=btn.closest('[data-item-search-row]');
+     row.querySelector('.pciItem').value='';
+     row.querySelector('.pciItemSearch').value='';
+     row.querySelector('.pciItemResults').style.display='none';
+   });
    b.querySelector('#pciChooseAgain').onclick=()=>window.importarFacturaCompra();
    b.querySelector('#pciReview').onsubmit=savePurchaseInvoice;
  }
