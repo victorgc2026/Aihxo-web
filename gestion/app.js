@@ -1782,7 +1782,7 @@ productsView = function(c) {
   });
 };
 window.orderForm = async function() {
-   const { data: baseStockItems, error: baseStockError } =
+   const { data: baseStockData, error: baseStockError } =
     await supabaseClient
       .from('base_stock_items')
       .select('*')
@@ -1795,6 +1795,8 @@ window.orderForm = async function() {
     toast('No se pudo cargar el stock de camisetas');
     return;
   }
+
+  let baseStockItems = baseStockData || [];
   $('#drawer').classList.remove('hidden');
 
   $('#drawerBody').innerHTML = `
@@ -1830,7 +1832,13 @@ window.orderForm = async function() {
       <div class="field" id="productoPedidoField">
   <label>Producto</label>
 
-  <select name="sku" id="osku">
+  <div id="productoPersonalizado"
+       style="padding:12px 14px;border:1px solid #d0d5dd;border-radius:12px;background:#f8fafc;font-weight:800;">
+    ✏️ Producto personalizado
+  </div>
+
+  <select name="sku" id="osku" style="display:none;">
+    <option value="">— Selecciona producto —</option>
     ${products.map(p => `
       <option value="${p.id}">
         ${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)}
@@ -1850,21 +1858,81 @@ window.orderForm = async function() {
       `).join('')}
   </select>
 </div>
-<div class="field" id="baseStockPedidoField">
-  <label>Camiseta base utilizada</label>
-  <select name="base_stock_item_id" id="obaseStock">
-    <option value="">— No descontar camiseta base —</option>
 
-    ${baseStockItems.map(item => `
-      <option value="${item.id}">
-        ${esc(item.garment_type || 'Camiseta')}
-        · ${esc(item.supplier_model || item.supplier || '')}
-        · ${esc(item.color || '')}
-        · ${esc(item.size || '')}
-        · Stock ${item.quantity}
-      </option>
-    `).join('')}
+<div class="field" id="baseStockPedidoField">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:7px;">
+    <label style="margin:0">Prenda base utilizada</label>
+    <button type="button" class="secondary small" id="nuevaPrendaPedidoBtn">＋ Nueva prenda base</button>
+  </div>
+
+  <select name="base_stock_item_id" id="obaseStock">
+    <option value="">— Selecciona prenda base —</option>
   </select>
+
+  <div id="nuevaPrendaPedidoBox" class="card"
+       style="display:none;margin-top:12px;padding:14px;">
+    <h3 style="margin:0 0 12px;">Nueva prenda base</h3>
+
+    <div class="formgrid">
+      <div class="field">
+        <label>Proveedor / fabricante</label>
+        <input id="npProveedor" placeholder="Ej. Roly, Mukua..." />
+      </div>
+      <div class="field">
+        <label>Modelo</label>
+        <input id="npModelo" placeholder="Ej. Técnica manga larga" />
+      </div>
+    </div>
+
+    <div class="formgrid">
+      <div class="field">
+        <label>Tipo de prenda</label>
+        <select id="npTipo">
+          <option value="Camiseta">Camiseta</option>
+          <option value="Camiseta técnica">Camiseta técnica</option>
+          <option value="Sudadera">Sudadera</option>
+          <option value="Polo">Polo</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Público</label>
+        <select id="npPublico">
+          <option value="Unisex">Unisex</option>
+          <option value="Adulto">Adulto</option>
+          <option value="Niño">Niño</option>
+          <option value="Mujer">Mujer</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="formgrid">
+      <div class="field">
+        <label>Color</label>
+        <input id="npColor" placeholder="Ej. Negro" />
+      </div>
+      <div class="field">
+        <label>Talla</label>
+        <input id="npTalla" placeholder="Ej. L / 12" />
+      </div>
+    </div>
+
+    <div class="formgrid">
+      <div class="field">
+        <label>Unidades disponibles</label>
+        <input id="npCantidad" type="number" min="1" step="1" value="1" />
+      </div>
+      <div class="field">
+        <label>Coste unitario €</label>
+        <input id="npCoste" type="number" min="0" step=".01" value="0" />
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button type="button" class="primary" id="guardarNuevaPrendaPedido">Guardar y seleccionar</button>
+      <button type="button" class="secondary" id="cancelarNuevaPrendaPedido">Cancelar</button>
+    </div>
+  </div>
 </div>
   <div id="personalizacionPedido">
   <div class="field">
@@ -2008,89 +2076,75 @@ window.orderForm = async function() {
     </form>
   `;
 
- const actualizarPedido = () => {
-  const p = products.find(
-    x => x.id === $('#osku').value
-  );
+ const renderBaseStockOptions = (selectedId = '') => {
+  const select = document.getElementById('obaseStock');
+  if (!select) return;
 
-  if (!p) return;
+  const sorted = [...baseStockItems].sort((a,b) => {
+    const ma = String(a.supplier_model || a.supplier || '');
+    const mb = String(b.supplier_model || b.supplier || '');
+    return ma.localeCompare(mb, 'es', {sensitivity:'base'})
+      || String(a.color || '').localeCompare(String(b.color || ''), 'es', {sensitivity:'base'})
+      || String(a.size || '').localeCompare(String(b.size || ''), 'es', {numeric:true});
+  });
 
-  const bloquePersonalizacion =
-    document.getElementById('personalizacionPedido');
+  select.innerHTML =
+    '<option value="">— Selecciona prenda base —</option>' +
+    sorted.map(item => `
+      <option value="${item.id}">
+        ${esc(item.garment_type || 'Camiseta')}
+        · ${esc(item.supplier_model || item.supplier || '')}
+        · ${esc(item.color || '')}
+        · ${esc(item.size || '')}
+        · Stock ${Number(item.quantity || 0)}
+      </option>
+    `).join('');
 
-  const tienePrecioUno =
-    Number(p.price_one_print || 0) > 0;
+  if (selectedId) select.value = selectedId;
+};
 
-  const tienePrecioDos =
-    Number(p.price_two_print || 0) > 0;
+renderBaseStockOptions();
 
-  const esPersonalizable =
-    tienePrecioUno || tienePrecioDos;
-  const tituloPedido = document.getElementById('tituloPedido');
-const tipoPedido = document.getElementById('tipoPedido');
+const actualizarPedido = () => {
+  const tipoPedido = $('#orderType').value;
 
-
-
-
-
-  
-  const inputDiseno = document.querySelector('input[name="design"]');
-
-if (inputDiseno) {
-  if (esPersonalizable) {
-    if (inputDiseno.dataset.auto === '1') {
-      inputDiseno.value = '';
-      inputDiseno.dataset.auto = '0';
-    }
-  } else {
-    inputDiseno.value = p.model || '';
-    inputDiseno.dataset.auto = '1';
-  }
-}
-  let precio = Number(p.sale_price || 0);
-
-  if (esPersonalizable && $('#orderType').value === 'personalizado') {
-    const tipo = $('#opersonalization').value;
-
-    precio =
-      tipo === '1'
-        ? Number(p.price_one_print || p.sale_price || 0)
-        : Number(p.price_two_print || p.sale_price || 0);
-
-    $('#position2Field').style.display =
-      tipo === '2' ? 'block' : 'none';
+  if (tipoPedido !== 'catalogo') {
+    actualizarResumenPedido();
+    return;
   }
 
-  $('#oprice').value = precio || 0;
+  const p = products.find(x => x.id === $('#osku').value);
+  if (!p) {
+    $('#oprice').value = 0;
+    actualizarResumenPedido();
+    return;
+  }
 
+  $('#oprice').value = Number(p.sale_price || 0);
   actualizarResumenPedido();
 };
 
   window.actualizarResumenPedido = function() {
-  const tipoPedido = $('#orderType').value;
-
-  const p = tipoPedido === 'diseno_aihxo'
-    ? null
-    : products.find(
-        x => x.id === $('#osku').value
-      );
-
-  if (tipoPedido !== 'diseno_aihxo' && !p) return;
-
+    const tipoPedido = $('#orderType').value;
     const qty = Number($('#oqty').value || 1);
     const price = Number($('#oprice').value || 0);
     const shipping = Number($('#oshipping').value || 0);
-
     const total = (qty * price) + shipping;
-    const baseStockId = $('#obaseStock').value;
 
-const baseStockItem = baseStockItems.find(
-  x => String(x.id) === String(baseStockId)
-);
+    const baseStockId = $('#obaseStock')?.value || '';
+    const baseStockItem = baseStockItems.find(
+      x => String(x.id) === String(baseStockId)
+    );
 
-const coste = tipoPedido === 'diseno_aihxo'
-  ? qty * Number(baseStockItem?.unit_cost || 0)
-  : qty * cost(p);
+    const p = tipoPedido === 'catalogo'
+      ? products.find(x => x.id === $('#osku').value)
+      : null;
+
+    const coste =
+      tipoPedido === 'catalogo'
+        ? (p ? qty * cost(p) : 0)
+        : qty * Number(baseStockItem?.unit_cost || 0);
+
     const beneficio = total - coste;
 
     $('#orderSummary').innerHTML = `
@@ -2116,55 +2170,182 @@ $('#orderType').onchange = () => {
   const personalizacion = $('#personalizacionPedido');
   const diseno = $('#designPedidoField');
   const designLibre = $('#designLibre');
-  const designAihxo = $('#designAihxo');
- const baseStockField = $('#baseStockPedidoField');
-const baseStockSelect = $('#obaseStock');
- const productoNormal = $('#osku');
-const productoDisenoAihxo = $('#oproductoDisenoAihxo');
+  const baseStockField = $('#baseStockPedidoField');
+  const baseStockSelect = $('#obaseStock');
+  const productoNormal = $('#osku');
+  const productoDisenoAihxo = $('#oproductoDisenoAihxo');
+  const productoPersonalizado = $('#productoPersonalizado');
 
   if (tipo === 'personalizado') {
-    ayuda.textContent = 'Personalización creada a medida para el cliente.';
+    ayuda.textContent = 'Encargo personalizado del cliente. El producto se registra como Producto personalizado y trabajamos sobre la prenda base elegida.';
     personalizacion.style.display = 'block';
     diseno.style.display = 'block';
-
     designLibre.style.display = 'block';
-    designAihxo.style.display = 'none';
-   baseStockField.style.display = 'block';
+    baseStockField.style.display = 'block';
 
-   productoNormal.style.display = 'block';
-productoDisenoAihxo.style.display = 'none';
-productoDisenoAihxo.value = '';
+    productoPersonalizado.style.display = 'block';
+    productoNormal.style.display = 'none';
+    productoDisenoAihxo.style.display = 'none';
+    productoNormal.value = '';
+    productoDisenoAihxo.value = '';
+
+    if (!$('#oprice').value) $('#oprice').value = 0;
   }
 
   if (tipo === 'diseno_aihxo') {
     ayuda.textContent = 'Pedido de un diseño propio de AIHXO.';
     personalizacion.style.display = 'none';
     diseno.style.display = 'none';
+    baseStockField.style.display = 'block';
 
-designLibre.style.display = 'none';
-designAihxo.style.display = 'none';
-  baseStockField.style.display = 'block'; 
-
-   productoNormal.style.display = 'none';
-productoDisenoAihxo.style.display = 'block';
-productoNormal.value = '';
+    productoPersonalizado.style.display = 'none';
+    productoNormal.style.display = 'none';
+    productoDisenoAihxo.style.display = 'block';
+    productoNormal.value = '';
   }
 
   if (tipo === 'catalogo') {
     ayuda.textContent = 'Venta directa de un producto del catálogo.';
     personalizacion.style.display = 'none';
     diseno.style.display = 'none';
+    baseStockField.style.display = 'none';
+    baseStockSelect.value = '';
 
-    designLibre.style.display = 'none';
-    designAihxo.style.display = 'none';
-   baseStockField.style.display = 'none';
-baseStockSelect.value = '';
+    productoPersonalizado.style.display = 'none';
+    productoNormal.style.display = 'block';
+    productoDisenoAihxo.style.display = 'none';
+    productoDisenoAihxo.value = '';
 
-   productoNormal.style.display = 'block';
-productoDisenoAihxo.style.display = 'none';
-productoDisenoAihxo.value = '';
+    if (!productoNormal.value && products[0]) productoNormal.value = products[0].id;
+    actualizarPedido();
   }
+
+  actualizarResumenPedido();
 };
+
+  $('#nuevaPrendaPedidoBtn').onclick = () => {
+    const box = $('#nuevaPrendaPedidoBox');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  };
+
+  $('#cancelarNuevaPrendaPedido').onclick = () => {
+    $('#nuevaPrendaPedidoBox').style.display = 'none';
+  };
+
+  $('#guardarNuevaPrendaPedido').onclick = async () => {
+    const proveedor = String($('#npProveedor').value || '').trim();
+    const modelo = String($('#npModelo').value || '').trim();
+    const tipo = String($('#npTipo').value || 'Camiseta').trim();
+    const publico = String($('#npPublico').value || 'Unisex').trim();
+    const color = String($('#npColor').value || '').trim();
+    const talla = String($('#npTalla').value || '').trim();
+    const cantidad = Number($('#npCantidad').value || 0);
+    const coste = Number($('#npCoste').value || 0);
+    const btn = $('#guardarNuevaPrendaPedido');
+
+    if (!proveedor || !modelo || !color || !talla) {
+      toast('Completa proveedor, modelo, color y talla');
+      return;
+    }
+    if (!Number.isInteger(cantidad) || cantidad < 1) {
+      toast('Introduce al menos 1 unidad');
+      return;
+    }
+    if (coste < 0) {
+      toast('El coste no es válido');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+
+    try {
+      let garmentId = null;
+
+      const { data: existentes, error: garmentSearchError } = await supabaseClient
+        .from('garments')
+        .select('id,sizes,colors')
+        .ilike('manufacturer', proveedor)
+        .ilike('model', modelo)
+        .limit(1);
+
+      if (garmentSearchError) throw garmentSearchError;
+
+      if (existentes?.length) {
+        garmentId = existentes[0].id;
+
+        const sizes = [...new Set([...(Array.isArray(existentes[0].sizes) ? existentes[0].sizes : []), talla])];
+        const colors = [...new Set([...(Array.isArray(existentes[0].colors) ? existentes[0].colors : []), color])];
+
+        await supabaseClient
+          .from('garments')
+          .update({sizes, colors, active:true, updated_at:new Date().toISOString()})
+          .eq('id', garmentId);
+      } else {
+        const { data: nuevaGarment, error: garmentInsertError } = await supabaseClient
+          .from('garments')
+          .insert({
+            manufacturer: proveedor,
+            model: modelo,
+            garment_type: tipo,
+            audience: publico,
+            sizes: [talla],
+            colors: [color],
+            active: true
+          })
+          .select('id')
+          .single();
+
+        if (garmentInsertError) throw garmentInsertError;
+        garmentId = nuevaGarment.id;
+      }
+
+      const { data: nueva, error: stockInsertError } = await supabaseClient
+        .from('base_stock_items')
+        .insert({
+          garment_id: garmentId,
+          garment_type: tipo,
+          supplier: proveedor,
+          supplier_model: modelo,
+          audience: publico,
+          color,
+          size: talla,
+          quantity: cantidad,
+          min_stock: 3,
+          unit_cost: coste,
+          notes: 'Alta rápida desde nuevo pedido'
+        })
+        .select()
+        .single();
+
+      if (stockInsertError) throw stockInsertError;
+
+      if (cantidad > 0) {
+        await supabaseClient
+          .from('base_stock_movements')
+          .insert({
+            item_id: nueva.id,
+            movement_type: 'entrada',
+            quantity_delta: cantidad,
+            previous_quantity: 0,
+            new_quantity: cantidad,
+            reason: 'Alta rápida desde nuevo pedido'
+          });
+      }
+
+      baseStockItems.push(nueva);
+      renderBaseStockOptions(nueva.id);
+      $('#nuevaPrendaPedidoBox').style.display = 'none';
+      actualizarResumenPedido();
+      toast('Prenda base creada y seleccionada');
+    } catch (err) {
+      console.error(err);
+      toast(err?.code === '23505' ? 'Esa prenda, color y talla ya existen en stock' : 'No se pudo crear la prenda base');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Guardar y seleccionar';
+    }
+  };
   $('#osku').onchange = () => {
   actualizarPedido();
   $('#orderType').onchange();
@@ -2182,11 +2363,9 @@ productoDisenoAihxo.value = '';
 
     const tipoPedido = f.get('order_type');
 
-const p = tipoPedido === 'diseno_aihxo'
-  ? null
-  : products.find(
-      x => x.id === f.get('sku')
-    );
+const p = tipoPedido === 'catalogo'
+  ? products.find(x => x.id === f.get('sku'))
+  : null;
 
 const disenoSeleccionado = tipoPedido === 'diseno_aihxo'
   ? designs.find(
@@ -2215,27 +2394,23 @@ if (baseStockId) {
   }
 }
 
-    if (tipoPedido !== 'diseno_aihxo' && !p) {
-  toast('Producto no válido');
+    if (tipoPedido === 'catalogo' && !p) {
+  toast('Selecciona un producto de catálogo');
   return;
 }
 
-if (tipoPedido !== 'diseno_aihxo' && p.stock < qty) {
+if (tipoPedido === 'catalogo' && p.stock < qty) {
   toast('Stock insuficiente');
   return;
 }
 
-    const tienePrecioUno =
-  p && Number(p.price_one_print || 0) > 0;
-
-const tienePrecioDos =
-  p && Number(p.price_two_print || 0) > 0;
-
-const esPersonalizable =
-  tienePrecioUno || tienePrecioDos;
+if ((tipoPedido === 'personalizado' || tipoPedido === 'diseno_aihxo') && !baseStockItem) {
+  toast('Selecciona la prenda base que vas a utilizar');
+  return;
+}
 
 const tipo =
-  esPersonalizable
+  tipoPedido === 'personalizado'
     ? f.get('personalization')
     : '';
 
@@ -2257,7 +2432,7 @@ const detalleDiseno = [
     ? `Diseño: ${nombreDiseno}`
     : '',
 
-  tipoPedido === 'personalizado' && esPersonalizable
+  tipoPedido === 'personalizado'
     ? `Personalización: ${tipo} impresión${tipo === '2' ? 'es' : ''}`
     : '',
 
@@ -2314,16 +2489,21 @@ base_stock_quantity: baseStockId ? qty : 0,
       customer_name: customer.name,
       contact: f.get('contact'),
 
-      product_id: tipoPedido === 'diseno_aihxo' ? null : p.id,
-product_name: tipoPedido === 'diseno_aihxo'
-  ? disenoSeleccionado.name
-  : p.model,
-size: tipoPedido === 'diseno_aihxo'
-  ? (baseStockItem?.size || null)
-  : p.size,
-color: tipoPedido === 'diseno_aihxo'
-  ? (baseStockItem?.color || null)
-  : p.color,
+      product_id: tipoPedido === 'catalogo' ? p.id : null,
+product_name:
+  tipoPedido === 'personalizado'
+    ? 'Producto personalizado'
+    : tipoPedido === 'diseno_aihxo'
+      ? disenoSeleccionado.name
+      : p.model,
+size:
+  tipoPedido === 'catalogo'
+    ? p.size
+    : (baseStockItem?.size || null),
+color:
+  tipoPedido === 'catalogo'
+    ? p.color
+    : (baseStockItem?.color || null),
 
       design: detalleDiseno,
 
@@ -2332,9 +2512,10 @@ color: tipoPedido === 'diseno_aihxo'
       shipping: shipping,
       total: qty * price + shipping,
 
-      product_cost: tipoPedido === 'diseno_aihxo'
-  ? qty * Number(baseStockItem?.unit_cost || 0)
-  : qty * cost(p),
+      product_cost:
+  tipoPedido === 'catalogo'
+    ? qty * cost(p)
+    : qty * Number(baseStockItem?.unit_cost || 0),
 
       status: 'Pendiente'
     };
@@ -2396,7 +2577,7 @@ try {
   console.error(err);
   toast('El pedido se guardó, pero hubo un problema con las imágenes');
 }
-    if (tipoPedido !== 'diseno_aihxo' && p) {
+    if (tipoPedido === 'catalogo' && p) {
   await supabaseClient
     .from('products')
     .update({
@@ -2443,7 +2624,8 @@ try {
     toast('Pedido personalizado guardado');
   };
 
-  actualizarPedido();
+  $('#orderType').onchange();
+  actualizarResumenPedido();
 };
 window.drawOrders = function() {
   const q = ($('#oq')?.value || '').toLowerCase();
