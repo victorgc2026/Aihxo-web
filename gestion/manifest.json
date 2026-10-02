@@ -1,23 +1,25 @@
 {
   "name": "AIHXO Gestión",
   "short_name": "AIHXO",
-  "start_url": "./",
+  "start_url": "/gestion/",
   "display": "standalone",
   "background_color": "#07152f",
   "theme_color": "#07152f",
   "lang": "es",
   "icons": [
     {
-      "src": "apple-touch-icon.png?v=20261002-3",
+      "src": "/gestion/apple-touch-icon.png?v=20261002-4",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon-512.png?v=20261002-3",
+      "src": "/gestion/icon-512.png?v=20261002-4",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "scope": "/gestion/",
+  "id": "/gestion/"
 }
