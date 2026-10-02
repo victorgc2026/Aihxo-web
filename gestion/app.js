@@ -264,7 +264,7 @@ c.innerHTML=`
   </div>
 `;
 }
-function ordersView(c){c.innerHTML=`<div class="page"><div class="section"><div><h2>Pedidos</h2><div class="muted">${orders.length} pedidos</div></div><button class="primary" onclick="orderForm()">＋ Nuevo pedido</button></div><div class="card"><input class="search" id="oq" placeholder="Buscar..." oninput="drawOrders()"><div id="orderTable"></div></div></div>`;drawOrders()}
+function ordersView(c){c.innerHTML=`<div class="page"><div class="section"><div><h2>Pedidos</h2><div class="muted">${orders.length} pedidos</div></div><button class="primary" onclick="window.orderForm()">＋ Nuevo pedido</button></div><div class="card"><input class="search" id="oq" placeholder="Buscar..." oninput="drawOrders()"><div id="orderTable"></div></div></div>`;drawOrders()}
 function drawOrders(){
   const q = ($('#oq')?.value || '').toLowerCase();
 
@@ -2627,6 +2627,10 @@ try {
   $('#orderType').onchange();
   actualizarResumenPedido();
 };
+
+// Asegura que cualquier llamada antigua a orderForm use este formulario nuevo.
+try { orderForm = window.orderForm; } catch (_) {}
+
 window.drawOrders = function() {
   const q = ($('#oq')?.value || '').toLowerCase();
 
