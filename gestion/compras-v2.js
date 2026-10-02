@@ -229,6 +229,7 @@
      resultsClass:'pciItemResults',
      costClass:'pciCost'
    });
+   b.querySelectorAll('.pciLine').forEach((row,i)=>{const id=window.aihxoGuessInvoiceItem?.(lines[i],items);const match=items.find(x=>String(x.id)===String(id));if(match){row.querySelector('.pciItem').value=match.id;row.querySelector('.pciItemSearch').value=itemLabel(match);}});
    b.querySelectorAll('.pciClear').forEach(btn=>btn.onclick=()=>{
      const row=btn.closest('[data-item-search-row]');
      row.querySelector('.pciItem').value='';
@@ -248,6 +249,9 @@
      let ref=String(fd.get('purchase_number')||'').trim();
      if(!ref)ref='AIHXO-COMP-'+Date.now();
      const supplierId=fd.get('supplier_id');
+     const duplicate=await supabaseClient.from('purchases').select('id,purchase_number').eq('supplier_id',supplierId);
+     if(duplicate.error)throw duplicate.error;
+     if((duplicate.data||[]).some(p=>String(p.purchase_number||'').trim().toLowerCase()===ref.toLowerCase()))throw new Error('Ya existe una compra con este proveedor y referencia');
      const rows=[...form.querySelectorAll('.pciLine')].map(r=>({
        item_id:r.querySelector('.pciItem').value,
        ordered_quantity:Math.max(0,Math.round(N(r.querySelector('.pciQty').value))),

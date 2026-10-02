@@ -326,4 +326,5 @@
   setTimeout(injectButtons,500);
 
   window.recepcionarCompraCompleta=recepcionarCompraCompleta;
+  window.aihxoGuessInvoiceItem=guessInvoiceItem;
 })();

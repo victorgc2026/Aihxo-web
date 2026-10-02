@@ -342,3 +342,8 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted
     min-height: 44px;
   }
 }
+
+/* Conditional fields must remain hidden even when .field sets display:flex. */
+[hidden] { display: none !important; }
+.order-line, .print-zone { min-width: 0; }
+.print-zone { border-bottom: 1px solid #e4e7ec; padding-bottom: 12px; }

@@ -55,21 +55,5 @@
   const observer=new MutationObserver(()=>injectIntoDrawer());
   observer.observe(document.documentElement,{childList:true,subtree:true});
 
-  const originalFrom=supabaseClient.from.bind(supabaseClient);
-  supabaseClient.from=function(table){
-    const builder=originalFrom(table);
-    if(table==='orders'&&builder&&typeof builder.insert==='function'&&!builder.__aihxoAIWrapped){
-      const originalInsert=builder.insert.bind(builder);
-      builder.insert=function(values,options){
-        if(pendingRule){
-          const add=v=>({...v,...pendingRule});
-          values=Array.isArray(values)?values.map(add):add(values||{});
-          pendingRule=null;
-        }
-        return originalInsert(values,options);
-      };
-      builder.__aihxoAIWrapped=true;
-    }
-    return builder;
-  };
+  // The order RPC receives these choices explicitly; never intercept all inserts.
 })();

@@ -64,7 +64,7 @@
     c.innerHTML='<div class="page"><div class="card">Cargando Drive…</div></div>';
     let assets=[]; let status={connected:false,email:null};
     try{ [assets,status]=await Promise.all([loadAssets(),driveStatus()]); }
-    catch(e){ console.error(e); }
+    catch(e){ console.error(e);c.innerHTML='<div class="card">No se pudieron cargar los datos de Drive. <button id="driveRetry" class="secondary">Reintentar</button></div>';c.querySelector('#driveRetry').onclick=()=>window.driveDisenosView(c);return; }
 
     c.innerHTML=`
       <div class="page">
@@ -118,7 +118,7 @@
                   <option value="front">Delantera</option>
                   <option value="back">Trasera</option>
                   <option value="left_chest">Pecho izquierdo</option>
-                  <option value="right_chest">Pecho derecho</option>
+                  <option value="right_chest">Pecho derecho</option><option value="left_sleeve">Manga izquierda</option><option value="right_sleeve">Manga derecha</option><option value="neck">Cuello</option><option value="shoulder">Hombro</option><option value="side">Lateral</option><option value="hem">Bajo</option>
                 </select>
               </div>
             </div>
@@ -126,7 +126,7 @@
               <div class="field"><label>Talla</label><input name="shirt_size" placeholder="Ej. M / 7-8"></div>
               <div class="field"><label>Pedido</label>
                 <select name="order_id"><option value="">Sin pedido</option>
-                  ${(window.orders||[]).map(o=>`<option value="${o.id}">${esc(o.order_number)} · ${esc(o.customer_name)}</option>`).join('')}
+                  ${(orders||[]).map(o=>`<option value="${o.id}">${esc(o.order_number)} · ${esc(o.customer_name)}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -155,7 +155,7 @@
                   <option value="front">Delantera</option>
                   <option value="back">Trasera</option>
                   <option value="left_chest">Pecho izquierdo</option>
-                  <option value="right_chest">Pecho derecho</option>
+                  <option value="right_chest">Pecho derecho</option><option value="left_sleeve">Manga izquierda</option><option value="right_sleeve">Manga derecha</option><option value="neck">Cuello</option><option value="shoulder">Hombro</option><option value="side">Lateral</option><option value="hem">Bajo</option>
                 </select>
               </div>
             </div>
@@ -163,7 +163,7 @@
               <div class="field"><label>Talla</label><input name="shirt_size" placeholder="Ej. M / 7-8"></div>
               <div class="field"><label>Pedido</label>
                 <select name="order_id"><option value="">Sin pedido</option>
-                  ${(window.orders||[]).map(o=>`<option value="${o.id}">${esc(o.order_number)} · ${esc(o.customer_name)}</option>`).join('')}
+                  ${(orders||[]).map(o=>`<option value="${o.id}">${esc(o.order_number)} · ${esc(o.customer_name)}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -177,9 +177,9 @@
 
         <div class="card">
           <div class="section"><div><h3 style="margin:0">Archivos registrados</h3><div class="muted">${assets.length} archivo${assets.length===1?'':'s'}</div></div></div>
-          <div id="driveAssetsList">
+          <input id="driveAssetSearch" type="search" placeholder="Buscar archivo, talla o pedido"><select id="driveAssetFolder"><option value="">Todas las carpetas</option>${FOLDERS.map(f=>`<option value="${f.key}">${esc(f.title)}</option>`).join('')}</select><div id="driveAssetsList">
             ${assets.length ? assets.map(a=>`
-              <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid #edf0f4">
+              <div data-asset-folder="${esc(a.folder_kind)}" data-asset-search="${esc([a.file_name,a.shirt_size,(orders||[]).find(o=>o.id===a.order_id)?.order_number,(orders||[]).find(o=>o.id===a.order_id)?.customer_name].join(' ').toLowerCase())}" style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid #edf0f4">
                 <div>
                   <b>${esc(a.file_name)}</b>
                   <div class="muted">${esc(a.folder_kind||'')} ${a.shirt_size?'· '+esc(a.shirt_size):''} ${a.width_cm&&a.height_cm?'· '+a.width_cm+'×'+a.height_cm+' cm':''}</div>
@@ -192,6 +192,8 @@
         </div>
       </div>`;
 
+    const filterAssets=()=>{const q=document.getElementById('driveAssetSearch').value.toLowerCase(),folder=document.getElementById('driveAssetFolder').value;document.querySelectorAll('#driveAssetsList [data-asset-search]').forEach(el=>el.style.display=(!folder||el.dataset.assetFolder===folder)&&el.dataset.assetSearch.includes(q)?'grid':'none')};
+    document.getElementById('driveAssetSearch').oninput=filterAssets;document.getElementById('driveAssetFolder').onchange=filterAssets;
     const connect=document.getElementById('driveConnectBtn');
     if(connect) connect.onclick=async()=>{try{connect.disabled=true;connect.textContent='Abriendo Google…';await startDriveOAuth()}catch(e){console.error(e);toast(e.message||'No se pudo abrir Google');connect.disabled=false;connect.textContent='Conectar Google Drive'}};
 

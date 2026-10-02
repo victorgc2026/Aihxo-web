@@ -45,8 +45,8 @@
 
       const demandByStock=new Map();
       current.forEach(o=>{
-        if(!o.base_stock_item_id)return;
-        demandByStock.set(o.base_stock_item_id,(demandByStock.get(o.base_stock_item_id)||0)+Math.max(1,Number(o.base_stock_quantity||o.quantity||1)));
+        const ls=(o.order_lines||[]).length?o.order_lines:[{item_id:o.base_stock_item_id,allocated:o.base_stock_allocated,quantity:o.base_stock_quantity||o.quantity}];
+        ls.filter(l=>l.item_id&&!l.allocated).forEach(l=>demandByStock.set(l.item_id,(demandByStock.get(l.item_id)||0)+Number(l.quantity||1)));
       });
       const prioritized=low.map(x=>{
         const qty=Number(x.quantity||0),min=Number(x.min_stock??3),demand=demandByStock.get(x.id)||0;

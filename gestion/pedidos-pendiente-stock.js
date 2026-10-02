@@ -1,179 +1,78 @@
-/* AIHXO · Pedidos con prenda pendiente de llegada */
+/* AIHXO · Alta de pedidos: varias prendas y reserva atómica */
 (function(){
-  const escPS=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-  const nPS=v=>Number(v||0);
-  const byId=(list,id)=>(list||[]).find(x=>String(x.id)===String(id));
-
-  async function subirImagenPedido(orderId,file,side){
-    if(!(file instanceof File)||!file.size)return null;
-    const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
-    const path=`${orderId}/${side}-${Date.now()}.${ext}`;
-    const {error}=await supabaseClient.storage.from('order-designs').upload(path,file,{contentType:file.type,upsert:false});
-    if(error)throw error;
-    return path;
+ const E=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ const N=v=>Number(v||0),norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ const zones=['Pecho izquierdo','Pecho derecho','Delantera','Espalda','Manga izquierda','Manga derecha','Cuello','Hombro izquierdo','Hombro derecho','Lateral','Bajo'];
+ const label=i=>`${i.supplier_model||i.model||'Prenda'} · ${i.color||''} · ${i.size||''}${i.model?'':` · Disponible ${N(i.quantity)}`}`;
+ window.orderForm=async function(){
+  let items;
+  try{items=await window.aihxoPurchaseStockOptions();}catch(e){toast('No se pudieron cargar las prendas: '+e.message);return}
+  const body=$('#drawerBody');$('#drawer').classList.remove('hidden');
+  body.innerHTML=`<h2>Nuevo pedido AIHXO</h2><form id="of" class="form">
+   <fieldset id="orderFields" style="border:0;padding:0;margin:0;min-width:0">
+   <div class="field"><label>Tipo de pedido</label><select id="orderType"><option value="personalizado">✏️ Personalizado</option><option value="diseno_aihxo">🎨 Diseño AIHXO</option><option value="catalogo">📦 Producto catálogo</option></select></div>
+   <div class="field"><label>Buscar cliente existente</label><input id="customerSearch" type="search" placeholder="Nombre, teléfono o correo"><select id="customerSelect"><option value="">＋ Cliente nuevo</option></select></div>
+   <div class="formgrid"><div class="field"><label>Cliente</label><input id="orderCustomer" required></div><div class="field"><label>Contacto</label><input id="orderContact" placeholder="Teléfono / WhatsApp"></div></div>
+   <div id="customProduct" class="card">✏️ Producto personalizado</div>
+   <div id="orderLines" style="display:grid;gap:12px"></div><button type="button" id="addOrderLine" class="secondary">＋ Añadir otra talla o prenda</button>
+   <details id="quickGarment" class="card" style="margin-top:12px"><summary>＋ Nueva prenda base / variante</summary><div class="muted">Se crea con stock 0. Registra la entrada en Compras o Stock cuando tengas la prenda.</div>
+    <div class="formgrid">${[['Brand','Marca'],['Model','Modelo'],['Size','Talla'],['Color','Color']].map(([k,t])=>`<div class="field"><label>${t}</label><input id="quick${k}"></div>`).join('')}<div class="field"><label>Coste unitario €</label><input id="quickCost" type="number" min="0" step=".01" value="0"></div></div><button id="saveQuickGarment" type="button" class="secondary">Crear y seleccionar</button><div id="quickGarmentStatus" role="status"></div></details>
+   <div class="field"><label>Diseño e instrucciones</label><textarea id="orderDesign" rows="3" placeholder="Nombre, texto, colores e instrucciones del cliente"></textarea></div>
+   <div class="card"><h3>Zonas y archivos de impresión</h3><div id="printZones" style="display:grid;gap:12px"></div><button id="addPrintZone" type="button" class="secondary">＋ Añadir zona</button><div class="muted">Medidas en cm. Archivos PNG, JPG o WEBP, máximo 20 MB por zona.</div></div>
+   <div class="card"><h3>Costes estimados del pedido completo</h3><div class="muted">Introduce los importes totales, no por camiseta. Si falta un coste, el margen será provisional.</div><div class="formgrid">${[['dtf','DTF'],['packaging','Embalaje'],['transport','Transporte proveedor'],['extras','Otros costes']].map(([k,t])=>`<div class="field"><label>${t} €</label><input id="estimate_${k}" type="number" min="0" step=".01" placeholder="Sin completar"></div>`).join('')}</div></div>
+   <div class="field"><label>Envío cobrado al cliente €</label><input id="oshipping" type="number" min="0" step=".01" value="0" required></div>
+   </fieldset><div id="orderSummary" class="card"></div><div id="orderSaveStatus" role="status" style="margin:12px 0"></div><button id="saveOrder" class="primary" type="submit">Guardar pedido</button></form>`;
+  const form=$('#of'),type=$('#orderType');let busy=false,saved=null,requestId=crypto.randomUUID();
+  function customerOptions(){const q=norm($('#customerSearch').value),selected=$('#customerSelect').value;$('#customerSelect').innerHTML='<option value="">＋ Cliente nuevo</option>'+customers.filter(c=>c.id===selected||norm(`${c.name} ${c.surname||''} ${c.contact||''} ${c.phone||''} ${c.email||''}`).includes(q)).map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${E(c.name)} ${E(c.surname||'')} · ${E(c.contact||c.phone||c.email||'')}</option>`).join('')}
+  customerOptions();$('#customerSearch').oninput=customerOptions;
+  $('#customerSelect').onchange=()=>{const c=customers.find(x=>x.id===$('#customerSelect').value);$('#orderCustomer').value=c?`${c.name}`:'';$('#orderCustomer').readOnly=!!c;$('#orderContact').value=c?.contact||c?.phone||c?.email||''};
+  const eligibleProducts=()=>products.filter(p=>type.value==='diseno_aihxo'?norm(p.category).includes('diseno propio'):!norm(p.category).includes('diseno propio'));
+  function fillLine(row){
+   const q=norm(row.querySelector('.lineSearch').value),sel=row.querySelector('.lineItem'),current=sel.value,list=type.value==='catalogo'?eligibleProducts():items;
+   sel.innerHTML='<option value="">Selecciona prenda / variante</option>'+list.filter(i=>i.id===current||q.split(/\s+/).every(w=>norm(label(i)).includes(w))).map(i=>`<option value="${E(i.id)}" ${i.id===current?'selected':''}>${E(label(i))}</option>`).join('');
+   row.querySelector('.lineProductField').hidden=type.value!=='diseno_aihxo';
+   row.querySelector('.lineProduct').required=type.value==='diseno_aihxo';
+   row.querySelector('.lineProduct').innerHTML='<option value="">Selecciona diseño AIHXO</option>'+eligibleProducts().map(p=>`<option value="${p.id}">${E(p.model)}</option>`).join('');
   }
-
-  function siguienteNumeroPedido(){
-    const max=(orders||[]).reduce((m,o)=>{
-      const x=Number(String(o.order_number||'').match(/(\d+)$/)?.[1]||0);
-      return Math.max(m,x);
-    },0);
-    return 'AIHXO-'+String(max+1).padStart(4,'0');
+  function addLine(){const row=document.createElement('div');row.className='card order-line';row.innerHTML=`<div class="field"><label>Buscar prenda, talla o color</label><input class="lineSearch" type="search"><select class="lineItem" required></select></div><div class="field lineProductField"><label>Diseño AIHXO</label><select class="lineProduct"></select></div><div class="formgrid"><div class="field"><label>Unidades</label><input class="lineQty" type="number" min="1" step="1" value="1" required></div><div class="field"><label>Precio por unidad €</label><input class="linePrice" type="number" min="0" step=".01" required></div></div><button type="button" class="secondary removeLine">Quitar línea</button>`;$('#orderLines').appendChild(row);fillLine(row);
+   row.querySelector('.lineSearch').oninput=()=>{const product=row.querySelector('.lineProduct').value;fillLine(row);row.querySelector('.lineProduct').value=product};
+   const price=()=>{if(type.value!=='personalizado'){const id=type.value==='catalogo'?row.querySelector('.lineItem').value:row.querySelector('.lineProduct').value;row.querySelector('.linePrice').value=N(products.find(p=>p.id===id)?.sale_price)}summary()};
+   row.querySelector('.lineItem').onchange=price;row.querySelector('.lineProduct').onchange=price;
+   row.querySelector('.removeLine').onclick=()=>{if($('#orderLines').children.length===1)return toast('Debe quedar al menos una prenda');row.remove();summary()};summary();
   }
-
-  window.orderForm=async function(){
-    const ownDesignProducts=(products||[]).filter(p=>
-      String(p.category||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes('diseno propio')
-    );
-    const catalogProducts=(products||[]).filter(p=>
-      !String(p.category||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes('diseno propio')
-    );
-
-    const {data:baseStockItems,error:baseStockError}=await supabaseClient
-      .from('base_stock_items').select('*').order('garment_type').order('supplier_model').order('color').order('size');
-    if(baseStockError){console.error(baseStockError);toast('No se pudo cargar el stock de camisetas');return}
-
-    const drawer=document.getElementById('drawer'),body=document.getElementById('drawerBody');
-    if(!drawer||!body)return;
-    drawer.classList.remove('hidden');
-    body.innerHTML=`
-      <h2>Nuevo pedido AIHXO</h2>
-      <form class="form" id="of">
-        <div class="field"><label>Tipo de pedido</label><select name="order_type" id="orderType"><option value="personalizado">✏️ Personalizado</option><option value="diseno_aihxo">🎨 Diseño AIHXO</option><option value="catalogo">📦 Producto catálogo</option></select><div id="tipoPedidoAyuda" class="muted" style="margin-top:6px;margin-bottom:16px">Personalización creada a medida para el cliente.</div></div>
-        <div class="formgrid"><div class="field"><label>Cliente</label><input name="customer" required></div><div class="field"><label>Contacto</label><input name="contact" placeholder="Teléfono / WhatsApp"></div></div>
-        <div class="field" id="productoPedidoField">
-          <label>Producto</label>
-
-          <div id="productoPersonalizado" style="padding:12px 14px;border:1px solid #d0d5dd;border-radius:12px;background:#f8fafc;font-weight:800">
-            ✏️ Producto personalizado
-          </div>
-
-          <select name="sku" id="osku" style="display:none">
-            <option value="">— Selecciona producto —</option>
-            ${catalogProducts.map(p=>`<option value="${p.id}">${escPS(p.model)}${p.size?` · ${escPS(p.size)}`:''}${p.color?` · ${escPS(p.color)}`:''}</option>`).join('')}
-          </select>
-
-          <select name="producto_diseno_aihxo" id="oproductoDisenoAihxo" style="display:none">
-            <option value="">— Selecciona diseño AIHXO —</option>
-            ${ownDesignProducts.map(p=>`<option value="${p.id}">${escPS(p.model)}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field" id="baseStockPedidoField"><label>👕 Camiseta base necesaria</label><select name="base_stock_item_id" id="obaseStock"><option value="">— Sin prenda vinculada —</option>${(baseStockItems||[]).map(item=>{const q=nPS(item.quantity);return `<option value="${item.id}">${q<=0?'🚚 SIN STOCK · ':''}${escPS(item.supplier_model||item.supplier||item.garment_type||'Camiseta')} · ${escPS(item.color||'')} · ${escPS(item.size||'')} · Stock ${q}</option>`}).join('')}</select><div class="muted" style="margin-top:6px">Puedes seleccionar una talla/color aunque esté a 0. El pedido quedará en <b>Pendiente llegada</b> y se asignará automáticamente al recibir stock.</div></div>
-        <div id="personalizacionPedido"><div class="field"><label>Personalización</label><select name="personalization" id="opersonalization"><option value="1">1 impresión</option><option value="2">2 impresiones</option></select></div><div class="formgrid"><div class="field"><label>Ubicación impresión 1</label><input name="position1" placeholder="Ej. Pecho, espalda..."></div><div class="field" id="position2Field" style="display:none"><label>Ubicación impresión 2</label><input name="position2" placeholder="Ej. Espalda, manga..."></div></div></div>
-        <div class="field" id="designPedidoField"><label>Diseño</label><input name="design" id="designLibre" placeholder="Nombre o descripción del diseño"></div>
-        <div class="card" id="imagenesDisenoPedido" style="padding:16px;margin-bottom:16px"><h3 style="margin-top:0">Imágenes del diseño</h3><div class="formgrid"><div class="field"><label>Diseño delantero</label><input type="file" name="design_front" accept="image/png,image/jpeg,image/webp"><div class="muted" style="margin-top:6px">PNG, JPG o WEBP</div></div><div class="field"><label>Diseño trasero</label><input type="file" name="design_back" accept="image/png,image/jpeg,image/webp"><div class="muted" style="margin-top:6px">PNG, JPG o WEBP</div></div></div></div>
-        <div class="field"><label>Notas del cliente</label><textarea name="notes" rows="3" placeholder="Colores, texto, instrucciones especiales..."></textarea></div>
-        <div class="formgrid"><div class="field"><label>Cantidad</label><input name="qty" id="oqty" type="number" min="1" value="1"></div><div class="field"><label>Precio unitario</label><input name="price" id="oprice" type="number" step=".01"></div></div>
-        <div class="field"><label>Envío cobrado</label><input name="shipping" id="oshipping" type="number" step=".01" value="0"></div>
-        <div id="orderSummary" class="card" style="margin:16px 0;padding:16px"></div>
-        <button class="primary">Guardar pedido</button>
-      </form>`;
-
-    const pSel=document.getElementById('osku'),typeSel=document.getElementById('orderType'),baseSel=document.getElementById('obaseStock');
-    const updateSummary=()=>{
-      const tipo=typeSel.value,p=tipo==='catalogo'?byId(catalogProducts,pSel.value):null,qty=nPS(document.getElementById('oqty').value)||1,price=nPS(document.getElementById('oprice').value),shipping=nPS(document.getElementById('oshipping').value),base=byId(baseStockItems,baseSel.value),total=qty*price+shipping;
-      const coste=tipo==='catalogo'?(p?qty*cost(p):0):qty*nPS(base?.unit_cost);
-      const waiting=base&&nPS(base.quantity)<qty&&tipo!=='catalogo';
-      document.getElementById('orderSummary').innerHTML=`<div class="row"><span>Total cliente</span><b>${money(total)}</b></div><div class="row" style="margin-top:8px"><span>Coste estimado</span><b>${money(coste)}</b></div><div class="row" style="margin-top:8px"><span>Beneficio estimado</span><b>${money(total-coste)}</b></div>${waiting?'<div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:#fff4e5;color:#8a4b08;font-weight:800">🚚 Prenda sin stock: el pedido quedará Pendiente llegada.</div>':''}`;
-    };
-    const updatePrice=()=>{
-      const tipo=typeSel.value;
-      let precio=nPS(document.getElementById('oprice').value);
-
-      if(tipo==='catalogo'){
-        const p=byId(catalogProducts,pSel.value);
-        precio=nPS(p?.sale_price);
-      }else if(tipo==='diseno_aihxo'){
-        const d=byId(ownDesignProducts,document.getElementById('oproductoDisenoAihxo').value);
-        precio=nPS(d?.sale_price);
-      }else if(tipo==='personalizado' && !Number.isFinite(precio)){
-        precio=0;
-      }
-
-      if(tipo!=='personalizado') document.getElementById('oprice').value=precio||0;
-      document.getElementById('position2Field').style.display=document.getElementById('opersonalization').value==='2'&&tipo==='personalizado'?'block':'none';
-      updateSummary();
-    };
-    const updateType=()=>{
-      const tipo=typeSel.value,
-        personal=document.getElementById('personalizacionPedido'),
-        design=document.getElementById('designPedidoField'),
-        img=document.getElementById('imagenesDisenoPedido'),
-        prod=document.getElementById('osku'),
-        dsg=document.getElementById('oproductoDisenoAihxo'),
-        custom=document.getElementById('productoPersonalizado'),
-        baseField=document.getElementById('baseStockPedidoField'),
-        help=document.getElementById('tipoPedidoAyuda');
-
-      if(tipo==='personalizado'){
-        help.textContent='Encargo personalizado del cliente. El producto se registra como Producto personalizado y se trabaja sobre la prenda base elegida.';
-        personal.style.display='block';
-        design.style.display='block';
-        img.style.display='block';
-        custom.style.display='block';
-        prod.style.display='none';
-        dsg.style.display='none';
-        baseField.style.display='block';
-        prod.value='';
-        dsg.value='';
-      }else if(tipo==='diseno_aihxo'){
-        help.textContent='Pedido de un diseño propio de AIHXO.';
-        personal.style.display='none';
-        design.style.display='none';
-        img.style.display='none';
-        custom.style.display='none';
-        prod.style.display='none';
-        dsg.style.display='block';
-        baseField.style.display='block';
-        prod.value='';
-        if(!dsg.value && ownDesignProducts[0]) dsg.value=ownDesignProducts[0].id;
-      }else{
-        help.textContent='Venta directa de un producto del catálogo.';
-        personal.style.display='none';
-        design.style.display='none';
-        img.style.display='none';
-        custom.style.display='none';
-        prod.style.display='block';
-        dsg.style.display='none';
-        baseField.style.display='none';
-        dsg.value='';
-        baseSel.value='';
-        if(!prod.value && catalogProducts[0]) prod.value=catalogProducts[0].id;
-      }
-
-      updatePrice();
-      updateSummary();
-    };
-    pSel.onchange=updatePrice;document.getElementById('oproductoDisenoAihxo').onchange=updatePrice;typeSel.onchange=updateType;baseSel.onchange=updateSummary;document.getElementById('opersonalization').onchange=updatePrice;document.getElementById('oqty').oninput=updateSummary;document.getElementById('oprice').oninput=updateSummary;document.getElementById('oshipping').oninput=updateSummary;
-
-    document.getElementById('of').onsubmit=async function(e){
-      e.preventDefault();const f=new FormData(e.target),tipoPedido=String(f.get('order_type')),qty=Math.max(1,nPS(f.get('qty'))),baseStockId=String(f.get('base_stock_item_id')||''),base=byId(baseStockItems,baseStockId),p=tipoPedido==='catalogo'?byId(catalogProducts,f.get('sku')):null,disenoSeleccionado=tipoPedido==='diseno_aihxo'?byId(ownDesignProducts,f.get('producto_diseno_aihxo')):null;
-      if(tipoPedido==='catalogo'&&!p){toast('Producto no válido');return}
-      if(tipoPedido==='diseno_aihxo'&&!disenoSeleccionado){toast('Selecciona un diseño AIHXO');return}
-      if(tipoPedido==='catalogo'&&nPS(p.stock)<qty){toast('Stock insuficiente del producto');return}
-      if((tipoPedido==='personalizado'||tipoPedido==='diseno_aihxo')&&!base){toast('Selecciona la camiseta base necesaria, aunque esté sin stock');return}
-
-      const hasBase=!!base,allocated=hasBase&&nPS(base.quantity)>=qty,waiting=hasBase&&!allocated&&(tipoPedido==='personalizado'||tipoPedido==='diseno_aihxo');
-      if(tipoPedido==='catalogo'&&hasBase&&!allocated){toast('Stock insuficiente de camiseta base');return}
-
-      let customer=(customers||[]).find(x=>String(x.name||'').trim().toLowerCase()===String(f.get('customer')||'').trim().toLowerCase());
-      if(!customer){const cr=await supabaseClient.from('customers').insert({name:String(f.get('customer')||'').trim(),contact:f.get('contact')}).select().single();if(cr.error){toast(cr.error.message);return}customer=cr.data}
-
-      const personalization=String(f.get('personalization')||''),nombreDiseno=tipoPedido==='diseno_aihxo'?disenoSeleccionado.model:tipoPedido==='personalizado'?String(f.get('design')||'').trim():'',detalle=[nombreDiseno?`Diseño: ${nombreDiseno}`:'',tipoPedido==='personalizado'?`Personalización: ${personalization} impresión${personalization==='2'?'es':''}`:'',tipoPedido==='personalizado'&&f.get('position1')?`Ubicación 1: ${f.get('position1')}`:'',tipoPedido==='personalizado'&&personalization==='2'&&f.get('position2')?`Ubicación 2: ${f.get('position2')}`:'',f.get('notes')?`Notas: ${f.get('notes')}`:''].filter(Boolean).join(' | '),price=nPS(f.get('price')),shipping=nPS(f.get('shipping')),now=new Date().toISOString(),orderNumber=siguienteNumeroPedido();
-      const order={order_number:orderNumber,order_type:tipoPedido,customer_id:customer.id,customer_name:customer.name,contact:f.get('contact'),product_id:tipoPedido==='catalogo'?p.id:tipoPedido==='diseno_aihxo'?disenoSeleccionado.id:null,product_name:tipoPedido==='personalizado'?'Producto personalizado':tipoPedido==='diseno_aihxo'?disenoSeleccionado.model:p.model,size:base?.size||p?.size||null,color:base?.color||p?.color||null,design:detalle,quantity:qty,unit_price:price,shipping,total:qty*price+shipping,product_cost:tipoPedido==='catalogo'?qty*cost(p):qty*nPS(base?.unit_cost),status:'Pendiente',production_status:waiting?'Pendiente llegada':'Pendiente',base_stock_item_id:hasBase?base.id:null,base_stock_quantity:hasBase?qty:0,base_stock_allocated:allocated,base_stock_waiting_since:waiting?now:null,base_stock_allocated_at:allocated?now:null};
-      if(tipoPedido==='personalizado'){order.design_status='Pendiente';order.design_approval_status='Pendiente cliente'}
-
-      const r=await supabaseClient.from('orders').insert(order).select().single();if(r.error){console.error(r.error);toast(r.error.message);return}const orderId=r.data.id;
-      try{const front=await subirImagenPedido(orderId,f.get('design_front'),'front'),back=await subirImagenPedido(orderId,f.get('design_back'),'back');if(front||back){const patch={};if(front)patch.design_front_path=front;if(back)patch.design_back_path=back;const ur=await supabaseClient.from('orders').update(patch).eq('id',orderId);if(ur.error)throw ur.error}}catch(err){console.error(err);toast('El pedido se guardó, pero hubo un problema con las imágenes')}
-
-      if(tipoPedido==='catalogo'&&p){const pr=await supabaseClient.from('products').update({stock:nPS(p.stock)-qty}).eq('id',p.id);if(pr.error)console.error(pr.error)}
-      if(allocated&&base){const prev=nPS(base.quantity),next=prev-qty,bu=await supabaseClient.from('base_stock_items').update({quantity:next}).eq('id',base.id);if(bu.error){console.error(bu.error);toast('Pedido creado, pero hubo un error al reservar la camiseta');return}const mv=await supabaseClient.from('base_stock_movements').insert({item_id:base.id,movement_type:'salida',quantity_delta:-qty,previous_quantity:prev,new_quantity:next,reason:`Reserva pedido ${orderNumber}`});if(mv.error)console.error(mv.error)}
-
-      closeDrawer();await loadAll();setView('orders');toast(waiting?`Pedido ${orderNumber} · pendiente llegada de prenda`:`Pedido ${orderNumber} guardado`);
-    };
-    updateType();
+  const readLines=()=>[...form.querySelectorAll('.order-line')].map(row=>({item_id:type.value==='catalogo'?null:row.querySelector('.lineItem').value,product_id:type.value==='catalogo'?row.querySelector('.lineItem').value:type.value==='diseno_aihxo'?row.querySelector('.lineProduct').value:null,quantity:N(row.querySelector('.lineQty').value),unit_price:N(row.querySelector('.linePrice').value)}));
+  function summary(){const lines=readLines(),sale=lines.reduce((a,l)=>a+l.quantity*l.unit_price,0)+N($('#oshipping').value);let base=0;for(const l of lines){const p=products.find(p=>p.id===l.product_id),i=items.find(i=>i.id===l.item_id);base+=l.quantity*(type.value==='catalogo'?(p?cost(p):0):N(i?.unit_cost))}const extras=['dtf','packaging','transport','extras'].reduce((a,k)=>a+N($('#estimate_'+k).value),0);$('#orderSummary').innerHTML=`<div>Total cliente: <b>${money(sale)}</b></div><div>Costes estimados: <b>${money(base+extras)}</b></div><div>Margen provisional: <b>${money(sale-base-extras)}</b></div><div class="muted">${lines.reduce((a,l)=>a+l.quantity,0)} prendas · Comprueba los costes antes de considerar este margen definitivo.</div>`}
+  function addZone(){const row=document.createElement('div');row.className='print-zone';row.innerHTML=`<div class="field"><label>Zona</label><select class="zoneName">${zones.map(z=>`<option>${z}</option>`).join('')}</select></div><div class="formgrid"><div class="field"><label>Ancho cm</label><input class="zoneWidth" type="number" min="0.1" step=".1"></div><div class="field"><label>Alto cm</label><input class="zoneHeight" type="number" min="0.1" step=".1"></div></div><input class="zoneFile" type="file" accept="image/png,image/jpeg,image/webp"><button type="button" class="secondary removeZone">Quitar zona</button>`;$('#printZones').appendChild(row);row.querySelector('.removeZone').onclick=()=>row.remove()}
+  $('#addOrderLine').onclick=addLine;$('#addPrintZone').onclick=addZone;form.addEventListener('input',summary);
+  type.onchange=()=>{$('#customProduct').hidden=type.value!=='personalizado';$('#quickGarment').hidden=type.value==='catalogo';$('#orderLines').innerHTML='';addLine()};
+  $('#saveQuickGarment').onclick=async()=>{const btn=$('#saveQuickGarment');btn.disabled=true;try{const {data,error}=await supabaseClient.rpc('quick_order_garment',{p_manufacturer:$('#quickBrand').value,p_model:$('#quickModel').value,p_size:$('#quickSize').value,p_color:$('#quickColor').value,p_cost:N($('#quickCost').value)});if(error)throw error;items=await window.aihxoPurchaseStockOptions();const row=$('#orderLines').lastElementChild;row.querySelector('.lineSearch').value='';const product=row.querySelector('.lineProduct').value;fillLine(row);row.querySelector('.lineProduct').value=product;row.querySelector('.lineItem').value=data.id;$('#quickGarmentStatus').textContent='Prenda seleccionada. Registra sus existencias cuando corresponda.';summary()}catch(e){$('#quickGarmentStatus').textContent=e.message}finally{btn.disabled=false}};
+  addLine();addZone();
+  form.onsubmit=async e=>{e.preventDefault();if(busy)return;busy=true;const btn=$('#saveOrder'),status=$('#orderSaveStatus');btn.disabled=true;btn.textContent='Guardando…';status.textContent='';
+   try{
+    const zoneRows=[...form.querySelectorAll('.print-zone')];
+    for(const row of zoneRows){const file=row.querySelector('.zoneFile').files[0];if(file&&(file.size>20*1024*1024||!['image/png','image/jpeg','image/webp'].includes(file.type)))throw new Error('Cada archivo debe ser PNG, JPG o WEBP de hasta 20 MB')}
+    if(!saved){
+     const lines=readLines();
+     for(const l of lines){if(l.item_id?.startsWith('new|')){const item=items.find(i=>i.id===l.item_id);const {data,error}=await supabaseClient.rpc('quick_order_garment',{p_manufacturer:item.supplier,p_model:item.supplier_model,p_size:item.size,p_color:item.color,p_cost:N(item.unit_cost)});if(error)throw error;l.item_id=data.id}}
+     const source=$('#aihxoNewOrderAISource')?.value||'aihxo';
+     const estimates=Object.fromEntries(['dtf','packaging','transport','extras'].filter(k=>$('#estimate_'+k).value!=='').map(k=>[k,N($('#estimate_'+k).value)]));
+     const printZones=zoneRows.map(row=>({zone:row.querySelector('.zoneName').value,width_cm:N(row.querySelector('.zoneWidth').value)||null,height_cm:N(row.querySelector('.zoneHeight').value)||null}));
+     const {data,error}=await supabaseClient.rpc('create_order_atomic',{p_request_id:requestId,p_order:{order_type:type.value,customer_id:$('#customerSelect').value||null,customer_name:$('#orderCustomer').value,contact:$('#orderContact').value,design:$('#orderDesign').value,shipping:N($('#oshipping').value),estimated_costs:estimates,print_zones:printZones,design_source:source},p_lines:lines});if(error)throw error;saved=data;$('#orderFields').disabled=true;
+    }
+    const printZones=saved.print_zones||[],patch={};
+    for(let i=0;i<zoneRows.length;i++){
+     const file=zoneRows[i].querySelector('.zoneFile').files[0];if(!file||printZones[i]?.path)continue;
+     const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg',path=`${saved.id}/zone-${i}-${requestId}.${ext}`;
+     const up=await supabaseClient.storage.from('order-designs').upload(path,file,{contentType:file.type,upsert:true});if(up.error)throw up.error;
+     printZones[i]={...printZones[i],path,file_name:file.name};
+     if(printZones[i].zone==='Delantera'||printZones[i].zone==='Pecho izquierdo')patch.design_front_path=path;
+     if(printZones[i].zone==='Espalda')patch.design_back_path=path;
+    }
+    for(const z of printZones){if(z.path&&['Delantera','Pecho izquierdo'].includes(z.zone))patch.design_front_path=z.path;if(z.path&&z.zone==='Espalda')patch.design_back_path=z.path;}
+    const up=await supabaseClient.from('orders').update({...patch,print_zones:printZones}).eq('id',saved.id);if(up.error)throw up.error;
+    closeDrawer();await loadAll();setView('orders');toast(`Pedido ${saved.order_number} guardado${saved.base_stock_allocated?'':' · pendiente de prendas'}`);
+   }catch(err){status.textContent=saved?`Pedido ${saved.order_number} guardado. Falta completar los archivos: ${err.message}. Puedes reintentarlo sin crear otro pedido.`:err.message;btn.textContent=saved?'Reintentar archivos':'Reintentar guardado';}
+   finally{busy=false;btn.disabled=false;}
   };
-
-  function bindQuick(){const b=document.getElementById('quickOrder');if(b)b.onclick=()=>window.orderForm()}
-  new MutationObserver(bindQuick).observe(document.documentElement,{childList:true,subtree:true});setTimeout(bindQuick,0);
+ };
 })();

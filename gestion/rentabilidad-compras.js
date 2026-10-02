@@ -53,7 +53,7 @@
 
  async function stockOptions(){
   const [stockRes,garmentsRes]=await Promise.all([
-   supabaseClient.from('base_stock_items').select('id,garment_id,garment_type,supplier,supplier_model,audience,size,color,unit_cost').order('supplier_model').order('color').order('size'),
+   supabaseClient.from('base_stock_items').select('id,garment_id,garment_type,supplier,supplier_model,audience,size,color,unit_cost,quantity').order('supplier_model').order('color').order('size'),
    supabaseClient.from('garments').select('id,manufacturer,model,garment_type,audience,sizes,colors,active').eq('active',true).order('manufacturer').order('model')
   ]);
   if(stockRes.error) throw stockRes.error;
