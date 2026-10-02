@@ -6,5 +6,18 @@
   "background_color": "#07152f",
   "theme_color": "#07152f",
   "lang": "es",
-  "icons": []
+  "icons": [
+    {
+      "src": "../logo-aihxo.png?v=20261002",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../logo-aihxo.png?v=20261002",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }
