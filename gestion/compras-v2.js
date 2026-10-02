@@ -8,6 +8,7 @@
 
  const clean=v=>String(v??'').trim();
  const lower=v=>clean(v).toLowerCase();
+ const normKey=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
  const lineSource=l=>({
    description:clean(l?.description),
    sku:clean(l?.sku),
@@ -18,6 +19,16 @@
    color:clean(l?.color),
    size:clean(l?.size)
  });
+
+ function supplierLineKey(line){
+   const s=lineSource(line);
+   if(s.sku) return 'sku:'+normKey(s.sku);
+   if(s.reference) return 'ref:'+normKey(s.reference);
+   if(s.model_code && (s.color || s.size)) return 'model:'+normKey(s.model_code)+'|color:'+normKey(s.color)+'|size:'+normKey(s.size);
+   const base=normKey(s.description||s.model);
+   if(!base) return '';
+   return 'desc:'+base+'|color:'+normKey(s.color)+'|size:'+normKey(s.size);
+ }
 
  function matchSupplierReference(line,refs){
    const s=lineSource(line);
@@ -37,6 +48,11 @@
      );
      if(hits.length===1)return hits[0];
    }
+   const key=supplierLineKey(line);
+   if(key){
+     const hit=(refs||[]).find(r=>lower(r.provider_line_key)===lower(key));
+     if(hit)return hit;
+   }
    return null;
  }
 
@@ -44,7 +60,7 @@
    if(!supplierId)return [];
    const {data,error}=await supabaseClient
      .from('supplier_references')
-     .select('id,supplier_id,vendor_name,brand,commercial_model,provider_model_code,provider_sku,provider_reference,provider_description,provider_color,provider_size,base_stock_item_id,match_status')
+     .select('id,supplier_id,vendor_name,brand,commercial_model,provider_model_code,provider_sku,provider_reference,provider_description,provider_color,provider_size,provider_line_key,base_stock_item_id,match_status')
      .eq('supplier_id',supplierId)
      .eq('active',true);
    if(error)throw error;
@@ -54,10 +70,12 @@
  async function ensureSupplierReference({supplierId,supplierName,line,itemId,invoiceNumber,invoiceDate}){
    if(!supplierId||!itemId)return null;
    const s=lineSource(line);
+   const lineKey=supplierLineKey(line);
    let q=supabaseClient.from('supplier_references').select('*').eq('supplier_id',supplierId);
    if(s.sku) q=q.eq('provider_sku',s.sku);
    else if(s.reference) q=q.eq('provider_reference',s.reference);
    else if(s.model_code&&s.color&&s.size) q=q.eq('provider_model_code',s.model_code).eq('provider_color',s.color).eq('provider_size',s.size);
+   else if(lineKey) q=q.eq('provider_line_key',lineKey);
    else return null;
 
    const {data:existing,error:findError}=await q.maybeSingle();
@@ -94,6 +112,7 @@
      provider_description:s.description||s.model||'Referencia proveedor',
      provider_color:s.color||null,
      provider_size:s.size||null,
+     provider_line_key:lineKey||null,
      garment_id:item?.garment_id||null,
      base_stock_item_id:itemId,
      source_invoice_number:invoiceNumber||null,
@@ -137,6 +156,8 @@
            hidden.value=item.id;
            input.value=itemLabel(item);
            results.style.display='none';
+           const invoiceRow=input.closest('.pciLine');
+           if(invoiceRow) invoiceRow.dataset.skipStock='0';
            if(cost && !N(cost.value)) cost.value=N(item.unit_cost).toFixed(2);
          };
        });
@@ -336,19 +357,20 @@
    b.querySelectorAll('.pciLine').forEach((row,i)=>{
      const refMatch=refMatches[i];
      const refItem=refMatch?.base_stock_item_id ? items.find(x=>String(x.id)===String(refMatch.base_stock_item_id)) : null;
-     const guessedId=refItem?.id || window.aihxoGuessInvoiceItem?.(lines[i],items);
-     const match=items.find(x=>String(x.id)===String(guessedId));
-     if(match){
-       row.querySelector('.pciItem').value=match.id;
-       row.querySelector('.pciItemSearch').value=itemLabel(match);
+     if(refItem){
+       row.querySelector('.pciItem').value=refItem.id;
+       row.querySelector('.pciItemSearch').value=itemLabel(refItem);
      }
      row.dataset.supplierReferenceId=refMatch?.id||'';
+     row.dataset.skipStock='0';
    });
    b.querySelectorAll('.pciClear').forEach(btn=>btn.onclick=()=>{
-     const row=btn.closest('[data-item-search-row]');
-     row.querySelector('.pciItem').value='';
-     row.querySelector('.pciItemSearch').value='';
-     row.querySelector('.pciItemResults').style.display='none';
+     const field=btn.closest('[data-item-search-row]');
+     const row=btn.closest('.pciLine');
+     field.querySelector('.pciItem').value='';
+     field.querySelector('.pciItemSearch').value='';
+     field.querySelector('.pciItemResults').style.display='none';
+     if(row){ row.dataset.skipStock='1'; row.dataset.supplierReferenceId=''; }
    });
    b.querySelector('#pciChooseAgain').onclick=()=>window.importarFacturaCompra();
    b.querySelector('#pciReview').onsubmit=savePurchaseInvoice;
@@ -367,10 +389,11 @@
      if(duplicate.error)throw duplicate.error;
      if((duplicate.data||[]).some(p=>String(p.purchase_number||'').trim().toLowerCase()===ref.toLowerCase()))throw new Error('Ya existe una compra con este proveedor y referencia');
      const invoiceLines=Array.isArray(purchaseInvoiceData?.lines)?purchaseInvoiceData.lines:[];
-     const rows=[...form.querySelectorAll('.pciLine')].map((r,i)=>{
+     const drafts=[...form.querySelectorAll('.pciLine')].map((r,i)=>{
        const source=invoiceLines[i]||{};
        return {
          _line:source,
+         skip_stock:r.dataset.skipStock==='1',
          supplier_reference_id:r.dataset.supplierReferenceId||null,
          item_id:r.querySelector('.pciItem').value,
          ordered_quantity:Math.max(0,Math.round(N(r.querySelector('.pciQty').value))),
@@ -382,8 +405,13 @@
          source_color:clean(source.color)||null,
          source_size:clean(source.size)||null
        };
-     }).filter(x=>x.item_id&&x.ordered_quantity>0);
-     if(!rows.length&&!confirm('No has asociado ninguna línea a prendas de stock. ¿Guardar la compra igualmente?'))return;
+     });
+     const unresolved=drafts.filter(x=>x.ordered_quantity>0&&!x.skip_stock&&!x.item_id);
+     if(unresolved.length){
+       throw new Error('Hay '+unresolved.length+' referencia'+(unresolved.length===1?'':'s')+' nueva'+(unresolved.length===1?'':'s')+' sin asociar. Indica una prenda una sola vez o marca “No añadir a stock”.');
+     }
+     const rows=drafts.filter(x=>!x.skip_stock&&x.item_id&&x.ordered_quantity>0);
+     if(!rows.length&&!confirm('No hay ninguna línea marcada para entrar en stock. ¿Guardar la compra igualmente?'))return;
 
      const safe=(purchaseInvoiceFile.name||'factura').replace(/[^a-zA-Z0-9._-]+/g,'_');
      const path=`${new Date().getFullYear()}/${Date.now()}-${crypto.randomUUID()}-${safe}`;
@@ -404,7 +432,7 @@
          invoiceNumber:clean(purchaseInvoiceData?.invoice_number)||ref,
          invoiceDate:fd.get('purchase_date')||today()
        });
-       const {_line,...cleanRow}=row;
+       const {_line,skip_stock,...cleanRow}=row;
        resolvedRows.push({...cleanRow,item_id:itemId,supplier_reference_id:supplierReferenceId||null});
      }
 
