@@ -2755,7 +2755,137 @@ window.verDetallePedido = function(id) {
         <b>${money(beneficio)}</b>
       </div>
     </div>
+
+    <div class="card" style="padding:16px;margin-top:16px;">
+      <h3 style="margin-top:0;">Cobros</h3>
+
+      <div class="row">
+        <span>Cobrado</span>
+        <b>${money(o.amount_paid || 0)} / ${money(o.total || 0)}</b>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <span>Estado</span>
+        <b>${esc(o.payment_status || 'Pendiente')}</b>
+      </div>
+
+      <div class="formgrid" style="margin-top:14px;">
+        <div class="field">
+          <label>Importe</label>
+          <input id="paymentAmount-${o.id}" type="number" step=".01" placeholder="Ej. 20.00">
+        </div>
+        <div class="field">
+          <label>Método</label>
+          <select id="paymentMethod-${o.id}">
+            <option value="Efectivo">Efectivo</option>
+            <option value="Transferencia">Transferencia</option>
+            <option value="PayPal">PayPal</option>
+            <option value="Tarjeta">Tarjeta</option>
+            <option value="Bizum">Bizum</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Nota / motivo de devolución</label>
+        <input id="paymentNote-${o.id}" placeholder="Opcional en cobros; obligatorio si es devolución">
+      </div>
+
+      <button type="button" class="primary" id="paymentBtn-${o.id}" style="width:100%;margin-top:8px;">
+        Registrar cobro
+      </button>
+
+      <div id="paymentHistory-${o.id}" style="margin-top:14px;">
+        <div class="muted">Cargando historial…</div>
+      </div>
+    </div>
   `;
+
+(async () => {
+  const history = document.getElementById('paymentHistory-' + o.id);
+  const btn = document.getElementById('paymentBtn-' + o.id);
+
+  const cargarCobros = async () => {
+    if (!history) return;
+    const { data, error } = await supabaseClient
+      .from('order_payments')
+      .select('*')
+      .eq('order_id', o.id)
+      .order('paid_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      history.innerHTML = '<div class="muted">No se pudo cargar el historial.</div>';
+      return;
+    }
+
+    const pagos = data || [];
+    history.innerHTML = pagos.length
+      ? pagos.map(p => {
+          const signo = Number(p.amount || 0) < 0 ? 'Devolución' : 'Cobro';
+          const fecha = p.paid_at ? new Date(p.paid_at).toLocaleString('es-ES') : '';
+          return '<div class="statline">' +
+            '<span><b>' + signo + '</b><br><span class="muted">' +
+            esc(p.method || '') + (fecha ? ' · ' + esc(fecha) : '') +
+            (p.note ? '<br>' + esc(p.note) : '') +
+            '</span></span><b>' + money(p.amount || 0) + '</b></div>';
+        }).join('')
+      : '<div class="muted">Todavía no hay movimientos de cobro.</div>';
+  };
+
+  if (btn) {
+    btn.onclick = async () => {
+      const amount = Number(document.getElementById('paymentAmount-' + o.id)?.value || 0);
+      const method = String(document.getElementById('paymentMethod-' + o.id)?.value || '').trim();
+      const note = String(document.getElementById('paymentNote-' + o.id)?.value || '').trim();
+
+      if (!Number.isFinite(amount) || amount === 0) {
+        toast('Introduce un importe distinto de 0');
+        return;
+      }
+      if (amount < 0 && !note) {
+        toast('Indica el motivo de la devolución');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Guardando…';
+
+      try {
+        const paymentId = crypto?.randomUUID
+          ? crypto.randomUUID()
+          : String(Date.now()) + '-' + Math.random().toString(16).slice(2);
+
+        const { data, error } = await supabaseClient.rpc('record_order_payment', {
+          p_id: paymentId,
+          p_order_id: o.id,
+          p_amount: amount,
+          p_method: method,
+          p_note: note,
+          p_paid_at: new Date().toISOString()
+        });
+
+        if (error) throw error;
+
+        Object.assign(o, data || {});
+        toast(amount < 0 ? 'Devolución registrada' : 'Cobro registrado');
+        window.verDetallePedido(o.id);
+      } catch (err) {
+        console.error(err);
+        toast(err?.message || 'No se pudo registrar el cobro');
+      } finally {
+        if (document.body.contains(btn)) {
+          btn.disabled = false;
+          btn.textContent = 'Registrar cobro';
+        }
+      }
+    };
+  }
+
+  await cargarCobros();
+})();
+
 (async () => {
   const contenedor = document.getElementById('pedidoImagenesDiseno');
   if (!contenedor) return;
