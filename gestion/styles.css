@@ -454,3 +454,68 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted
   .tpv-main-action{width:100%;margin-top:14px}
   .tpv-quick-grid,.tpv-quick-grid.compact{grid-template-columns:1fr}
 }
+
+
+/* ===== AIHXO TPV Stock + Order detail v1 ===== */
+.stock-matrix-toolbar{display:grid;grid-template-columns:minmax(280px,1.6fr) repeat(3,minmax(150px,.7fr));gap:10px;margin-bottom:14px}
+.stock-matrix-search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:0 12px}
+.stock-matrix-search span{font-size:22px;color:#8693a8}
+.stock-matrix-search input{border:0;box-shadow:none;padding-left:0}
+.stock-matrix-list{display:grid;gap:14px}
+.stock-matrix-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
+.stock-matrix-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
+.stock-matrix-head h3{margin:2px 0;font-size:20px}
+.stock-matrix-head small{color:var(--muted)}
+.stock-matrix-total{text-align:right}
+.stock-matrix-total strong,.stock-matrix-total span,.stock-matrix-total em{display:block}
+.stock-matrix-total strong{font-size:25px}
+.stock-matrix-total span{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:800;letter-spacing:.7px}
+.stock-matrix-total em{font-size:10px;color:#9a6500;font-style:normal;margin-top:4px}
+.stock-matrix-scroll{overflow:auto}
+.stock-matrix-table{min-width:620px}
+.stock-matrix-table th:first-child,.stock-matrix-table td:first-child{position:sticky;left:0;background:#fff;z-index:1;min-width:120px}
+.stock-matrix-table th{text-align:center}
+.stock-matrix-table th:first-child,.stock-matrix-table td:first-child{text-align:left}
+.stock-cell{width:68px;min-height:54px;border:0;border-radius:12px;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.stock-cell strong{font-size:18px}
+.stock-cell small{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.4px}
+.stock-cell.ok{background:#eaf8f0;color:#177848}
+.stock-cell.low{background:#fff4dc;color:#966100}
+.stock-cell.zero{background:#ffeaed;color:#c52f43}
+.stock-cell.empty-cell{background:#f5f7fa;color:#a1a9b6}
+.tpv-detail-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px;padding:4px 2px 16px;border-bottom:1px solid var(--line)}
+.tpv-detail-head h2{font-size:28px;margin:2px 0}
+.tpv-detail-head p{margin:0;color:var(--muted)}
+.tpv-stock-big,.tpv-detail-total{min-width:110px;text-align:center;border-radius:16px;padding:12px}
+.tpv-stock-big strong,.tpv-stock-big span,.tpv-detail-total strong,.tpv-detail-total span{display:block}
+.tpv-stock-big strong,.tpv-detail-total strong{font-size:26px}
+.tpv-stock-big span,.tpv-detail-total span{font-size:10px;text-transform:uppercase;font-weight:900;letter-spacing:.6px}
+.tpv-stock-big.ok{background:#eaf8f0;color:#177848}.tpv-stock-big.low{background:#fff4dc;color:#966100}.tpv-stock-big.zero{background:#ffeaed;color:#c52f43}
+.tpv-detail-total{background:#07152f;color:#fff}
+.tpv-action-pad{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tpv-action{border:1px solid var(--line);background:#fff;border-radius:16px;padding:15px;text-align:left;color:var(--text)}
+.tpv-action:hover{background:#f8fafc}
+.tpv-action span,.tpv-action b,.tpv-action small{display:block}
+.tpv-action span{font-size:23px;margin-bottom:6px}.tpv-action b{font-size:14px}.tpv-action small{font-size:10px;color:var(--muted);margin-top:2px}
+.tpv-action.positive{background:#f0fbf5;border-color:#ccebd9}.tpv-action.negative{background:#fff5f6;border-color:#ffd6dc}
+.tpv-order-progress{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.tpv-order-progress>div{padding:11px;border:1px solid var(--line);border-radius:13px;background:#f9fbfd}
+.tpv-order-progress span,.tpv-order-progress b{display:block}.tpv-order-progress span{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:900}.tpv-order-progress b{font-size:12px;margin-top:4px}
+.tpv-pay-card,.tpv-detail-section{border:1px solid var(--line);border-radius:16px;padding:15px;background:#fff;margin-bottom:14px}
+.tpv-pay-top{display:flex;justify-content:space-between;align-items:center;gap:12px}.tpv-pay-top h3{font-size:22px;margin:2px 0}.tpv-pay-top h3 small{font-size:12px;color:var(--muted);font-weight:600}.tpv-pay-top>strong{font-size:18px}
+.tpv-pay-bar{height:9px;background:#edf1f6;border-radius:999px;overflow:hidden;margin:10px 0 12px}.tpv-pay-bar i{display:block;height:100%;background:#087cf4;border-radius:999px}
+.tpv-pay-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tpv-detail-product{display:flex;align-items:center;gap:11px;background:#f8fafc;padding:12px;border-radius:13px}.tpv-detail-product>span{font-size:22px}.tpv-detail-product b,.tpv-detail-product small{display:block}.tpv-detail-product small{font-size:11px;color:var(--muted);margin-top:2px}
+.tpv-base-note{margin-top:10px;padding:10px 12px;border-radius:12px;background:#f2f6fb;font-size:12px}.tpv-base-note small{color:var(--muted)}
+.tpv-sticky-actions{position:sticky;bottom:-28px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);display:grid;grid-template-columns:1fr auto;gap:8px;padding:14px 0 4px;margin-top:16px;border-top:1px solid var(--line)}
+@media(max-width:900px){.stock-matrix-toolbar{grid-template-columns:1fr 1fr}.stock-matrix-search{grid-column:1/-1}}
+@media(max-width:760px){
+ .stock-matrix-toolbar{grid-template-columns:1fr 1fr}
+ .stock-matrix-card{padding:14px;border-radius:16px}
+ .stock-matrix-head h3{font-size:17px}
+ .stock-matrix-total strong{font-size:21px}
+ .tpv-detail-head h2{font-size:23px}
+ .tpv-order-progress{grid-template-columns:1fr}
+ .tpv-action-pad{grid-template-columns:1fr 1fr}
+ .tpv-sticky-actions{bottom:-20px}
+}
