@@ -8,13 +8,13 @@
   "lang": "es",
   "icons": [
     {
-      "src": "apple-touch-icon.png?v=20261002-2",
+      "src": "apple-touch-icon.png?v=20261002-3",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon-512.png?v=20261002-2",
+      "src": "icon-512.png?v=20261002-3",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
