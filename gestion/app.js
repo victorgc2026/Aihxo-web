@@ -120,7 +120,7 @@ function showApp(session){document.body.innerHTML=`<div id="app"><aside class="s
     🎁 <span>Sorteos</span>
   </button>
 
-</nav><div class="sidebar-foot">${session.user.email}<br><button class="secondary" style="margin-top:8px" id="logout">Cerrar sesión</button></div></aside><div class="menu-overlay" id="menuOverlay"></div><main><header class="topbar"><button class="hamb" id="hamb">☰</button><h1 id="title">Inicio</h1><button class="primary small" id="quickOrder">＋ Pedido</button></header><div id="view"></div></main></div><div id="drawer" class="drawer hidden"><div class="drawer-card"><button class="x" id="closeDrawer">×</button><div id="drawerBody"></div></div></div><div id="toast"></div>`;document.querySelectorAll('#nav button[data-view]').forEach(b=>b.onclick=()=>{setView(b.dataset.view);closeMobileMenu()});$('#hamb').setAttribute('aria-label','Abrir menú');$('#hamb').onclick=()=>toggleMobileMenu();$('#menuOverlay').onclick=()=>closeMobileMenu();$('#logout').onclick=()=>supabaseClient.auth.signOut();$('#quickOrder').onclick=orderForm;$('#closeDrawer').onclick=closeDrawer;loadAll().then(()=>setView('dashboard'))}
+</nav><div class="sidebar-foot">${session.user.email}<br><button class="secondary" style="margin-top:8px" id="logout">Cerrar sesión</button></div></aside><div class="menu-overlay" id="menuOverlay"></div><main><header class="topbar"><button class="hamb" id="hamb">☰</button><h1 id="title">Inicio</h1><button class="primary small" id="quickOrder">＋ Pedido</button></header><div id="view"></div></main></div><div id="drawer" class="drawer hidden"><div class="drawer-card"><button class="x" id="closeDrawer">×</button><div id="drawerBody"></div></div></div><div id="toast"></div>`;document.querySelectorAll('#nav button[data-view]').forEach(b=>b.onclick=()=>{setView(b.dataset.view);closeMobileMenu()});$('#hamb').setAttribute('aria-label','Abrir menú');$('#hamb').onclick=()=>toggleMobileMenu();$('#menuOverlay').onclick=()=>closeMobileMenu();$('#logout').onclick=()=>supabaseClient.auth.signOut();$('#quickOrder').onclick=()=>window.orderForm();$('#closeDrawer').onclick=closeDrawer;loadAll().then(()=>setView('dashboard'))}
 function toggleMobileMenu(){document.querySelector('.sidebar')?.classList.toggle('open');document.querySelector('#menuOverlay')?.classList.toggle('open')}function closeMobileMenu(){document.querySelector('.sidebar')?.classList.remove('open');document.querySelector('#menuOverlay')?.classList.remove('open')}function setView(v){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Inicio',orders:'Pedidos',products:'Productos',stock:'Stock',customers:'Clientes',expenses:'Gastos',coupons:'Cupones',sorteos:'Sorteos',garments:'Prendas base',reports:'Informes'};const views={dashboard,orders:ordersView,products:productsView,stock:stockHub,customers:customersView,expenses:expensesView,coupons:cuponesView,sorteos:(c)=>{c.innerHTML=sorteosView();iniciarSorteos()},garments:prendasBaseView,reports};$('#title').textContent=titles[v]||'AIHXO';const render=views[v];if(typeof render==='function'){render($('#view'));closeMobileMenu()}else{console.error('Vista no disponible:',v);toast('No se pudo abrir esta sección')}}
 async function dashboard(c){
   const activeOrders=orders.filter(o=>String(o.status||'').toLowerCase()!=='cancelado');
@@ -1782,6 +1782,13 @@ productsView = function(c) {
   });
 };
 window.orderForm = async function() {
+   const ownDesignProducts = (products || []).filter(p =>
+     String(p.category || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes('diseno propio')
+   );
+   const catalogProducts = (products || []).filter(p =>
+     !String(p.category || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes('diseno propio')
+   );
+
    const { data: baseStockData, error: baseStockError } =
     await supabaseClient
       .from('base_stock_items')
@@ -1839,9 +1846,9 @@ window.orderForm = async function() {
 
   <select name="sku" id="osku" style="display:none;">
     <option value="">— Selecciona producto —</option>
-    ${products.map(p => `
+    ${catalogProducts.map(p => `
       <option value="${p.id}">
-        ${esc(p.model)} · ${esc(p.size)} · ${esc(p.color)}
+        ${esc(p.model)} · ${esc(p.size || '')} · ${esc(p.color || '')}
       </option>
     `).join('')}
   </select>
@@ -1849,13 +1856,11 @@ window.orderForm = async function() {
   <select name="producto_diseno_aihxo" id="oproductoDisenoAihxo" style="display:none;">
     <option value="">— Selecciona diseño AIHXO —</option>
 
-    ${designs
-      .filter(d => d.active === true)
-      .map(d => `
-        <option value="${d.id}">
-          ${esc(d.name)}
-        </option>
-      `).join('')}
+    ${ownDesignProducts.map(p => `
+      <option value="${p.id}">
+        ${esc(p.model)}
+      </option>
+    `).join('')}
   </select>
 </div>
 
@@ -2113,7 +2118,7 @@ const actualizarPedido = () => {
     return;
   }
 
-  const p = products.find(x => x.id === $('#osku').value);
+  const p = catalogProducts.find(x => x.id === $('#osku').value);
   if (!p) {
     $('#oprice').value = 0;
     actualizarResumenPedido();
@@ -2137,7 +2142,7 @@ const actualizarPedido = () => {
     );
 
     const p = tipoPedido === 'catalogo'
-      ? products.find(x => x.id === $('#osku').value)
+      ? catalogProducts.find(x => x.id === $('#osku').value)
       : null;
 
     const coste =
@@ -2188,8 +2193,7 @@ $('#orderType').onchange = () => {
     productoDisenoAihxo.style.display = 'none';
     productoNormal.value = '';
     productoDisenoAihxo.value = '';
-
-    if (!$('#oprice').value) $('#oprice').value = 0;
+    $('#oprice').value = 0;
   }
 
   if (tipo === 'diseno_aihxo') {
@@ -2202,6 +2206,14 @@ $('#orderType').onchange = () => {
     productoNormal.style.display = 'none';
     productoDisenoAihxo.style.display = 'block';
     productoNormal.value = '';
+
+    if (!productoDisenoAihxo.value && ownDesignProducts[0]) {
+      productoDisenoAihxo.value = ownDesignProducts[0].id;
+    }
+    const selected = ownDesignProducts.find(
+      x => String(x.id) === String(productoDisenoAihxo.value)
+    );
+    if (selected) $('#oprice').value = Number(selected.sale_price || 0);
   }
 
   if (tipo === 'catalogo') {
@@ -2216,7 +2228,7 @@ $('#orderType').onchange = () => {
     productoDisenoAihxo.style.display = 'none';
     productoDisenoAihxo.value = '';
 
-    if (!productoNormal.value && products[0]) productoNormal.value = products[0].id;
+    if (!productoNormal.value && catalogProducts[0]) productoNormal.value = catalogProducts[0].id;
     actualizarPedido();
   }
 
@@ -2350,6 +2362,15 @@ $('#orderType').onchange = () => {
   actualizarPedido();
   $('#orderType').onchange();
 };
+
+  $('#oproductoDisenoAihxo').onchange = () => {
+    const selected = ownDesignProducts.find(
+      x => String(x.id) === String($('#oproductoDisenoAihxo').value)
+    );
+    if (selected) $('#oprice').value = Number(selected.sale_price || 0);
+    actualizarResumenPedido();
+  };
+
   $('#opersonalization').onchange = actualizarPedido;
   $('#oqty').oninput = actualizarResumenPedido;
   $('#oprice').oninput = actualizarResumenPedido;
@@ -2364,11 +2385,11 @@ $('#orderType').onchange = () => {
     const tipoPedido = f.get('order_type');
 
 const p = tipoPedido === 'catalogo'
-  ? products.find(x => x.id === f.get('sku'))
+  ? catalogProducts.find(x => x.id === f.get('sku'))
   : null;
 
 const disenoSeleccionado = tipoPedido === 'diseno_aihxo'
-  ? designs.find(
+  ? ownDesignProducts.find(
       d => String(d.id) === String(f.get('producto_diseno_aihxo'))
     )
   : null;
@@ -2422,7 +2443,7 @@ const tipo =
 
 const nombreDiseno =
   tipoPedido === 'diseno_aihxo'
-    ? disenoSeleccionado.name
+    ? disenoSeleccionado.model
     : tipoPedido === 'personalizado'
       ? f.get('design')
       : '';
@@ -2489,12 +2510,17 @@ base_stock_quantity: baseStockId ? qty : 0,
       customer_name: customer.name,
       contact: f.get('contact'),
 
-      product_id: tipoPedido === 'catalogo' ? p.id : null,
+      product_id:
+  tipoPedido === 'catalogo'
+    ? p.id
+    : tipoPedido === 'diseno_aihxo'
+      ? disenoSeleccionado.id
+      : null,
 product_name:
   tipoPedido === 'personalizado'
     ? 'Producto personalizado'
     : tipoPedido === 'diseno_aihxo'
-      ? disenoSeleccionado.name
+      ? disenoSeleccionado.model
       : p.model,
 size:
   tipoPedido === 'catalogo'
