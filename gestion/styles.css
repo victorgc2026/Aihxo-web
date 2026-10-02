@@ -552,3 +552,34 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted
  .tpv-cash-actions{grid-template-columns:1fr 1fr}
  .tpv-cash-actions .primary{grid-column:1/-1}
 }
+
+
+/* ===== AIHXO TPV Production Kanban v1 ===== */
+.production-tpv-page{padding-bottom:26px}
+.kanban-wrap{display:flex;gap:12px;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x proximity}
+.kanban-column{min-width:300px;max-width:300px;background:#f3f6fa;border:1px solid #e4e9f0;border-radius:18px;padding:10px;scroll-snap-align:start;transition:.15s}
+.kanban-column.drag-over{background:#eaf4ff;border-color:#8fc6ff;box-shadow:inset 0 0 0 2px rgba(8,124,244,.08)}
+.kanban-column>header{display:flex;align-items:center;justify-content:space-between;padding:6px 4px 10px}
+.kanban-column>header>div{display:flex;align-items:center;gap:8px}.kanban-column>header span{font-size:18px}.kanban-column>header b{font-size:13px}
+.kanban-column>header em{font-style:normal;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900;color:#627087}
+.kanban-dropzone{display:grid;gap:9px;min-height:120px}
+.kanban-empty{padding:24px 8px;text-align:center;color:#8996a8;font-size:12px;border:1px dashed #cfd7e2;border-radius:14px;background:rgba(255,255,255,.55)}
+.kanban-card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:13px;box-shadow:0 5px 14px rgba(7,21,47,.045);cursor:grab}
+.kanban-card.dragging{opacity:.45;transform:rotate(1deg)}
+.kanban-card-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.kanban-card h4{font-size:15px;margin:2px 0 0}
+.kanban-age{font-size:9px;font-weight:900;padding:5px 7px;border-radius:999px;background:#eef2f6;color:#647187}
+.kanban-age.danger{background:#ffe8ea;color:#c83145}
+.kanban-product{font-size:12px;font-weight:800;margin-top:10px;line-height:1.25}
+.kanban-meta{font-size:10px;color:var(--muted);margin-top:3px}
+.kanban-progress{height:6px;border-radius:999px;background:#edf1f5;overflow:hidden;margin:10px 0 8px}
+.kanban-progress i{display:block;height:100%;background:linear-gradient(90deg,#087cf4,#50a7ff);border-radius:999px}
+.kanban-flags{display:flex;gap:5px;flex-wrap:wrap}
+.kanban-flags span{font-size:9px;font-weight:800;padding:5px 7px;border-radius:999px}
+.kanban-flags .done{background:#eaf8f0;color:#177848}.kanban-flags .wait{background:#fff3dc;color:#956000}
+.kanban-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+.kanban-actions button{padding:8px 9px;font-size:11px}
+@media(max-width:760px){
+ .kanban-column{min-width:86vw;max-width:86vw}
+ .kanban-wrap{margin-left:-2px;margin-right:-2px}
+}
