@@ -8,16 +8,16 @@
   "lang": "es",
   "icons": [
     {
-      "src": "../logo-aihxo.png?v=20261002",
-      "sizes": "any",
+      "src": "apple-touch-icon.png?v=20261002-2",
+      "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "../logo-aihxo.png?v=20261002",
-      "sizes": "any",
+      "src": "icon-512.png?v=20261002-2",
+      "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }
