@@ -6,6 +6,107 @@
  const normSearch=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
  const itemLabel=i=>`${i._virtual?'🆕 ':''}${i.supplier_model||i.supplier||'Prenda'} · ${i.size||''} · ${i.color||''}`;
 
+ const clean=v=>String(v??'').trim();
+ const lower=v=>clean(v).toLowerCase();
+ const lineSource=l=>({
+   description:clean(l?.description),
+   sku:clean(l?.sku),
+   reference:clean(l?.reference),
+   model_code:clean(l?.model_code),
+   model:clean(l?.model),
+   brand:clean(l?.brand),
+   color:clean(l?.color),
+   size:clean(l?.size)
+ });
+
+ function matchSupplierReference(line,refs){
+   const s=lineSource(line);
+   if(s.sku){
+     const hit=(refs||[]).find(r=>lower(r.provider_sku)===lower(s.sku));
+     if(hit)return hit;
+   }
+   if(s.reference){
+     const hit=(refs||[]).find(r=>lower(r.provider_reference)===lower(s.reference));
+     if(hit)return hit;
+   }
+   if(s.model_code && s.color && s.size){
+     const hits=(refs||[]).filter(r=>
+       lower(r.provider_model_code)===lower(s.model_code) &&
+       lower(r.provider_color)===lower(s.color) &&
+       lower(r.provider_size)===lower(s.size)
+     );
+     if(hits.length===1)return hits[0];
+   }
+   return null;
+ }
+
+ async function loadSupplierReferences(supplierId){
+   if(!supplierId)return [];
+   const {data,error}=await supabaseClient
+     .from('supplier_references')
+     .select('id,supplier_id,vendor_name,brand,commercial_model,provider_model_code,provider_sku,provider_reference,provider_description,provider_color,provider_size,base_stock_item_id,match_status')
+     .eq('supplier_id',supplierId)
+     .eq('active',true);
+   if(error)throw error;
+   return data||[];
+ }
+
+ async function ensureSupplierReference({supplierId,supplierName,line,itemId,invoiceNumber,invoiceDate}){
+   if(!supplierId||!itemId)return null;
+   const s=lineSource(line);
+   let q=supabaseClient.from('supplier_references').select('*').eq('supplier_id',supplierId);
+   if(s.sku) q=q.eq('provider_sku',s.sku);
+   else if(s.reference) q=q.eq('provider_reference',s.reference);
+   else if(s.model_code&&s.color&&s.size) q=q.eq('provider_model_code',s.model_code).eq('provider_color',s.color).eq('provider_size',s.size);
+   else return null;
+
+   const {data:existing,error:findError}=await q.maybeSingle();
+   if(findError)throw findError;
+
+   if(existing){
+     if(existing.base_stock_item_id && String(existing.base_stock_item_id)!==String(itemId)){
+       throw new Error('La referencia '+(s.sku||s.reference||s.model_code)+' ya está vinculada a otra prenda. Revísala antes de continuar.');
+     }
+     if(!existing.base_stock_item_id || existing.match_status!=='linked'){
+       const {data,error}=await supabaseClient.from('supplier_references')
+         .update({base_stock_item_id:itemId,match_status:'linked',updated_at:new Date().toISOString()})
+         .eq('id',existing.id).select('id').single();
+       if(error)throw error;
+       return data.id;
+     }
+     return existing.id;
+   }
+
+   const {data:item,error:itemError}=await supabaseClient
+     .from('base_stock_items')
+     .select('garment_id,supplier_model')
+     .eq('id',itemId).single();
+   if(itemError)throw itemError;
+
+   const payload={
+     supplier_id:supplierId,
+     vendor_name:supplierName||'Proveedor',
+     brand:s.brand||supplierName||'Proveedor',
+     commercial_model:s.model||item?.supplier_model||s.model_code||'Referencia proveedor',
+     provider_model_code:s.model_code||null,
+     provider_sku:s.sku||null,
+     provider_reference:s.reference||null,
+     provider_description:s.description||s.model||'Referencia proveedor',
+     provider_color:s.color||null,
+     provider_size:s.size||null,
+     garment_id:item?.garment_id||null,
+     base_stock_item_id:itemId,
+     source_invoice_number:invoiceNumber||null,
+     source_invoice_date:invoiceDate||null,
+     match_status:'linked',
+     notes:'Vinculada desde recepción de factura',
+     active:true
+   };
+   const {data,error}=await supabaseClient.from('supplier_references').insert(payload).select('id').single();
+   if(error)throw error;
+   return data.id;
+ }
+
  function bindItemSearch(root,items,{inputClass,hiddenClass,resultsClass,costClass}){
    root.querySelectorAll('.'+inputClass).forEach(input=>{
      const row=input.closest('[data-item-search-row]')||input.parentElement;
@@ -193,6 +294,8 @@
    const x=purchaseInvoiceData||{}, rawLines=Array.isArray(x.lines)?x.lines:[];
    const guessSupplier=(suppliers||[]).find(s=>String(x.supplier_name||'').toLowerCase().includes(String(s.name||'').toLowerCase())||String(s.name||'').toLowerCase().includes(String(x.supplier_name||'').toLowerCase()));
    const lines=rawLines.length?rawLines:[{description:'Prenda',quantity:1,unit_price:0,total:0}];
+   const supplierRefs=guessSupplier?.id ? await loadSupplierReferences(guessSupplier.id) : [];
+   const refMatches=lines.map(l=>matchSupplierReference(l,supplierRefs));
 
    b.innerHTML=`<h2>✅ Revisar factura de compra</h2>
      <div class="muted" style="margin-bottom:14px">La factura no modificará el stock todavía. Primero crea la compra y luego pulsa “Recibir compra” cuando llegue la mercancía.</div>
@@ -203,8 +306,9 @@
        <div class="field"><label>Total factura €</label><input name="amount" type="number" step=".01" min="0" value="${N(x.total)}" required></div>
        <div class="card" style="margin:8px 0"><b>Conceptos detectados</b><div class="muted" style="margin-top:4px">Asocia solo las líneas que correspondan a prendas de stock.</div>
          <div id="pciLines" style="display:grid;gap:10px;margin-top:10px">
-           ${lines.map((l,i)=>`<div class="pciLine" style="border-top:1px solid #e6eaf0;padding-top:10px">
+           ${lines.map((l,i)=>{const mr=refMatches[i]; const src=lineSource(l); return `<div class="pciLine" data-line-index="${i}" style="border-top:1px solid #e6eaf0;padding-top:10px">
              <div style="font-weight:800">${E(l.description||('Concepto '+(i+1)))}</div>
+             <div style="margin-top:5px;font-size:12px;${mr?'color:#027a48':'color:#b54708'}">${mr?'✅ Referencia reconocida · '+E(mr.provider_sku||mr.provider_reference||mr.provider_model_code||''):'⚠️ Referencia nueva'+(src.sku?' · '+E(src.sku):src.reference?' · '+E(src.reference):'')}</div>
              <div class="formgrid" style="margin-top:8px">
                <div class="field" data-item-search-row style="position:relative">
                  <label>Prenda / variante</label>
@@ -216,7 +320,7 @@
                <div class="field"><label>Cantidad</label><input class="pciQty" type="number" min="0" step="1" value="${Math.max(0,N(l.quantity)||1)}"></div>
              </div>
              <div class="field"><label>Coste unitario €</label><input class="pciCost" type="number" min="0" step=".01" value="${N(l.unit_price??l.price??(N(l.quantity)?N(l.total)/N(l.quantity):0)).toFixed(2)}"></div>
-           </div>`).join('')}
+           </div>`;}).join('')}
          </div>
        </div>
        <div class="card">📎 <b>${E(purchaseInvoiceFile?.name||'Factura')}</b><div class="muted">Se guardará vinculada a la compra.</div></div>
@@ -229,7 +333,17 @@
      resultsClass:'pciItemResults',
      costClass:'pciCost'
    });
-   b.querySelectorAll('.pciLine').forEach((row,i)=>{const id=window.aihxoGuessInvoiceItem?.(lines[i],items);const match=items.find(x=>String(x.id)===String(id));if(match){row.querySelector('.pciItem').value=match.id;row.querySelector('.pciItemSearch').value=itemLabel(match);}});
+   b.querySelectorAll('.pciLine').forEach((row,i)=>{
+     const refMatch=refMatches[i];
+     const refItem=refMatch?.base_stock_item_id ? items.find(x=>String(x.id)===String(refMatch.base_stock_item_id)) : null;
+     const guessedId=refItem?.id || window.aihxoGuessInvoiceItem?.(lines[i],items);
+     const match=items.find(x=>String(x.id)===String(guessedId));
+     if(match){
+       row.querySelector('.pciItem').value=match.id;
+       row.querySelector('.pciItemSearch').value=itemLabel(match);
+     }
+     row.dataset.supplierReferenceId=refMatch?.id||'';
+   });
    b.querySelectorAll('.pciClear').forEach(btn=>btn.onclick=()=>{
      const row=btn.closest('[data-item-search-row]');
      row.querySelector('.pciItem').value='';
@@ -252,12 +366,23 @@
      const duplicate=await supabaseClient.from('purchases').select('id,purchase_number').eq('supplier_id',supplierId);
      if(duplicate.error)throw duplicate.error;
      if((duplicate.data||[]).some(p=>String(p.purchase_number||'').trim().toLowerCase()===ref.toLowerCase()))throw new Error('Ya existe una compra con este proveedor y referencia');
-     const rows=[...form.querySelectorAll('.pciLine')].map(r=>({
-       item_id:r.querySelector('.pciItem').value,
-       ordered_quantity:Math.max(0,Math.round(N(r.querySelector('.pciQty').value))),
-       received_quantity:0,
-       unit_cost:N(r.querySelector('.pciCost').value)
-     })).filter(x=>x.item_id&&x.ordered_quantity>0);
+     const invoiceLines=Array.isArray(purchaseInvoiceData?.lines)?purchaseInvoiceData.lines:[];
+     const rows=[...form.querySelectorAll('.pciLine')].map((r,i)=>{
+       const source=invoiceLines[i]||{};
+       return {
+         _line:source,
+         supplier_reference_id:r.dataset.supplierReferenceId||null,
+         item_id:r.querySelector('.pciItem').value,
+         ordered_quantity:Math.max(0,Math.round(N(r.querySelector('.pciQty').value))),
+         received_quantity:0,
+         unit_cost:N(r.querySelector('.pciCost').value),
+         source_description:clean(source.description)||null,
+         source_sku:clean(source.sku)||null,
+         source_reference:clean(source.reference)||null,
+         source_color:clean(source.color)||null,
+         source_size:clean(source.size)||null
+       };
+     }).filter(x=>x.item_id&&x.ordered_quantity>0);
      if(!rows.length&&!confirm('No has asociado ninguna línea a prendas de stock. ¿Guardar la compra igualmente?'))return;
 
      const safe=(purchaseInvoiceFile.name||'factura').replace(/[^a-zA-Z0-9._-]+/g,'_');
@@ -271,12 +396,24 @@
        const itemId=typeof window.aihxoResolvePurchaseItemId==='function'
          ? await window.aihxoResolvePurchaseItemId(row.item_id,row.unit_cost,supplierName)
          : row.item_id;
-       resolvedRows.push({...row,item_id:itemId});
+       const supplierReferenceId=row.supplier_reference_id || await ensureSupplierReference({
+         supplierId,
+         supplierName,
+         line:row._line,
+         itemId,
+         invoiceNumber:clean(purchaseInvoiceData?.invoice_number)||ref,
+         invoiceDate:fd.get('purchase_date')||today()
+       });
+       const {_line,...cleanRow}=row;
+       resolvedRows.push({...cleanRow,item_id:itemId,supplier_reference_id:supplierReferenceId||null});
      }
 
      const payload={
        supplier_id:supplierId||null,purchase_number:ref,description:String(fd.get('description')||'Compra').trim(),
        amount:N(fd.get('amount')),purchase_date:fd.get('purchase_date')||today(),status:'Pedido',
+       external_invoice_number:clean(purchaseInvoiceData?.invoice_number)||ref,
+       external_order_number:clean(purchaseInvoiceData?.order_number)||null,
+       supplier_invoice_date:fd.get('purchase_date')||today(),
        notes:'Creada desde factura con AIHXO IA',receipt_path:path,receipt_name:purchaseInvoiceFile.name,
        receipt_mime:purchaseInvoiceFile.type,extracted_data:purchaseInvoiceData||{}
      };
