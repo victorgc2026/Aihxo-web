@@ -1,0 +1,89 @@
+name: Generate AIHXO app icons
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/generate-aihxo-icons.yml"
+      - "logo-aihxo.png"
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    if: github.event.head_commit.message != 'Generate AIHXO app icons'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: pip install pillow
+
+      - name: Generate square icons from exact AIHXO logo
+        run: |
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+
+          src = Image.open("logo-aihxo.png").convert("RGBA")
+
+          def make_icon(size, path):
+              pad = round(size * 0.07)
+              canvas = Image.new("RGBA", (size, size), (255, 255, 255, 255))
+              max_w = size - 2 * pad
+              max_h = size - 2 * pad
+              scale = min(max_w / src.width, max_h / src.height)
+              w = round(src.width * scale)
+              h = round(src.height * scale)
+              logo = src.resize((w, h), Image.Resampling.LANCZOS)
+              x = (size - w) // 2
+              y = (size - h) // 2
+              canvas.alpha_composite(logo, (x, y))
+              canvas.convert("RGB").save(path, "PNG", optimize=True)
+
+          Path("gestion").mkdir(exist_ok=True)
+          make_icon(180, "gestion/apple-touch-icon.png")
+          make_icon(512, "gestion/icon-512.png")
+          PY
+
+      - name: Update icon references
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, json
+
+          p = Path("gestion/index.html")
+          s = p.read_text()
+          s = re.sub(r'<link rel="apple-touch-icon"[^>]*>', '<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=20261002-2">', s)
+          s = re.sub(r'<link rel="icon"[^>]*>', '<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png?v=20261002-2">', s)
+          s = re.sub(r'manifest\.json\?v=\d+', 'manifest.json?v=4', s)
+          p.write_text(s)
+
+          manifest = {
+            "name": "AIHXO Gestión",
+            "short_name": "AIHXO",
+            "start_url": "./",
+            "display": "standalone",
+            "background_color": "#07152f",
+            "theme_color": "#07152f",
+            "lang": "es",
+            "icons": [
+              {"src":"apple-touch-icon.png?v=20261002-2","sizes":"180x180","type":"image/png","purpose":"any"},
+              {"src":"icon-512.png?v=20261002-2","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+            ]
+          }
+          Path("gestion/manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+          PY
+
+      - name: Commit generated icons
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gestion/apple-touch-icon.png gestion/icon-512.png gestion/index.html gestion/manifest.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Generate AIHXO app icons"
+          git push
