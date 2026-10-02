@@ -2380,274 +2380,207 @@ $('#orderType').onchange = () => {
   $('#of').onsubmit = async function(e) {
     e.preventDefault();
 
+    if (e.target.dataset.saving === '1') return;
+
+    const submitBtn = e.submitter || e.target.querySelector('button.primary');
+    e.target.dataset.saving = '1';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Guardando…';
+    }
+
     const f = new FormData(e.target);
-
-    const tipoPedido = f.get('order_type');
-
-const p = tipoPedido === 'catalogo'
-  ? catalogProducts.find(x => x.id === f.get('sku'))
-  : null;
-
-const disenoSeleccionado = tipoPedido === 'diseno_aihxo'
-  ? ownDesignProducts.find(
-      d => String(d.id) === String(f.get('producto_diseno_aihxo'))
-    )
-  : null;
-
+    const tipoPedido = String(f.get('order_type') || '');
     const qty = Number(f.get('qty') || 1);
-   const baseStockId = f.get('base_stock_item_id');
-
-let baseStockItem = null;
-
-if (baseStockId) {
-  baseStockItem = baseStockItems.find(
-    x => String(x.id) === String(baseStockId)
-  );
-
-  if (!baseStockItem) {
-    toast('Camiseta base no válida');
-    return;
-  }
-
-  if (Number(baseStockItem.quantity || 0) < qty) {
-    toast('Stock insuficiente de camiseta base');
-    return;
-  }
-}
-
-    if (tipoPedido === 'catalogo' && !p) {
-  toast('Selecciona un producto de catálogo');
-  return;
-}
-
-if (tipoPedido === 'catalogo' && p.stock < qty) {
-  toast('Stock insuficiente');
-  return;
-}
-
-if ((tipoPedido === 'personalizado' || tipoPedido === 'diseno_aihxo') && !baseStockItem) {
-  toast('Selecciona la prenda base que vas a utilizar');
-  return;
-}
-
-const tipo =
-  tipoPedido === 'personalizado'
-    ? f.get('personalization')
-    : '';
-
-  
-   if (tipoPedido === 'diseno_aihxo' && !disenoSeleccionado) {
-  toast('Selecciona un diseño AIHXO');
-  return;
-}
-
-const nombreDiseno =
-  tipoPedido === 'diseno_aihxo'
-    ? disenoSeleccionado.model
-    : tipoPedido === 'personalizado'
-      ? f.get('design')
-      : '';
-
-const detalleDiseno = [
-  nombreDiseno
-    ? `Diseño: ${nombreDiseno}`
-    : '',
-
-  tipoPedido === 'personalizado'
-    ? `Personalización: ${tipo} impresión${tipo === '2' ? 'es' : ''}`
-    : '',
-
-  tipoPedido === 'personalizado' && f.get('position1')
-    ? `Ubicación 1: ${f.get('position1')}`
-    : '',
-
-  tipoPedido === 'personalizado' &&
-  tipo === '2' &&
-  f.get('position2')
-    ? `Ubicación 2: ${f.get('position2')}`
-    : '',
-
-  f.get('notes')
-    ? `Notas: ${f.get('notes')}`
-    : ''
-]
-.filter(Boolean)
-.join(' | ');
-
     const price = Number(f.get('price') || 0);
     const shipping = Number(f.get('shipping') || 0);
+    const baseStockId = String(f.get('base_stock_item_id') || '');
 
-    let customer = customers.find(
-      x => x.name === f.get('customer')
-    );
-
-    if (!customer) {
-      const r = await supabaseClient
-        .from('customers')
-        .insert({
-          name: f.get('customer'),
-          contact: f.get('contact')
-        })
-        .select()
-        .single();
-
-      if (r.error) {
-        toast(r.error.message);
-        return;
+    try {
+      if (!Number.isInteger(qty) || qty <= 0) {
+        throw new Error('La cantidad no es válida');
+      }
+      if (!Number.isFinite(price) || price < 0) {
+        throw new Error('El precio no es válido');
+      }
+      if (!Number.isFinite(shipping) || shipping < 0) {
+        throw new Error('El envío no es válido');
       }
 
-      customer = r.data;
+      const p = tipoPedido === 'catalogo'
+        ? catalogProducts.find(x => String(x.id) === String(f.get('sku')))
+        : null;
+
+      const disenoSeleccionado = tipoPedido === 'diseno_aihxo'
+        ? ownDesignProducts.find(
+            d => String(d.id) === String(f.get('producto_diseno_aihxo'))
+          )
+        : null;
+
+      if (tipoPedido === 'catalogo' && !p) {
+        throw new Error('Selecciona un producto de catálogo');
+      }
+
+      if (tipoPedido === 'diseno_aihxo' && !disenoSeleccionado) {
+        throw new Error('Selecciona un diseño AIHXO');
+      }
+
+      if ((tipoPedido === 'personalizado' || tipoPedido === 'diseno_aihxo') && !baseStockId) {
+        throw new Error('Selecciona la prenda base que vas a utilizar');
+      }
+
+      const tipoPersonalizacion =
+        tipoPedido === 'personalizado'
+          ? String(f.get('personalization') || '1')
+          : '';
+
+      const nombreDiseno =
+        tipoPedido === 'diseno_aihxo'
+          ? String(disenoSeleccionado?.model || '')
+          : tipoPedido === 'personalizado'
+            ? String(f.get('design') || '')
+            : '';
+
+      const detalleDiseno = [
+        nombreDiseno ? 'Diseño: ' + nombreDiseno : '',
+        tipoPedido === 'personalizado'
+          ? 'Personalización: ' + tipoPersonalizacion + ' impresión' + (tipoPersonalizacion === '2' ? 'es' : '')
+          : '',
+        tipoPedido === 'personalizado' && f.get('position1')
+          ? 'Ubicación 1: ' + String(f.get('position1'))
+          : '',
+        tipoPedido === 'personalizado' && tipoPersonalizacion === '2' && f.get('position2')
+          ? 'Ubicación 2: ' + String(f.get('position2'))
+          : '',
+        f.get('notes') ? 'Notas: ' + String(f.get('notes')) : ''
+      ].filter(Boolean).join(' | ');
+
+      const customerName = String(f.get('customer') || '').trim();
+      if (!customerName) throw new Error('Indica el cliente');
+
+      const customer = customers.find(
+        x => String(x.name || '').trim().toLowerCase() === customerName.toLowerCase()
+      );
+
+      const requestId =
+        e.target.dataset.requestId ||
+        (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random().toString(16).slice(2));
+
+      e.target.dataset.requestId = requestId;
+
+      const printZones = [];
+      if (tipoPedido === 'personalizado' && f.get('position1')) {
+        printZones.push(String(f.get('position1')).trim());
+      }
+      if (tipoPedido === 'personalizado' && tipoPersonalizacion === '2' && f.get('position2')) {
+        printZones.push(String(f.get('position2')).trim());
+      }
+
+      const orderPayload = {
+        order_type: tipoPedido,
+        customer_id: customer?.id || null,
+        customer_name: customerName,
+        contact: String(f.get('contact') || '').trim(),
+        shipping,
+        design: detalleDiseno,
+        print_zones: printZones,
+        estimated_costs: {}
+      };
+
+      const lines = [{
+        item_id:
+          tipoPedido === 'catalogo'
+            ? null
+            : baseStockId,
+        product_id:
+          tipoPedido === 'catalogo'
+            ? p.id
+            : tipoPedido === 'diseno_aihxo'
+              ? disenoSeleccionado.id
+              : null,
+        quantity: qty,
+        unit_price: price
+      }];
+
+      const { data: createdOrder, error: createError } = await supabaseClient.rpc(
+        'create_order_atomic',
+        {
+          p_request_id: requestId,
+          p_order: orderPayload,
+          p_lines: lines
+        }
+      );
+
+      if (createError) throw createError;
+      if (!createdOrder?.id) throw new Error('No se recibió el pedido creado');
+
+      const orderId = createdOrder.id;
+      const frontFile = f.get('design_front');
+      const backFile = f.get('design_back');
+
+      async function subirImagenPedido(file, side) {
+        if (!(file instanceof File) || !file.size) return null;
+
+        if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+          throw new Error('Formato de imagen no válido');
+        }
+        if (file.size > 6 * 1024 * 1024) {
+          throw new Error('La imagen supera los 6 MB');
+        }
+
+        const extension =
+          file.type === 'image/png' ? 'png' :
+          file.type === 'image/webp' ? 'webp' : 'jpg';
+
+        const path = orderId + '/' + side + '-' + Date.now() + '.' + extension;
+
+        const { error } = await supabaseClient.storage
+          .from('order-designs')
+          .upload(path, file, {
+            contentType: file.type,
+            upsert: false
+          });
+
+        if (error) throw error;
+        return path;
+      }
+
+      try {
+        const frontPath = await subirImagenPedido(frontFile, 'front');
+        const backPath = await subirImagenPedido(backFile, 'back');
+
+        if (frontPath || backPath) {
+          const imagenes = {};
+          if (frontPath) imagenes.design_front_path = frontPath;
+          if (backPath) imagenes.design_back_path = backPath;
+
+          const { error: imageUpdateError } = await supabaseClient
+            .from('orders')
+            .update(imagenes)
+            .eq('id', orderId);
+
+          if (imageUpdateError) throw imageUpdateError;
+        }
+      } catch (imageError) {
+        console.error(imageError);
+        toast('Pedido guardado. Revisa las imágenes del diseño');
+      }
+
+      delete e.target.dataset.requestId;
+      closeDrawer();
+      await loadAll();
+      setView('orders');
+      toast('Pedido guardado correctamente');
+    } catch (err) {
+      console.error(err);
+      toast(err?.message || 'No se pudo guardar el pedido');
+    } finally {
+      e.target.dataset.saving = '0';
+      if (submitBtn && document.body.contains(submitBtn)) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Guardar pedido';
+      }
     }
-
-    const order = {
-      order_number:
-        'AIHXO-' +
-        String(orders.length + 1).padStart(4, '0'),
-     order_type: f.get('order_type'),
-base_stock_item_id: baseStockId || null,
-base_stock_quantity: baseStockId ? qty : 0,
-      customer_id: customer.id,
-      customer_name: customer.name,
-      contact: f.get('contact'),
-
-      product_id:
-  tipoPedido === 'catalogo'
-    ? p.id
-    : tipoPedido === 'diseno_aihxo'
-      ? disenoSeleccionado.id
-      : null,
-product_name:
-  tipoPedido === 'personalizado'
-    ? 'Producto personalizado'
-    : tipoPedido === 'diseno_aihxo'
-      ? disenoSeleccionado.model
-      : p.model,
-size:
-  tipoPedido === 'catalogo'
-    ? p.size
-    : (baseStockItem?.size || null),
-color:
-  tipoPedido === 'catalogo'
-    ? p.color
-    : (baseStockItem?.color || null),
-
-      design: detalleDiseno,
-
-      quantity: qty,
-      unit_price: price,
-      shipping: shipping,
-      total: qty * price + shipping,
-
-      product_cost:
-  tipoPedido === 'catalogo'
-    ? qty * cost(p)
-    : qty * Number(baseStockItem?.unit_cost || 0),
-
-      status: 'Pendiente'
-    };
-
-    const r = await supabaseClient
-  .from('orders')
-  .insert(order)
-  .select()
-  .single();
-
-    if (r.error) {
-      toast(r.error.message);
-      return;
-    }
-const orderId = r.data.id;
-
-const frontFile = f.get('design_front');
-const backFile = f.get('design_back');
-
-async function subirImagenPedido(file, side) {
-  if (!(file instanceof File) || !file.size) return null;
-
-  const extension =
-    file.type === 'image/png' ? 'png' :
-    file.type === 'image/webp' ? 'webp' : 'jpg';
-
-  const path = `${orderId}/${side}-${Date.now()}.${extension}`;
-
-  const { error } = await supabaseClient.storage
-    .from('order-designs')
-    .upload(path, file, {
-      contentType: file.type,
-      upsert: false
-    });
-
-  if (error) throw error;
-
-  return path;
-}
-
-try {
-  const frontPath = await subirImagenPedido(frontFile, 'front');
-  const backPath = await subirImagenPedido(backFile, 'back');
-
-  if (frontPath || backPath) {
-    const imagenes = {};
-
-    if (frontPath) imagenes.design_front_path = frontPath;
-    if (backPath) imagenes.design_back_path = backPath;
-
-    const { error: imageUpdateError } = await supabaseClient
-      .from('orders')
-      .update(imagenes)
-      .eq('id', orderId);
-
-    if (imageUpdateError) throw imageUpdateError;
-  }
-} catch (err) {
-  console.error(err);
-  toast('El pedido se guardó, pero hubo un problema con las imágenes');
-}
-    if (tipoPedido === 'catalogo' && p) {
-  await supabaseClient
-    .from('products')
-    .update({
-      stock: p.stock - qty
-    })
-    .eq('id', p.id);
-}
-   if (baseStockItem) {
-  const newBaseStock = Number(baseStockItem.quantity) - qty;
-
-  const baseUpdate = await supabaseClient
-    .from('base_stock_items')
-    .update({
-      quantity: newBaseStock
-    })
-    .eq('id', baseStockItem.id);
-
-  if (baseUpdate.error) {
-    toast('Error al descontar la camiseta base');
-    return;
-  }
-      const movement = await supabaseClient
-    .from('base_stock_movements')
-    .insert({
-      item_id: baseStockItem.id,
-      movement_type: 'salida',
-      quantity_delta: -qty,
-      previous_quantity: Number(baseStockItem.quantity),
-      new_quantity: newBaseStock,
-      reason: `Pedido ${order.order_number}`
-    });
-
-  if (movement.error) {
-    toast('Pedido guardado, pero no se pudo registrar el movimiento de stock');
-  }
-}
-
-    closeDrawer();
-
-    await loadAll();
-
-    setView('orders');
-
-    toast('Pedido personalizado guardado');
   };
 
   $('#orderType').onchange();
