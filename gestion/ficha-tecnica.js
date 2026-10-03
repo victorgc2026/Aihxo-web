@@ -188,6 +188,12 @@
   window.borrarDisenoTecnicoAIHXO=async function(id,orderId){if(!confirm('¿Eliminar esta zona/diseño?'))return;const r=await supabaseClient.from('order_technical_designs').delete().eq('id',id);if(r.error){toast('No se pudo eliminar');return;}toast('Zona eliminada');abrirFichaTecnicaAIHXO(orderId);};
 
 
+  window.aihxoEnsureDriveForOrder=async function(orderId){
+    const d=await data(orderId);
+    if(d.sheet?.drive_folder_id&&d.sheet?.drive_folder_url)return {id:d.sheet.drive_folder_id,webViewLink:d.sheet.drive_folder_url};
+    return ensureDriveFolder(d.order);
+  };
+
   window.prepararDrivePedidoAIHXO=async function(orderId){
     try{
       const d=await data(orderId);
