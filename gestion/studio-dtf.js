@@ -233,14 +233,14 @@
       <div class="field" style="margin-top:8px"><label>Texto</label><input id="stiText" value="${esc(o.text)}"></div>
       <div class="studio-field" style="margin-top:8px"><label>Tamaño px<input id="stiFont" type="number" value="${o.fontSize}"></label><label>Color<input id="stiColor" type="color" value="${o.color}"></label></div>` : ''}
       <div class="studio-note" style="margin-top:8px">${o.pantone?'<b>'+esc(o.pantone.name)+'</b> · '+esc(o.pantone.hex):'Sin referencia Pantone asignada.'}</div>`;
-    const bindNum=(id,fn)=>document.querySelector(id)?.addEventListener('input',e=>{fn(Number(e.target.value));redraw();});
+    const bindNum=(id,fn)=>document.querySelector(id)?.addEventListener('change',e=>{fn(Number(e.target.value));redraw();});
     bindNum('#stiX',v=>o.x=cm2px(v));bindNum('#stiY',v=>o.y=cm2px(v));
     bindNum('#stiW',v=>{const r=o.h/o.w;o.w=cm2px(v);o.h=o.w*r;});
     bindNum('#stiH',v=>{const r=o.w/o.h;o.h=cm2px(v);o.w=o.h*r;});
     bindNum('#stiR',v=>o.rotation=v);bindNum('#stiO',v=>o.opacity=clamp(v/100,0,1));
-    document.querySelector('#stiText')?.addEventListener('input',e=>{o.text=e.target.value;measureText(o);redraw();});
-    document.querySelector('#stiFont')?.addEventListener('input',e=>{o.fontSize=Number(e.target.value)||1;measureText(o);redraw();});
-    document.querySelector('#stiColor')?.addEventListener('input',e=>{o.color=e.target.value;redraw();});
+    document.querySelector('#stiText')?.addEventListener('change',e=>{o.text=e.target.value;measureText(o);redraw();});
+    document.querySelector('#stiFont')?.addEventListener('change',e=>{o.fontSize=Number(e.target.value)||1;measureText(o);redraw();});
+    document.querySelector('#stiColor')?.addEventListener('change',e=>{o.color=e.target.value;redraw();});
   }
 
   function measureText(o){
