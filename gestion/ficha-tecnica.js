@@ -187,6 +187,133 @@
   window.editarDisenoTecnicoAIHXO=async function(id,orderId){const r=await supabaseClient.from('order_technical_designs').select('*').eq('id',id).single();if(r.error){toast('No se pudo cargar');return;}designForm(orderId,r.data);};
   window.borrarDisenoTecnicoAIHXO=async function(id,orderId){if(!confirm('¿Eliminar esta zona/diseño?'))return;const r=await supabaseClient.from('order_technical_designs').delete().eq('id',id);if(r.error){toast('No se pudo eliminar');return;}toast('Zona eliminada');abrirFichaTecnicaAIHXO(orderId);};
 
+
+  window.prepararDrivePedidoAIHXO=async function(orderId){
+    try{
+      const d=await data(orderId);
+      toast('Preparando carpetas de Drive…');
+      const j=await ensureDriveFolder(d.order);
+      toast('Carpetas del pedido preparadas');
+      abrirFichaTecnicaAIHXO(orderId);
+      if(j.webViewLink&&confirm('Carpeta creada. ¿Abrirla ahora?'))window.open(j.webViewLink,'_blank');
+    }catch(e){console.error(e);toast(e.message||'No se pudo preparar Drive');}
+  };
+
+  window.subirFotosProduccionAIHXO=async function(orderId){
+    const input=document.getElementById('tsProductionPhotos');
+    const files=Array.from(input?.files||[]);
+    if(!files.length){toast('Selecciona una o más fotos');return;}
+    try{
+      for(const file of files){
+        const path='pedidos-personalizados/'+orderId+'/produccion/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'-'+file.name.replace(/[^a-zA-Z0-9._-]+/g,'-');
+        const up=await supabaseClient.storage.from('order-designs').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type||undefined});
+        if(up.error)throw up.error;
+        const ins=await supabaseClient.from('custom_order_files').insert({order_id:orderId,item_id:null,file_kind:'produccion_foto',file_name:file.name,storage_path:path,mime_type:file.type||null});
+        if(ins.error)throw ins.error;
+      }
+      await supabaseClient.from('order_production_checks').upsert({order_id:orderId,photos_done:true,updated_at:new Date().toISOString()},{onConflict:'order_id'});
+      toast('Fotos guardadas');
+      abrirFichaTecnicaAIHXO(orderId);
+    }catch(e){console.error(e);toast('No se pudieron subir las fotos');}
+  };
+
+  window.repetirPedidoAIHXO=async function(orderId){
+    try{
+      const d=await data(orderId);
+      if(!confirm('Crear un nuevo pedido copiando prendas, briefing, medidas, colores y zonas de '+d.order.order_number+'?'))return;
+      const {data:nums,error:ne}=await supabaseClient.from('orders').select('order_number');
+      if(ne)throw ne;
+      let mx=0;
+      (nums||[]).forEach(o=>{const m=String(o.order_number||'').match(/AIHXO-(\d+)/);if(m)mx=Math.max(mx,Number(m[1]));});
+      const newNumber='AIHXO-'+String(mx+1).padStart(4,'0');
+      const op={...d.order};
+      delete op.id;delete op.created_at;delete op.updated_at;
+      op.order_number=newNumber;
+      op.status='Pendiente';
+      op.production_status='Pendiente';
+      op.dtf_status='Pendiente';
+      op.design_status='Pendiente';
+      op.design_approval_status='Pendiente';
+      op.production_updated_at=new Date().toISOString();
+      const or=await supabaseClient.from('orders').insert(op).select().single();
+      if(or.error)throw or.error;
+      const id=or.data.id;
+      const itemMap={};
+      for(const old of d.items){
+        const row={...old,order_id:id};
+        delete row.id;delete row.created_at;delete row.updated_at;
+        const rr=await supabaseClient.from('custom_order_items').insert(row).select().single();
+        if(rr.error)throw rr.error;
+        itemMap[old.id]=rr.data.id;
+      }
+      if(d.sheet){
+        const sh={...d.sheet,order_id:id,client_approved:false,client_approved_at:null,client_approved_by:null,client_approval_method:null,client_approval_notes:null,drive_folder_id:null,drive_folder_url:null,reviewed_by:null,reviewed_at:null,updated_at:new Date().toISOString()};
+        delete sh.id;delete sh.created_at;
+        const sr=await supabaseClient.from('order_technical_sheets').insert(sh);
+        if(sr.error)throw sr.error;
+      }
+      if(d.designs.length){
+        const rows=d.designs.map(x=>{
+          const q={...x,order_id:id,item_id:x.item_id?itemMap[x.item_id]||null:null,approved_by_client:false,status:'Borrador',updated_at:new Date().toISOString()};
+          delete q.id;delete q.created_at;
+          return q;
+        });
+        const dr=await supabaseClient.from('order_technical_designs').insert(rows);
+        if(dr.error)throw dr.error;
+      }
+      await supabaseClient.from('order_production_checks').insert({order_id:id});
+      await loadAll();
+      toast('Pedido repetido: '+newNumber);
+      if(typeof setView==='function')setView('custom-orders');
+      setTimeout(()=>abrirPedidoPersonalizado(id),300);
+    }catch(e){console.error(e);toast('No se pudo repetir el pedido');}
+  };
+
+  window.generarGangSheetAIHXO=async function(orderId){
+    let d;
+    try{d=await data(orderId);}catch(e){console.error(e);toast('No se pudo preparar el gang sheet');return;}
+    const valid=d.designs.filter(x=>x.storage_path&&x.width_cm&&x.height_cm&&String(x.storage_path).startsWith('pedidos-personalizados/'));
+    if(!valid.length){toast('No hay diseños con archivo local y medidas');return;}
+    const widthCm=Number(prompt('Ancho del gang sheet en cm','56')||56);
+    const gapCm=Number(prompt('Separación entre diseños en cm','0.5')||0.5);
+    if(widthCm<=0)return;
+    toast('Generando gang sheet…');
+    try{
+      const dpi=300,pxcm=dpi/2.54,W=Math.round(widthCm*pxcm),gap=Math.round(gapCm*pxcm);
+      const pieces=[];
+      for(const x of valid){
+        let qty=1;
+        const item=d.items.find(i=>i.id===x.item_id);
+        if(item)qty=Number(item.quantity||1);
+        const signed=await supabaseClient.storage.from('order-designs').createSignedUrl(x.storage_path,600);
+        if(signed.error||!signed.data?.signedUrl)continue;
+        const blob=await fetch(signed.data.signedUrl).then(r=>r.blob());
+        const url=URL.createObjectURL(blob),img=new Image();
+        await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url;});
+        for(let n=0;n<qty;n++)pieces.push({img,url,w:Math.round(Number(x.width_cm)*pxcm),h:Math.round(Number(x.height_cm)*pxcm)});
+      }
+      if(!pieces.length)throw new Error('No se pudieron cargar imágenes');
+      let cx=gap,cy=gap,rowH=0,maxY=0;
+      pieces.forEach(p=>{if(cx+p.w+gap>W){cx=gap;cy+=rowH+gap;rowH=0;}p.left=cx;p.top=cy;cx+=p.w+gap;rowH=Math.max(rowH,p.h);maxY=Math.max(maxY,cy+p.h+gap);});
+      const canvas=document.createElement('canvas');
+      canvas.width=W;canvas.height=maxY;
+      const ctx=canvas.getContext('2d');
+      ctx.clearRect(0,0,W,maxY);
+      ctx.imageSmoothingEnabled=true;
+      ctx.imageSmoothingQuality='high';
+      pieces.forEach(p=>ctx.drawImage(p.img,p.left,p.top,p.w,p.h));
+      const blob=await new Promise(res=>canvas.toBlob(res,'image/png',1));
+      pieces.forEach(p=>URL.revokeObjectURL(p.url));
+      if(!blob)throw new Error('No se pudo crear el PNG');
+      const u=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=u;
+      a.download='AIHXO_'+d.order.order_number+'_GANG_'+widthCm+'cm.png';
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(u),2000);
+      toast('Gang sheet generado');
+    }catch(e){console.error(e);toast(e.message||'No se pudo generar el gang sheet');}
+  };
+
   const oldOpen=window.abrirPedidoPersonalizado;
   if(typeof oldOpen==='function')window.abrirPedidoPersonalizado=async function(id){await oldOpen(id);const bdy=document.getElementById('drawerBody');if(bdy&&!bdy.querySelector('.aihxo-tech-open')){const b=document.createElement('button');b.className='primary aihxo-tech-open';b.style.cssText='width:100%;margin:12px 0;padding:15px';b.textContent='📋 Abrir ficha técnica / briefing de producción';b.onclick=()=>abrirFichaTecnicaAIHXO(id);bdy.insertBefore(b,bdy.children[1]||null);}};
   const oldSave=window.guardarCabeceraPedidoPersonalizado;
