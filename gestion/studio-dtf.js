@@ -11,13 +11,27 @@
   const state = {
     widthCm: 30, heightCm: 35, objects: [], selectedId: null,
     tool: 'select', drag: null, pickedColor: null, colorSelection: null,
-    palette: [
-      {name:'PANTONE 534 C', hex:'#1B365D'},
-      {name:'PANTONE Black C', hex:'#2D2926'},
-      {name:'PANTONE White', hex:'#FFFFFF'}
-    ]
+    palette: loadPalette()
   };
 
+  const DEFAULT_PALETTE = [
+    {name:'PANTONE 533 C', hex:'#031751', source:'Kamuk'},
+    {name:'PANTONE 534 C', hex:'#002279', source:'Kamuk'},
+    {name:'PANTONE 563 C', hex:'#2066CA', source:'Kamuk'},
+    {name:'PANTONE 430 C', hex:'#628A90', source:'Kamuk'},
+    {name:'PANTONE 7506 C', hex:'#EBDAA6', source:'Kamuk'}
+  ];
+  function loadPalette(){
+    try{
+      const saved=JSON.parse(localStorage.getItem('aihxoStudioPantonePalette')||'null');
+      if(Array.isArray(saved)&&saved.length) return saved;
+    }catch(e){}
+    try{localStorage.setItem('aihxoStudioPantonePalette',JSON.stringify(DEFAULT_PALETTE));}catch(e){}
+    return DEFAULT_PALETTE.map(x=>({...x}));
+  }
+  function savePalette(){
+    try{localStorage.setItem('aihxoStudioPantonePalette',JSON.stringify(state.palette));}catch(e){}
+  }
   const uid=()=> 'o'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -119,11 +133,25 @@
               <label>Equivalencia HEX<input id="stPantoneHex" type="color" value="#1b365d"></label>
               <label>Tolerancia<input id="stTolerance" type="number" min="0" max="255" value="35"></label>
             </div>
-            <select id="stPalette" style="margin-top:8px"><option value="">Paleta AIHXO…</option>${state.palette.map((p,i)=>`<option value="${i}">${esc(p.name)} · ${esc(p.hex)}</option>`).join('')}</select>
+            <select id="stPalette" style="margin-top:8px"><option value="">Paleta Kamuk / AIHXO…</option>${state.palette.map((p,i)=>`<option value="${i}">${esc(p.name)} · ${esc(p.hex)}${p.source?' · '+esc(p.source):''}</option>`).join('')}</select>
             <div class="studio-toolbar" style="margin-top:8px">
               <button id="stAssignPantone" class="secondary">Asignar referencia</button>
               <button id="stReplaceColor" class="secondary">Reemplazar color tomado</button>
             </div>
+            <details style="margin-top:12px">
+              <summary style="cursor:pointer;font-weight:800">＋ Gestionar paleta</summary>
+              <div class="studio-note" style="margin-top:8px">Añade aquí nuevos Pantone o referencias de proveedor. Se guardan en este dispositivo.</div>
+              <div class="field" style="margin-top:8px"><label>Código / nombre</label><input id="stNewPantoneName" placeholder="Ej. PANTONE 186 C"></div>
+              <div class="studio-field" style="margin-top:8px">
+                <label>Color visual<input id="stNewPantoneHex" type="color" value="#000000"></label>
+                <label>Proveedor<input id="stNewPantoneSource" placeholder="Kamuk"></label>
+              </div>
+              <div class="studio-toolbar" style="margin-top:8px">
+                <button id="stAddPantone" class="secondary">Añadir a paleta</button>
+                <button id="stDeletePantone" class="secondary">Eliminar seleccionado</button>
+              </div>
+              <div id="stPaletteList" class="muted" style="font-size:11px"></div>
+            </details>
             <div id="stColorInfo" class="studio-note">Usa <b>Tomar color</b> y toca un píxel del diseño. Después puedes sustituir ese color por la equivalencia RGB del Pantone elegido.</div>
 
             <h3 style="margin-top:18px">Salida</h3>
@@ -359,6 +387,39 @@
     g.putImageData(id,0,0);const im=new Image();im.onload=()=>{o.img=im;o.src=im.src;redraw();toast?.('Color reemplazado en '+n+' píxeles');};im.src=off.toDataURL('image/png');
   }
 
+  function refreshPaletteUI(){
+    const sel=document.querySelector('#stPalette');
+    if(sel){
+      const current=sel.value;
+      sel.innerHTML='<option value="">Paleta Kamuk / AIHXO…</option>'+state.palette.map((p,i)=>'<option value="'+i+'">'+esc(p.name)+' · '+esc(p.hex)+(p.source?' · '+esc(p.source):'')+'</option>').join('');
+      if(current!=='' && state.palette[Number(current)]) sel.value=current;
+    }
+    const list=document.querySelector('#stPaletteList');
+    if(list) list.innerHTML=state.palette.map((p,i)=>'<div style="display:flex;align-items:center;gap:7px;padding:4px 0"><span style="width:18px;height:18px;border-radius:4px;border:1px solid #ccd3dd;background:'+esc(p.hex)+'"></span><b>'+esc(p.name)+'</b><span>'+esc(p.hex)+'</span><span>'+(p.source?esc(p.source):'')+'</span></div>').join('');
+  }
+
+  function addPantone(){
+    const name=(document.querySelector('#stNewPantoneName')?.value||'').trim();
+    const hex=document.querySelector('#stNewPantoneHex')?.value||'#000000';
+    const source=(document.querySelector('#stNewPantoneSource')?.value||'').trim();
+    if(!name){alert('Escribe el código o nombre del color.');return;}
+    const existing=state.palette.findIndex(p=>String(p.name).toLowerCase()===name.toLowerCase());
+    const item={name,hex:hex.toUpperCase(),source};
+    if(existing>=0) state.palette[existing]=item; else state.palette.push(item);
+    savePalette();refreshPaletteUI();
+    const sel=document.querySelector('#stPalette');if(sel)sel.value=String(existing>=0?existing:state.palette.length-1);
+    document.querySelector('#stPantoneName').value=item.name;document.querySelector('#stPantoneHex').value=item.hex;
+    toast?.('Color guardado en la paleta');
+  }
+
+  function deletePantone(){
+    const sel=document.querySelector('#stPalette');const idx=Number(sel?.value);
+    if(!sel||sel.value===''||!state.palette[idx]){alert('Selecciona primero un color de la paleta.');return;}
+    const name=state.palette[idx].name;
+    if(!confirm('¿Eliminar '+name+' de la paleta?'))return;
+    state.palette.splice(idx,1);savePalette();refreshPaletteUI();toast?.('Color eliminado');
+  }
+
   function assignPantone(){
     const o=selected();if(!o){alert('Selecciona una capa.');return;}
     const name=document.querySelector('#stPantoneName').value.trim()||'Color de producción';
@@ -415,6 +476,9 @@
     document.querySelector('#stDuplicate').onclick=duplicate;document.querySelector('#stDelete').onclick=del;
     document.querySelector('#stUndo').onclick=()=>alert('Historial de deshacer llegará en la siguiente versión. El original importado no se modifica.');
     document.querySelector('#stPalette').onchange=e=>{const p=state.palette[Number(e.target.value)];if(!p)return;document.querySelector('#stPantoneName').value=p.name;document.querySelector('#stPantoneHex').value=p.hex;};
+    document.querySelector('#stAddPantone').onclick=addPantone;
+    document.querySelector('#stDeletePantone').onclick=deletePantone;
+    refreshPaletteUI();
     document.querySelector('#stAssignPantone').onclick=assignPantone;document.querySelector('#stReplaceColor').onclick=replacePicked;
     document.querySelector('#stExportPng').onclick=exportPng;document.querySelector('#stExportSvg').onclick=exportSvg;
     const c=canvas();c.onpointerdown=canvasDown;c.onpointermove=canvasMove;c.onpointerup=canvasUp;c.onpointercancel=canvasUp;
