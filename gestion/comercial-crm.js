@@ -1,7 +1,7 @@
 /* AIHXO · Comercial CRM */
 (function(){
 if(window.__aihxoCommercialCRM)return; window.__aihxoCommercialCRM=true;
-const e=s=>String(s??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[m]));
+const e=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const eur=n=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(n||0));
 const states=['Pendiente','Contactado','Reunión','Presupuesto','Seguimiento','Cliente','Descartado'];
 const prios=['Crítica','Alta','Media','Baja'];
