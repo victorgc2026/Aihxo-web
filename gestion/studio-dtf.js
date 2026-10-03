@@ -155,7 +155,13 @@
             <div id="stColorInfo" class="studio-note">Usa <b>Tomar color</b> y toca un píxel del diseño. Después puedes sustituir ese color por la equivalencia RGB del Pantone elegido.</div>
 
             <h3 style="margin-top:18px">Salida</h3>
-            <button id="stExportPng" class="primary" style="width:100%">Exportar PNG · 300 ppp</button>
+            <div class="studio-field">
+              <label>Copias para impresión<input id="stCopies" type="number" min="1" max="200" value="1"></label>
+              <label>Separación cm<input id="stGap" type="number" min="0" max="5" step=".1" value=".5"></label>
+            </div>
+            <div class="field" style="margin-top:8px"><label>Ancho máximo hoja DTF (cm)</label><input id="stSheetWidth" type="number" min="5" max="100" step=".1" value="56"></div>
+            <button id="stExportSheet" class="primary" style="width:100%;margin-top:8px">Montar copias en hoja DTF</button>
+            <button id="stExportPng" class="secondary" style="width:100%;margin-top:8px">Exportar 1 PNG · 300 ppp</button>
             <button id="stExportSvg" class="secondary" style="width:100%;margin-top:8px">Guardar maestro SVG</button>
             <div class="studio-note" style="margin-top:10px"><b>Importante:</b> PNG es RGB. El nombre Pantone se conserva como referencia de producción y en el SVG maestro. Un PDF con tinta plana real requiere una exportación PDF spot específica.</div>
           </section>
@@ -441,6 +447,31 @@
   function dl(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);}
   function exportPng(){outputCanvas().toBlob(b=>b&&dl(b,`AIHXO_${state.widthCm}x${state.heightCm}cm_300ppp.png`),'image/png');}
 
+  function exportSheet(){
+    const copies=Math.max(1,Math.floor(Number(document.querySelector('#stCopies')?.value||1)));
+    const gapCm=Math.max(0,Number(document.querySelector('#stGap')?.value||0));
+    const sheetWidthCm=Math.max(state.widthCm,Number(document.querySelector('#stSheetWidth')?.value||56));
+    const src=outputCanvas();
+    const itemW=src.width,itemH=src.height,gapPx=Math.round(cm2px(gapCm)),sheetW=Math.round(cm2px(sheetWidthCm));
+    const cols=Math.max(1,Math.floor((sheetW+gapPx)/(itemW+gapPx)));
+    const rows=Math.ceil(copies/cols);
+    const usedCols=Math.min(cols,copies);
+    const outW=Math.min(sheetW, usedCols*itemW + Math.max(0,usedCols-1)*gapPx);
+    const outH=rows*itemH + Math.max(0,rows-1)*gapPx;
+    const out=document.createElement('canvas');out.width=outW;out.height=outH;
+    const g=out.getContext('2d');
+    for(let i=0;i<copies;i++){
+      const col=i%cols,row=Math.floor(i/cols);
+      g.drawImage(src,col*(itemW+gapPx),row*(itemH+gapPx));
+    }
+    out.toBlob(b=>{
+      if(!b)return;
+      const usedW=(outW/CM_TO_PX).toFixed(1), usedH=(outH/CM_TO_PX).toFixed(1);
+      dl(b,`AIHXO_${copies}copias_${usedW}x${usedH}cm_DTF.png`);
+      toast?.(`${copies} copias montadas · ${usedW} × ${usedH} cm`);
+    },'image/png');
+  }
+
   function exportSvg(){
     const wmm=state.widthCm*10,hmm=state.heightCm*10;
     const meta=state.objects.filter(o=>o.pantone).map(o=>({layer:o.name,pantone:o.pantone.name,hex:o.pantone.hex}));
@@ -480,6 +511,7 @@
     document.querySelector('#stDeletePantone').onclick=deletePantone;
     refreshPaletteUI();
     document.querySelector('#stAssignPantone').onclick=assignPantone;document.querySelector('#stReplaceColor').onclick=replacePicked;
+    document.querySelector('#stExportSheet').onclick=exportSheet;
     document.querySelector('#stExportPng').onclick=exportPng;document.querySelector('#stExportSvg').onclick=exportSvg;
     const c=canvas();c.onpointerdown=canvasDown;c.onpointermove=canvasMove;c.onpointerup=canvasUp;c.onpointercancel=canvasUp;
     window.addEventListener('resize',()=>{if(document.querySelector('#studioCanvas'))redraw();},{passive:true});
