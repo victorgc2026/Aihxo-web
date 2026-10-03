@@ -761,6 +761,11 @@
         }
       }
 
+      if (typeof window.aihxoEnsureDriveForOrder === 'function') {
+        try { await window.aihxoEnsureDriveForOrder(order.id); }
+        catch (driveErr) { console.warn('No se pudo crear la carpeta Drive del pedido', driveErr); }
+      }
+
       await loadAll();
       closeDrawer();
       toast(`Pedido ${orderNumber} guardado`);
