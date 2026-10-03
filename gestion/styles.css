@@ -612,3 +612,9 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted
   .tech-grid2,.tech-garment-grid,.tech-check-grid{grid-template-columns:1fr 1fr!important}
   @page{size:A4 landscape;margin:8mm}
 }
+
+.tech-shirt-svg{width:100%;max-width:360px;touch-action:manipulation}
+.tech-hit{cursor:pointer}
+.tech-hit rect{fill:#087cf4;fill-opacity:.04;stroke:#087cf4;stroke-opacity:.16;stroke-width:1.5;transition:.15s}
+.tech-hit:hover rect,.tech-hit:active rect{fill-opacity:.14;stroke-opacity:.65;stroke-width:2}
+@media print{.tech-hit rect{fill:none!important;stroke:none!important}}
