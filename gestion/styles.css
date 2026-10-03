@@ -583,3 +583,32 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted
  .kanban-column{min-width:86vw;max-width:86vw}
  .kanban-wrap{margin-left:-2px;margin-right:-2px}
 }
+
+
+/* AIHXO · Ficha técnica / briefing */
+.aihxo-tech-sheet{display:grid;gap:12px}
+.tech-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tech-garment-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;text-align:center;align-items:start}
+.tech-item-chip{padding:9px 10px;border:1px solid #e2e7ee;border-radius:10px;margin-bottom:8px;background:#fafbfc}
+.tech-design-row{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #edf0f4}
+.tech-num{width:28px;height:28px;border-radius:50%;background:#087cf4;color:#fff;display:grid;place-items:center;font-weight:900;flex:0 0 28px}
+.tech-check-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin:10px 0 14px}
+.tech-check{display:flex;align-items:center;gap:8px;padding:7px 0}
+.tech-check input{width:18px;height:18px}
+.tech-ready{border:1px solid #a7e0b7;background:#f4fff6}
+.tech-blocked{border:1px solid #efb0b0;background:#fff7f7}
+@media(max-width:760px){
+  .tech-grid2,.tech-garment-grid,.tech-check-grid{grid-template-columns:1fr}
+}
+@media print{
+  body *{visibility:hidden!important}
+  .aihxo-tech-sheet,.aihxo-tech-sheet *{visibility:visible!important}
+  .aihxo-tech-sheet{position:absolute;left:0;top:0;width:100%;background:white;color:black;padding:0}
+  .aihxo-tech-sheet .card{box-shadow:none!important;border:1px solid #bbb!important;break-inside:avoid}
+  .aihxo-tech-sheet button{display:none!important}
+  .drawer{position:static!important;background:white!important}
+  .drawer-card{width:100%!important;max-width:none!important;height:auto!important;overflow:visible!important;box-shadow:none!important}
+  .drawer-card>.x{display:none!important}
+  .tech-grid2,.tech-garment-grid,.tech-check-grid{grid-template-columns:1fr 1fr!important}
+  @page{size:A4 landscape;margin:8mm}
+}
