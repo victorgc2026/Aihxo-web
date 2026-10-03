@@ -10,7 +10,7 @@
   const CM_TO_PX = DPI / 2.54;
   const state = {
     widthCm: 30, heightCm: 35, objects: [], selectedId: null,
-    tool: 'select', drag: null, pickedColor: null,
+    tool: 'select', drag: null, pickedColor: null, colorSelection: null,
     palette: [
       {name:'PANTONE 534 C', hex:'#1B365D'},
       {name:'PANTONE Black C', hex:'#2D2926'},
@@ -87,11 +87,11 @@
             <div class="studio-toolbar">
               <button id="stSelect" class="primary">↖ Seleccionar</button>
               <button id="stErase" class="secondary">⌫ Borrar zona</button>
-              <button id="stPick" class="secondary">🎯 Tomar color</button>
+              <button id="stPick" class="secondary">🎯 Tomar color</button><button id="stSelectColorArea" class="secondary">▭ Seleccionar zona</button>
             </div>
             <div class="field"><label>Importar PNG / JPG / WEBP / SVG</label><input id="stFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></div>
             <button id="stAddText" class="secondary" style="width:100%;margin-top:8px">T＋ Añadir texto</button>
-            <div class="studio-note" style="margin-top:12px"><b>Borrar zona</b>: arrastra un rectángulo sobre una imagen seleccionada. Solo borra píxeles de esa capa, no el resto del diseño.</div>
+            <div class="studio-note" style="margin-top:12px"><b>Borrar zona</b>: arrastra un rectángulo sobre una imagen seleccionada. <br><b>Seleccionar zona</b>: arrastra un rectángulo para limitar los cambios de color solo a esa parte de la imagen.</div>
 
             <h3 style="margin-top:18px">Capas</h3>
             <div id="stLayers"></div>
@@ -180,6 +180,12 @@
       g.save();g.strokeStyle='#087cf4';g.lineWidth=2;g.setLineDash([7,5]);
       g.strokeRect(o.x*s,o.y*s,o.w*s,o.h*s);g.restore();
     }
+    if(state.colorSelection && state.colorSelection.objectId===state.selectedId){
+      const q=state.colorSelection;
+      g.save();g.strokeStyle='#8b5cf6';g.fillStyle='rgba(139,92,246,.08)';g.lineWidth=2;g.setLineDash([6,4]);
+      const rx=Math.min(q.x1,q.x2)*s, ry=Math.min(q.y1,q.y2)*s, rw=Math.abs(q.x2-q.x1)*s, rh=Math.abs(q.y2-q.y1)*s;
+      g.fillRect(rx,ry,rw,rh);g.strokeRect(rx,ry,rw,rh);g.restore();
+    }
     const st=document.querySelector('#stStatus');
     if(st) st.textContent=`${state.widthCm} × ${state.heightCm} cm · salida ${Math.round(cm2px(state.widthCm))} × ${Math.round(cm2px(state.heightCm))} px a 300 ppp · ${state.objects.length} capas`;
     renderLayers(); renderInspector();
@@ -263,6 +269,10 @@
       if(!selected() || selected().type!=='image'){alert('Selecciona primero una capa de imagen.');return;}
       state.drag={kind:'erase',x:p.x,y:p.y,x2:p.x,y2:p.y}; return;
     }
+    if(state.tool==='color-area'){
+      if(!selected() || selected().type!=='image'){alert('Selecciona primero una capa de imagen.');return;}
+      state.drag={kind:'color-area',x:p.x,y:p.y,x2:p.x,y2:p.y}; return;
+    }
     if(o){state.selectedId=o.id;state.drag={kind:'move',dx:p.x-o.x,dy:p.y-o.y};}else{state.selectedId=null;state.drag=null;}
     redraw();
   }
@@ -270,13 +280,33 @@
     if(!state.drag)return;const p=pointToDoc(ev);
     if(state.drag.kind==='move'){const o=selected();if(o){o.x=p.x-state.drag.dx;o.y=p.y-state.drag.dy;redraw();}}
     else if(state.drag.kind==='erase'){state.drag.x2=p.x;state.drag.y2=p.y;redraw();drawEraseRect();}
+    else if(state.drag.kind==='color-area'){state.drag.x2=p.x;state.drag.y2=p.y;redraw();drawColorAreaRect();}
   }
-  function canvasUp(){if(state.drag?.kind==='erase')eraseRect(state.drag);state.drag=null;}
+  function canvasUp(){
+    if(state.drag?.kind==='erase') eraseRect(state.drag);
+    if(state.drag?.kind==='color-area') setColorArea(state.drag);
+    state.drag=null;
+  }
 
   function drawEraseRect(){
     const d=state.drag;if(!d)return;const c=canvas(),g=ctx(),s=Number(c.dataset.scale||1);
     g.save();g.strokeStyle='#d13b4b';g.lineWidth=2;g.setLineDash([5,4]);
     g.strokeRect(Math.min(d.x,d.x2)*s,Math.min(d.y,d.y2)*s,Math.abs(d.x2-d.x)*s,Math.abs(d.y2-d.y)*s);g.restore();
+  }
+
+  function drawColorAreaRect(){
+    const d=state.drag;if(!d)return;const c=canvas(),g=ctx(),s=Number(c.dataset.scale||1);
+    g.save();g.strokeStyle='#8b5cf6';g.fillStyle='rgba(139,92,246,.08)';g.lineWidth=2;g.setLineDash([6,4]);
+    g.fillRect(Math.min(d.x,d.x2)*s,Math.min(d.y,d.y2)*s,Math.abs(d.x2-d.x)*s,Math.abs(d.y2-d.y)*s);
+    g.strokeRect(Math.min(d.x,d.x2)*s,Math.min(d.y,d.y2)*s,Math.abs(d.x2-d.x)*s,Math.abs(d.y2-d.y)*s);g.restore();
+  }
+
+  function setColorArea(d){
+    const o=selected(); if(!o||o.type!=='image') return;
+    state.colorSelection={objectId:o.id,x1:d.x,y1:d.y,x2:d.x2,y2:d.y2};
+    const info=document.querySelector('#stColorInfo');
+    if(info) info.innerHTML='<b>Zona de color seleccionada.</b> Ahora usa “Tomar color” dentro de esa zona y después “Reemplazar color tomado”.';
+    redraw();
   }
 
   function eraseRect(d){
@@ -310,7 +340,22 @@
     const target=hexRgb(document.querySelector('#stPantoneHex').value),tol=Number(document.querySelector('#stTolerance').value||35),src=state.pickedColor;
     const off=document.createElement('canvas');off.width=o.img.naturalWidth;off.height=o.img.naturalHeight;const g=off.getContext('2d',{willReadFrequently:true});
     g.drawImage(o.img,0,0);const id=g.getImageData(0,0,off.width,off.height),d=id.data;let n=0;
-    for(let i=0;i<d.length;i+=4){if(d[i+3]===0)continue;const dist=Math.hypot(d[i]-src[0],d[i+1]-src[1],d[i+2]-src[2]);if(dist<=tol){d[i]=target[0];d[i+1]=target[1];d[i+2]=target[2];n++;}}
+    let sx1=0,sy1=0,sx2=off.width,sy2=off.height;
+    if(state.colorSelection && state.colorSelection.objectId===o.id){
+      const q=state.colorSelection;
+      sx1=clamp(Math.floor((Math.min(q.x1,q.x2)-o.x)/o.w*off.width),0,off.width);
+      sy1=clamp(Math.floor((Math.min(q.y1,q.y2)-o.y)/o.h*off.height),0,off.height);
+      sx2=clamp(Math.ceil((Math.max(q.x1,q.x2)-o.x)/o.w*off.width),0,off.width);
+      sy2=clamp(Math.ceil((Math.max(q.y1,q.y2)-o.y)/o.h*off.height),0,off.height);
+    }
+    for(let y=sy1;y<sy2;y++){
+      for(let x=sx1;x<sx2;x++){
+        const i=(y*off.width+x)*4;
+        if(d[i+3]===0)continue;
+        const dist=Math.hypot(d[i]-src[0],d[i+1]-src[1],d[i+2]-src[2]);
+        if(dist<=tol){d[i]=target[0];d[i+1]=target[1];d[i+2]=target[2];n++;}
+      }
+    }
     g.putImageData(id,0,0);const im=new Image();im.onload=()=>{o.img=im;o.src=im.src;redraw();toast?.('Color reemplazado en '+n+' píxeles');};im.src=off.toDataURL('image/png');
   }
 
@@ -352,7 +397,7 @@
 
   function setTool(t){
     state.tool=t;
-    [['stSelect','select'],['stErase','erase'],['stPick','pick']].forEach(([id,val])=>{const b=document.querySelector('#'+id);if(b)b.className=val===t?'primary':'secondary';});
+    [['stSelect','select'],['stErase','erase'],['stPick','pick'],['stSelectColorArea','color-area']].forEach(([id,val])=>{const b=document.querySelector('#'+id);if(b)b.className=val===t?'primary':'secondary';});
   }
 
   function bind(){
@@ -365,6 +410,7 @@
     document.querySelector('#stSelect').onclick=()=>setTool('select');
     document.querySelector('#stErase').onclick=()=>setTool('erase');
     document.querySelector('#stPick').onclick=()=>setTool('pick');
+    document.querySelector('#stSelectColorArea').onclick=()=>setTool('color-area');
     document.querySelector('#stFit').onclick=fitSelected;document.querySelector('#stCenter').onclick=centerSelected;
     document.querySelector('#stDuplicate').onclick=duplicate;document.querySelector('#stDelete').onclick=del;
     document.querySelector('#stUndo').onclick=()=>alert('Historial de deshacer llegará en la siguiente versión. El original importado no se modifica.');
