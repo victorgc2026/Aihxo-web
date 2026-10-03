@@ -1,4 +1,4 @@
-/* AIHXO · Ficha técnica / briefing de producción · v2 */
+/* AIHXO · Ficha técnica / briefing de producción · v3 */
 (function(){
   const E=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const N=v=>Number(v||0);
@@ -9,6 +9,28 @@
     ['back_neck','Cuello trasero','back'],['side_left','Lateral izquierdo','custom'],['side_right','Lateral derecho','custom'],
     ['hem','Bajo','custom'],['custom','Zona personalizada','custom']
   ];
+
+  const DRIVE_FN='https://zoiesxtchnesrilpuqek.supabase.co/functions/v1/google-drive-oauth';
+  async function authFetch(url,options={}){
+    const {data:{session}}=await supabaseClient.auth.getSession();
+    if(!session)throw new Error('Sesión no disponible');
+    const headers=new Headers(options.headers||{});
+    headers.set('Authorization','Bearer '+session.access_token);
+    return fetch(url,{...options,headers});
+  }
+  async function ensureDriveFolder(order){
+    const fd=new FormData();
+    fd.append('action','ensure_order_folder');
+    fd.append('order_number',order.order_number||'Pedido');
+    fd.append('customer_name',order.customer_name||'Cliente');
+    const r=await authFetch(DRIVE_FN,{method:'POST',body:fd});
+    const j=await r.json();
+    if(!r.ok)throw new Error(j.error||'No se pudo crear la carpeta de Drive');
+    await supabaseClient.from('order_technical_sheets').upsert({
+      order_id:order.id,drive_folder_id:j.id,drive_folder_url:j.webViewLink,updated_at:new Date().toISOString()
+    },{onConflict:'order_id'});
+    return j;
+  }
 
   async function data(orderId){
     const rs=await Promise.all([
