@@ -174,7 +174,7 @@
           <h2>${E(o.customer_name||'Sin cliente')}</h2>
           <p>${E(o.contact||'Sin contacto')}</p>
         </div>
-        <div class="tpv-detail-total"><span>Total</span><strong>${M(total)}</strong></div>
+        <div class="tpv-detail-total"><span>Total</span><strong>${M(total)}</strong><button type="button" class="secondary small" style="margin-top:7px;width:100%" onclick="window.tpvEditOrderPrice?.('${o.id}')">✏️ Editar precio</button></div>
       </div>
 
       <div class="tpv-order-progress">
@@ -214,6 +214,78 @@
         </select>
         <button class="primary" onclick="window.tpvSaveOrderStatus?.('${o.id}')">Guardar estado</button>
       </div>`;
+  };
+
+
+  window.tpvEditOrderPrice=function(id){
+    const o=(orders||[]).find(x=>String(x.id)===String(id));
+    if(!o){toast('Pedido no encontrado');return}
+    const paid=N(o.amount_paid),qty=Math.max(1,N(o.quantity)||1),shipping=N(o.shipping);
+    const currentTotal=N(o.total);
+    const currentUnit=N(o.unit_price)||(currentTotal-shipping)/qty;
+    const b=document.getElementById('drawerBody');
+    if(!b)return;
+
+    const old=b.querySelector('#tpvPriceEditor');
+    if(old){old.remove();return}
+
+    const box=document.createElement('div');
+    box.id='tpvPriceEditor';
+    box.className='tpv-detail-section';
+    box.style.marginTop='12px';
+    box.innerHTML=`
+      <div class="tpv-panel-head">
+        <div><span class="tpv-eyebrow">PRECIO DEL PEDIDO</span><h3>Modificar importe</h3></div>
+      </div>
+      <div class="formgrid">
+        <div class="field">
+          <label>Precio unitario (€)</label>
+          <input id="tpvPriceUnit" type="number" min="0" step="0.01" value="${currentUnit.toFixed(2)}">
+        </div>
+        <div class="field">
+          <label>Cantidad</label>
+          <input id="tpvPriceQty" type="number" min="1" step="1" value="${qty}">
+        </div>
+        <div class="field">
+          <label>Envío cobrado al cliente (€)</label>
+          <input id="tpvPriceShipping" type="number" min="0" step="0.01" value="${shipping.toFixed(2)}">
+        </div>
+        <div class="field">
+          <label>Total final (€)</label>
+          <input id="tpvPriceTotal" type="number" min="0" step="0.01" value="${currentTotal.toFixed(2)}">
+        </div>
+      </div>
+      <div class="muted" style="margin-top:6px">Cobrado hasta ahora: <b>${M(paid)}</b>. El total no puede quedar por debajo de ese importe.</div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button type="button" class="primary" id="tpvPriceSave" style="flex:1">Guardar precio</button>
+        <button type="button" class="secondary" id="tpvPriceCancel">Cancelar</button>
+      </div>`;
+
+    const payCard=b.querySelector('.tpv-pay-card');
+    if(payCard) payCard.insertAdjacentElement('beforebegin',box);
+    else b.prepend(box);
+
+    const unit=box.querySelector('#tpvPriceUnit'),q=box.querySelector('#tpvPriceQty'),ship=box.querySelector('#tpvPriceShipping'),totalInput=box.querySelector('#tpvPriceTotal');
+    const recalc=()=>{totalInput.value=(Math.max(0,N(unit.value))*Math.max(1,N(q.value)||1)+Math.max(0,N(ship.value))).toFixed(2)};
+    unit.addEventListener('input',recalc);q.addEventListener('input',recalc);ship.addEventListener('input',recalc);
+
+    box.querySelector('#tpvPriceCancel').onclick=()=>box.remove();
+    box.querySelector('#tpvPriceSave').onclick=async()=>{
+      const newQty=Math.max(1,Math.round(N(q.value)||1));
+      const newUnit=Math.max(0,N(unit.value));
+      const newShipping=Math.max(0,N(ship.value));
+      const newTotal=Math.max(0,N(totalInput.value));
+      if(!Number.isFinite(newTotal)||newTotal<0){toast('Revisa el total');return}
+      if(newTotal+0.0001<paid){toast('El total no puede ser menor que lo ya cobrado');return}
+      const btn=box.querySelector('#tpvPriceSave');btn.disabled=true;btn.textContent='Guardando…';
+      const patch={unit_price:newUnit,quantity:newQty,shipping:newShipping,total:newTotal};
+      const {error}=await supabaseClient.from('orders').update(patch).eq('id',id);
+      if(error){console.error(error);toast('No se pudo actualizar el precio');btn.disabled=false;btn.textContent='Guardar precio';return}
+      Object.assign(o,patch);
+      toast('Precio del pedido actualizado');
+      window.drawOrders?.();
+      window.verDetallePedido(id);
+    };
   };
 
   window.tpvSaveOrderStatus=async function(id){
