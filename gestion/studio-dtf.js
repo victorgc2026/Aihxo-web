@@ -1,4 +1,4 @@
-/* AIHXO Studio DTF · v1
+/* AIHXO Studio DTF · v2
    Editor de producción para PNG/SVG con medidas reales, capas, transparencia
    y referencias Pantone. El Pantone se guarda como dato de producción; PNG sigue siendo RGB.
 */
@@ -19,7 +19,17 @@
   const state = {
     widthCm: 30, heightCm: 35, objects: [], selectedId: null,
     tool: 'select', drag: null, pickedColor: null, colorSelection: null,
-    palette: loadPalette()
+    palette: loadPalette(), history: [], future: [], historyBusy:false,
+    brushSizeCm: 0.5, printQueue: [], projectName:'', matrix: [
+      {size:'7/8',w:24,h:27,qty:1,enabled:true},
+      {size:'9/11',w:26,h:29,qty:1,enabled:true},
+      {size:'12/13',w:28,h:31,qty:1,enabled:true},
+      {size:'S',w:29,h:32,qty:1,enabled:true},
+      {size:'M',w:30,h:33,qty:1,enabled:true},
+      {size:'L',w:31,h:34,qty:1,enabled:true},
+      {size:'XL',w:32,h:35,qty:1,enabled:true},
+      {size:'2XL',w:33,h:36,qty:1,enabled:true}
+    ]
   };
 
   function loadPalette(){
@@ -37,6 +47,51 @@
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const cm2px=cm=>Number(cm||0)*CM_TO_PX;
+  const px2cm=px=>Number(px||0)/CM_TO_PX;
+  const imgW=o=>o?Number(o.naturalWidth||o.width||0):0;
+  const imgH=o=>o?Number(o.naturalHeight||o.height||0):0;
+
+  function objectSnapshot(o){const copy={...o};delete copy.img;delete copy._brushCanvas;return copy;}
+  function snapshot(){return {widthCm:state.widthCm,heightCm:state.heightCm,selectedId:state.selectedId,colorSelection:state.colorSelection?{...state.colorSelection}:null,objects:state.objects.map(objectSnapshot)};}
+  function imageFromSrc(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=src;});}
+  async function restoreSnapshot(snap){
+    if(!snap)return;state.historyBusy=true;state.widthCm=snap.widthCm;state.heightCm=snap.heightCm;state.selectedId=snap.selectedId;state.colorSelection=snap.colorSelection?{...snap.colorSelection}:null;
+    const objs=[];for(const raw of snap.objects||[]){const o={...raw};if(o.type==='image'&&o.src){try{o.img=await imageFromSrc(o.src);}catch(e){o.img=null;}}objs.push(o);}state.objects=objs;state.historyBusy=false;
+    const w=document.querySelector('#stDocW'),h=document.querySelector('#stDocH');if(w)w.value=state.widthCm;if(h)h.value=state.heightCm;redraw();
+  }
+  function pushHistory(){if(state.historyBusy)return;state.history.push(snapshot());if(state.history.length>35)state.history.shift();state.future=[];updateHistoryButtons();}
+  async function undo(){if(!state.history.length)return;state.future.push(snapshot());const s=state.history.pop();await restoreSnapshot(s);updateHistoryButtons();}
+  async function redo(){if(!state.future.length)return;state.history.push(snapshot());const s=state.future.pop();await restoreSnapshot(s);updateHistoryButtons();}
+  function updateHistoryButtons(){const u=document.querySelector('#stUndo'),r=document.querySelector('#stRedo');if(u)u.disabled=!state.history.length;if(r)r.disabled=!state.future.length;}
+
+  function openProjectDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open('AIHXOStudioDB',1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('projects'))db.createObjectStore('projects',{keyPath:'name'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+  async function idbPutProject(project){const db=await openProjectDB();return new Promise((resolve,reject)=>{const tx=db.transaction('projects','readwrite');tx.objectStore('projects').put(project);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
+  async function idbGetProject(name){const db=await openProjectDB();return new Promise((resolve,reject)=>{const tx=db.transaction('projects','readonly'),req=tx.objectStore('projects').get(name);req.onsuccess=()=>{db.close();resolve(req.result||null);};req.onerror=()=>{db.close();reject(req.error);};});}
+  async function idbListProjects(){const db=await openProjectDB();return new Promise((resolve,reject)=>{const tx=db.transaction('projects','readonly'),req=tx.objectStore('projects').getAll();req.onsuccess=()=>{db.close();resolve((req.result||[]).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)));};req.onerror=()=>{db.close();reject(req.error);};});}
+  async function idbDeleteProject(name){const db=await openProjectDB();return new Promise((resolve,reject)=>{const tx=db.transaction('projects','readwrite');tx.objectStore('projects').delete(name);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
+
+  function imageToDataUrl(o){
+    if(o.type!=='image'||!o.img)return o.src||'';
+    if(String(o.src||'').startsWith('data:'))return o.src;
+    const c=document.createElement('canvas');c.width=imgW(o.img);c.height=imgH(o.img);const g=c.getContext('2d');g.drawImage(o.img,0,0,c.width,c.height);return c.toDataURL('image/png');
+  }
+  async function serializeProjectObjects(){
+    const out=[];for(const o of state.objects){const copy=objectSnapshot(o);if(o.type==='image')copy.src=imageToDataUrl(o);out.push(copy);}return out;
+  }
+  async function saveProject(){
+    const input=document.querySelector('#stProjectName');const name=(input?.value||state.projectName||'').trim();if(!name){alert('Pon un nombre al proyecto.');return;}
+    const btn=document.querySelector('#stSaveProject');if(btn){btn.disabled=true;btn.textContent='Guardando…';}
+    try{const objects=await serializeProjectObjects();await idbPutProject({name,updatedAt:Date.now(),widthCm:state.widthCm,heightCm:state.heightCm,objects,matrix:state.matrix,palette:state.palette});state.projectName=name;await refreshProjectList();toast?.('Proyecto guardado');}
+    catch(e){console.error(e);alert('No se pudo guardar el proyecto en este dispositivo.');}
+    finally{if(btn){btn.disabled=false;btn.textContent='💾 Guardar';}}
+  }
+  async function loadProject(){
+    const sel=document.querySelector('#stProjectList');const name=sel?.value;if(!name){alert('Selecciona un proyecto guardado.');return;}
+    try{const p=await idbGetProject(name);if(!p)return;pushHistory();state.projectName=p.name;state.widthCm=p.widthCm;state.heightCm=p.heightCm;if(Array.isArray(p.matrix))state.matrix=p.matrix;const objs=[];for(const raw of p.objects||[]){const o={...raw};if(o.type==='image'&&o.src)o.img=await imageFromSrc(o.src);objs.push(o);}state.objects=objs;state.selectedId=null;document.querySelector('#stProjectName').value=p.name;document.querySelector('#stDocW').value=p.widthCm;document.querySelector('#stDocH').value=p.heightCm;renderMatrix();redraw();toast?.('Proyecto abierto');}
+    catch(e){console.error(e);alert('No se pudo abrir el proyecto.');}
+  }
+  async function refreshProjectList(){const sel=document.querySelector('#stProjectList');if(!sel)return;try{const rows=await idbListProjects();sel.innerHTML='<option value="">Proyectos guardados…</option>'+rows.map(p=>'<option value="'+esc(p.name)+'">'+esc(p.name)+'</option>').join('');}catch(e){}}
+  async function deleteProject(){const sel=document.querySelector('#stProjectList');const name=sel?.value;if(!name)return;if(!confirm('¿Eliminar el proyecto '+name+'?'))return;await idbDeleteProject(name);await refreshProjectList();toast?.('Proyecto eliminado');}
 
   function injectNav(){
     const nav=document.querySelector('#nav');
@@ -83,7 +138,7 @@
       <div class="page">
         <div class="section">
           <div><h2 style="margin:0">🎛️ AIHXO Studio · Editor DTF</h2><div class="muted">PNG/SVG · medidas reales · capas · transparencia · referencia Pantone</div></div>
-          <span class="studio-badge">v1 producción</span>
+          <span class="studio-badge">v2 producción</span>
         </div>
         <div class="studio-shell">
           <section class="studio-panel order2">
@@ -102,12 +157,22 @@
             <div class="studio-toolbar">
               <button id="stSelect" class="primary">↖ Seleccionar</button>
               <button id="stErase" class="secondary">⌫ Borrar zona</button>
+              <button id="stBrushErase" class="secondary">🖌️ Borrador</button>
               <button id="stPick" class="secondary">🎯 Tomar color</button><button id="stSelectColorArea" class="secondary">▭ Seleccionar zona</button>
             </div>
+            <div class="studio-field" style="margin-bottom:10px"><label>Tamaño pincel (cm)<input id="stBrushSize" type="number" min=".1" max="5" step=".1" value=".5"></label><label>Proporción<input value="BLOQUEADA" disabled></label></div>
             <div class="field"><label>Importar PNG / JPG / WEBP / SVG</label><input id="stFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></div>
             <button id="stAddText" class="secondary" style="width:100%;margin-top:8px">T＋ Añadir texto</button>
             <div class="studio-note" style="margin-top:12px"><b>Borrar zona</b>: arrastra un rectángulo sobre una imagen seleccionada. <br><b>Seleccionar zona</b>: arrastra un rectángulo para limitar los cambios de color solo a esa parte de la imagen.</div>
 
+            <h3 style="margin-top:18px">Proyecto</h3>
+            <div class="field"><label>Nombre del proyecto</label><input id="stProjectName" placeholder="Ej. Pedido Sara - espalda"></div>
+            <div class="studio-toolbar" style="margin-top:8px">
+              <button id="stSaveProject" class="secondary">💾 Guardar</button>
+              <button id="stLoadProject" class="secondary">📂 Abrir</button>
+            </div>
+            <select id="stProjectList"><option value="">Proyectos guardados…</option></select>
+            <button id="stDeleteProject" class="secondary" style="width:100%;margin-top:8px">Eliminar proyecto guardado</button>
             <h3 style="margin-top:18px">Capas</h3>
             <div id="stLayers"></div>
           </section>
@@ -118,7 +183,8 @@
               <button id="stCenter" class="secondary">Centrar</button>
               <button id="stDuplicate" class="secondary">Duplicar</button>
               <button id="stDelete" class="secondary">Eliminar</button>
-              <button id="stUndo" class="secondary" title="v1: deshacer borrado no disponible">↶</button>
+              <button id="stUndo" class="secondary" title="Deshacer">↶</button>
+              <button id="stRedo" class="secondary" title="Rehacer">↷</button>
             </div>
             <div class="studio-canvas-wrap" id="stCanvasWrap"><canvas id="studioCanvas" width="720" height="840"></canvas></div>
             <div id="stStatus" class="muted" style="margin-top:9px"></div>
@@ -155,6 +221,16 @@
             </details>
             <div id="stColorInfo" class="studio-note">Usa <b>Tomar color</b> y toca un píxel del diseño. Después puedes sustituir ese color por la equivalencia RGB del Pantone elegido.</div>
 
+            <h3 style="margin-top:18px">Matriz por tallas</h3>
+            <div class="studio-note">Las medidas son editables. El diseño mantiene la proporción y se genera una salida por talla.</div>
+            <div id="stMatrix" style="margin-top:8px"></div>
+            <button id="stExportMatrix" class="secondary" style="width:100%;margin-top:8px">Generar matriz por tallas</button>
+            <h3 style="margin-top:18px">Montaje DTF multi-diseño</h3>
+            <div class="studio-note">Añade el diseño actual a la cola, cambia de diseño y añade el siguiente. Después se colocan juntos en una sola hoja.</div>
+            <div class="studio-field" style="margin-top:8px"><label>Cantidad<input id="stQueueQty" type="number" min="1" max="200" value="1"></label><label>Nombre<input id="stQueueName" value="Diseño"></label></div>
+            <button id="stAddQueue" class="secondary" style="width:100%;margin-top:8px">＋ Añadir diseño actual a cola</button>
+            <div id="stQueueList" style="margin-top:8px"></div>
+            <button id="stExportMultiSheet" class="primary" style="width:100%;margin-top:8px">Optimizar cola en hoja DTF</button>
             <h3 style="margin-top:18px">Salida</h3>
             <div class="studio-field">
               <label>Copias para impresión<input id="stCopies" type="number" min="1" max="200" value="1"></label>
@@ -195,7 +271,7 @@
     g.rotate((o.rotation||0)*Math.PI/180);
     g.globalAlpha=o.opacity??1;
     if(o.type==='image' && o.img){
-      g.drawImage(o.img,0,0,o.w*s,o.h*s);
+      g.drawImage(o._brushCanvas||o.img,0,0,o.w*s,o.h*s);
     }else if(o.type==='text'){
       g.fillStyle=o.color||'#111111';
       g.font=`${Math.max(1,o.fontSize*s)}px ${o.fontFamily||'Arial'}`;
@@ -232,6 +308,7 @@
     im.onload=()=>{
       const docW=cm2px(state.widthCm), docH=cm2px(state.heightCm);
       const ratio=Math.min(.78*docW/im.naturalWidth,.78*docH/im.naturalHeight,1);
+      pushHistory();
       const o={id:uid(),type:'image',name:file.name||'Imagen',img:im,src:url,
         originalType:file.type, x:docW*.11,y:docH*.11,w:im.naturalWidth*ratio,h:im.naturalHeight*ratio,
         rotation:0,opacity:1,visible:true,pantone:null};
@@ -242,6 +319,7 @@
   }
 
   function addText(){
+    pushHistory();
     const o={id:uid(),type:'text',name:'Texto',text:'AIHXO',x:cm2px(2),y:cm2px(2),w:cm2px(10),h:cm2px(2),
       fontSize:120,fontFamily:'Arial',color:'#111111',rotation:0,opacity:1,visible:true,pantone:null};
     state.objects.push(o);state.selectedId=o.id;redraw();
@@ -274,14 +352,14 @@
       <div class="field" style="margin-top:8px"><label>Texto</label><input id="stiText" value="${esc(o.text)}"></div>
       <div class="studio-field" style="margin-top:8px"><label>Tamaño px<input id="stiFont" type="number" value="${o.fontSize}"></label><label>Color<input id="stiColor" type="color" value="${o.color}"></label></div>` : ''}
       <div class="studio-note" style="margin-top:8px">${o.pantone?'<b>'+esc(o.pantone.name)+'</b> · '+esc(o.pantone.hex):'Sin referencia Pantone asignada.'}</div>`;
-    const bindNum=(id,fn)=>document.querySelector(id)?.addEventListener('change',e=>{fn(Number(e.target.value));redraw();});
+    const bindNum=(id,fn)=>document.querySelector(id)?.addEventListener('change',e=>{pushHistory();fn(Number(e.target.value));redraw();});
     bindNum('#stiX',v=>o.x=cm2px(v));bindNum('#stiY',v=>o.y=cm2px(v));
     bindNum('#stiW',v=>{const r=o.h/o.w;o.w=cm2px(v);o.h=o.w*r;});
     bindNum('#stiH',v=>{const r=o.w/o.h;o.h=cm2px(v);o.w=o.h*r;});
     bindNum('#stiR',v=>o.rotation=v);bindNum('#stiO',v=>o.opacity=clamp(v/100,0,1));
-    document.querySelector('#stiText')?.addEventListener('change',e=>{o.text=e.target.value;measureText(o);redraw();});
-    document.querySelector('#stiFont')?.addEventListener('change',e=>{o.fontSize=Number(e.target.value)||1;measureText(o);redraw();});
-    document.querySelector('#stiColor')?.addEventListener('change',e=>{o.color=e.target.value;redraw();});
+    document.querySelector('#stiText')?.addEventListener('change',e=>{pushHistory();o.text=e.target.value;measureText(o);redraw();});
+    document.querySelector('#stiFont')?.addEventListener('change',e=>{pushHistory();o.fontSize=Number(e.target.value)||1;measureText(o);redraw();});
+    document.querySelector('#stiColor')?.addEventListener('change',e=>{pushHistory();o.color=e.target.value;redraw();});
   }
 
   function measureText(o){
@@ -300,6 +378,12 @@
   function canvasDown(ev){
     const p=pointToDoc(ev),o=hit(p);
     if(state.tool==='pick'){ pickColorAt(p); return; }
+    if(state.tool==='brush-erase'){
+      const so=selected();if(!so||so.type!=='image'||!so.img){alert('Selecciona primero una capa de imagen.');return;}
+      pushHistory();
+      const off=document.createElement('canvas');off.width=imgW(so.img);off.height=imgH(so.img);const og=off.getContext('2d');og.drawImage(so.img,0,0,off.width,off.height);so._brushCanvas=off;
+      state.drag={kind:'brush-erase',last:p};brushEraseAt(p);return;
+    }
     if(state.tool==='erase'){
       if(!selected() || selected().type!=='image'){alert('Selecciona primero una capa de imagen.');return;}
       state.drag={kind:'erase',x:p.x,y:p.y,x2:p.x,y2:p.y}; return;
@@ -308,7 +392,7 @@
       if(!selected() || selected().type!=='image'){alert('Selecciona primero una capa de imagen.');return;}
       state.drag={kind:'color-area',x:p.x,y:p.y,x2:p.x,y2:p.y}; return;
     }
-    if(o){state.selectedId=o.id;state.drag={kind:'move',dx:p.x-o.x,dy:p.y-o.y};}else{state.selectedId=null;state.drag=null;}
+    if(o){state.selectedId=o.id;pushHistory();state.drag={kind:'move',dx:p.x-o.x,dy:p.y-o.y};}else{state.selectedId=null;state.drag=null;}
     redraw();
   }
   function canvasMove(ev){
@@ -316,11 +400,22 @@
     if(state.drag.kind==='move'){const o=selected();if(o){o.x=p.x-state.drag.dx;o.y=p.y-state.drag.dy;redraw();}}
     else if(state.drag.kind==='erase'){state.drag.x2=p.x;state.drag.y2=p.y;redraw();drawEraseRect();}
     else if(state.drag.kind==='color-area'){state.drag.x2=p.x;state.drag.y2=p.y;redraw();drawColorAreaRect();}
+    else if(state.drag.kind==='brush-erase'){brushEraseAt(p);state.drag.last=p;redraw();}
   }
-  function canvasUp(){
+  async function canvasUp(){
     if(state.drag?.kind==='erase') eraseRect(state.drag);
     if(state.drag?.kind==='color-area') setColorArea(state.drag);
+    if(state.drag?.kind==='brush-erase'){
+      const o=selected();if(o?._brushCanvas){const src=o._brushCanvas.toDataURL('image/png');delete o._brushCanvas;o.src=src;o.img=await imageFromSrc(src);redraw();}
+    }
     state.drag=null;
+  }
+
+  function brushEraseAt(p){
+    const o=selected();if(!o?._brushCanvas)return;
+    const c=o._brushCanvas,g=c.getContext('2d');const lx=(p.x-o.x)/o.w*c.width,ly=(p.y-o.y)/o.h*c.height;
+    const radius=Math.max(1,cm2px(state.brushSizeCm)/o.w*c.width/2);
+    g.save();g.globalCompositeOperation='destination-out';g.beginPath();g.arc(lx,ly,radius,0,Math.PI*2);g.fill();g.restore();
   }
 
   function drawEraseRect(){
@@ -345,7 +440,7 @@
   }
 
   function eraseRect(d){
-    const o=selected();if(!o||o.type!=='image'||!o.img)return;
+    const o=selected();if(o)pushHistory();if(!o||o.type!=='image'||!o.img)return;
     const x1=Math.min(d.x,d.x2),y1=Math.min(d.y,d.y2),x2=Math.max(d.x,d.x2),y2=Math.max(d.y,d.y2);
     const ix=clamp((x1-o.x)/o.w,0,1)*o.img.naturalWidth, iy=clamp((y1-o.y)/o.h,0,1)*o.img.naturalHeight;
     const iw=(clamp((x2-o.x)/o.w,0,1)-clamp((x1-o.x)/o.w,0,1))*o.img.naturalWidth;
@@ -371,7 +466,7 @@
     const h=String(hex||'#000000').replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];
   }
   function replacePicked(){
-    const o=selected();if(!o||o.type!=='image'||!state.pickedColor){alert('Selecciona una imagen y toma primero un color.');return;}
+    const o=selected();if(o)pushHistory();if(!o||o.type!=='image'||!state.pickedColor){alert('Selecciona una imagen y toma primero un color.');return;}
     const target=hexRgb(document.querySelector('#stPantoneHex').value),tol=Number(document.querySelector('#stTolerance').value||35),src=state.pickedColor;
     const off=document.createElement('canvas');off.width=o.img.naturalWidth;off.height=o.img.naturalHeight;const g=off.getContext('2d',{willReadFrequently:true});
     g.drawImage(o.img,0,0);const id=g.getImageData(0,0,off.width,off.height),d=id.data;let n=0;
@@ -428,18 +523,66 @@
   }
 
   function assignPantone(){
-    const o=selected();if(!o){alert('Selecciona una capa.');return;}
+    const o=selected();if(o)pushHistory();if(!o){alert('Selecciona una capa.');return;}
     const name=document.querySelector('#stPantoneName').value.trim()||'Color de producción';
     const hex=document.querySelector('#stPantoneHex').value;o.pantone={name,hex};
     if(o.type==='text')o.color=hex;redraw();
   }
 
   function fitSelected(){
-    const o=selected();if(!o)return;const dw=cm2px(state.widthCm),dh=cm2px(state.heightCm),r=Math.min(dw*.9/o.w,dh*.9/o.h);o.w*=r;o.h*=r;o.x=(dw-o.w)/2;o.y=(dh-o.h)/2;redraw();
+    const o=selected();if(o)pushHistory();if(!o)return;const dw=cm2px(state.widthCm),dh=cm2px(state.heightCm),r=Math.min(dw*.9/o.w,dh*.9/o.h);o.w*=r;o.h*=r;o.x=(dw-o.w)/2;o.y=(dh-o.h)/2;redraw();
   }
-  function centerSelected(){const o=selected();if(!o)return;o.x=(cm2px(state.widthCm)-o.w)/2;o.y=(cm2px(state.heightCm)-o.h)/2;redraw();}
-  function duplicate(){const o=selected();if(!o)return;const n={...o,id:uid(),name:o.name+' copia',x:o.x+cm2px(.5),y:o.y+cm2px(.5),pantone:o.pantone?{...o.pantone}:null};state.objects.push(n);state.selectedId=n.id;redraw();}
-  function del(){const i=state.objects.findIndex(o=>o.id===state.selectedId);if(i<0)return;state.objects.splice(i,1);state.selectedId=null;redraw();}
+  function centerSelected(){const o=selected();if(!o)return;pushHistory();o.x=(cm2px(state.widthCm)-o.w)/2;o.y=(cm2px(state.heightCm)-o.h)/2;redraw();}
+  function duplicate(){const o=selected();if(!o)return;pushHistory();const n={...o,id:uid(),name:o.name+' copia',x:o.x+cm2px(.5),y:o.y+cm2px(.5),pantone:o.pantone?{...o.pantone}:null};state.objects.push(n);state.selectedId=n.id;redraw();}
+  function del(){pushHistory();const i=state.objects.findIndex(o=>o.id===state.selectedId);if(i<0)return;state.objects.splice(i,1);state.selectedId=null;redraw();}
+
+  function renderMatrix(){
+    const box=document.querySelector('#stMatrix');if(!box)return;
+    box.innerHTML=state.matrix.map((m,i)=>'<div style="display:grid;grid-template-columns:auto 58px 1fr 1fr 58px;gap:5px;align-items:center;margin-bottom:5px"><input class="stmEn" data-i="'+i+'" type="checkbox" '+(m.enabled!==false?'checked':'')+' style="width:auto"><b>'+esc(m.size)+'</b><input class="stmW" data-i="'+i+'" type="number" step=".1" value="'+m.w+'" title="Ancho cm"><input class="stmH" data-i="'+i+'" type="number" step=".1" value="'+m.h+'" title="Alto cm"><input class="stmQ" data-i="'+i+'" type="number" min="1" value="'+(m.qty||1)+'" title="Cantidad"></div>').join('');
+    box.querySelectorAll('.stmEn').forEach(x=>x.onchange=()=>state.matrix[+x.dataset.i].enabled=x.checked);
+    box.querySelectorAll('.stmW').forEach(x=>x.onchange=()=>state.matrix[+x.dataset.i].w=Number(x.value)||1);
+    box.querySelectorAll('.stmH').forEach(x=>x.onchange=()=>state.matrix[+x.dataset.i].h=Number(x.value)||1);
+    box.querySelectorAll('.stmQ').forEach(x=>x.onchange=()=>state.matrix[+x.dataset.i].qty=Math.max(1,Number(x.value)||1));
+  }
+  function fittedCanvas(src,wCm,hCm){
+    const out=document.createElement('canvas');out.width=Math.round(cm2px(wCm));out.height=Math.round(cm2px(hCm));const g=out.getContext('2d');const r=Math.min(out.width/src.width,out.height/src.height);const w=src.width*r,h=src.height*r;g.drawImage(src,(out.width-w)/2,(out.height-h)/2,w,h);return out;
+  }
+  function copiesCanvas(src,copies,gapCm,sheetWidthCm){
+    const gap=Math.round(cm2px(gapCm)),sheetW=Math.max(src.width,Math.round(cm2px(sheetWidthCm)));const cols=Math.max(1,Math.floor((sheetW+gap)/(src.width+gap)));const rows=Math.ceil(copies/cols);const usedCols=Math.min(cols,copies);
+    const out=document.createElement('canvas');out.width=Math.min(sheetW,usedCols*src.width+Math.max(0,usedCols-1)*gap);out.height=rows*src.height+Math.max(0,rows-1)*gap;const g=out.getContext('2d');
+    for(let i=0;i<copies;i++){const col=i%cols,row=Math.floor(i/cols);g.drawImage(src,col*(src.width+gap),row*(src.height+gap));}return out;
+  }
+  function exportMatrix(){
+    const base=outputCanvas(),gap=Number(document.querySelector('#stGap')?.value||.5),sheetW=Number(document.querySelector('#stSheetWidth')?.value||56);let delay=0;
+    state.matrix.filter(m=>m.enabled!==false).forEach(m=>{const fitted=fittedCanvas(base,m.w,m.h),sheet=copiesCanvas(fitted,Math.max(1,m.qty||1),gap,Math.max(sheetW,m.w));setTimeout(()=>sheet.toBlob(b=>b&&dl(b,'AIHXO_'+m.size+'_'+m.w+'x'+m.h+'cm_'+(m.qty||1)+'uds.png'),'image/png'),delay);delay+=250;});
+    toast?.('Matriz preparada por tallas');
+  }
+  function renderQueue(){
+    const box=document.querySelector('#stQueueList');if(!box)return;
+    box.innerHTML=state.printQueue.length?state.printQueue.map((q,i)=>'<div class="studio-layer"><div style="flex:1"><b>'+esc(q.name)+'</b><div class="muted">'+q.wCm+'×'+q.hCm+' cm · '+q.qty+' uds</div></div><button class="secondary stQDel" data-i="'+i+'">×</button></div>').join(''):'<div class="muted">Cola vacía.</div>';
+    box.querySelectorAll('.stQDel').forEach(b=>b.onclick=()=>{state.printQueue.splice(+b.dataset.i,1);renderQueue();});
+  }
+  function addCurrentToQueue(){
+    const src=outputCanvas(),qty=Math.max(1,Number(document.querySelector('#stQueueQty')?.value||1)),name=(document.querySelector('#stQueueName')?.value||'Diseño').trim()||'Diseño';
+    state.printQueue.push({id:uid(),name,qty,wCm:state.widthCm,hCm:state.heightCm,src:src.toDataURL('image/png')});renderQueue();toast?.('Diseño añadido a la cola');
+  }
+  async function exportMultiSheet(){
+    if(!state.printQueue.length){alert('Añade al menos un diseño a la cola.');return;}
+    const gapCm=Math.max(0,Number(document.querySelector('#stGap')?.value||.5)),gap=Math.round(cm2px(gapCm)),sheetWidthCm=Math.max(5,Number(document.querySelector('#stSheetWidth')?.value||56)),sheetW=Math.round(cm2px(sheetWidthCm));
+    const items=[];
+    for(const q of state.printQueue){const im=await imageFromSrc(q.src);for(let n=0;n<q.qty;n++)items.push({name:q.name,img:im,w:im.naturalWidth,h:im.naturalHeight});}
+    items.sort((a,b)=>Math.max(b.h,b.w)-Math.max(a.h,a.w));
+    let x=0,y=0,rowH=0,placements=[];
+    for(const it of items){
+      let rot=false,w=it.w,h=it.h;
+      if(x+w>sheetW && x+it.h<=sheetW){rot=true;w=it.h;h=it.w;}
+      if(x+w>sheetW){x=0;y+=rowH+(placements.length?gap:0);rowH=0;rot=false;w=it.w;h=it.h;if(w>sheetW&&it.h<=sheetW){rot=true;w=it.h;h=it.w;}}
+      placements.push({it,x,y,w,h,rot});x+=w+gap;rowH=Math.max(rowH,h);
+    }
+    const outH=y+rowH,out=document.createElement('canvas');out.width=sheetW;out.height=outH;const g=out.getContext('2d');
+    for(const p of placements){if(p.rot){g.save();g.translate(p.x+p.w,p.y);g.rotate(Math.PI/2);g.drawImage(p.it.img,0,0,p.h,p.w);g.restore();}else g.drawImage(p.it.img,p.x,p.y,p.w,p.h);}
+    out.toBlob(b=>{if(!b)return;const hcm=(out.height/CM_TO_PX).toFixed(1);dl(b,'AIHXO_multi_'+items.length+'uds_'+sheetWidthCm+'x'+hcm+'cm_DTF.png');toast?.('Hoja optimizada: '+items.length+' diseños · '+hcm+' cm de largo');},'image/png');
+  }
 
   function outputCanvas(){
     const out=document.createElement('canvas');out.width=Math.round(cm2px(state.widthCm));out.height=Math.round(cm2px(state.heightCm));
@@ -490,28 +633,41 @@
 
   function setTool(t){
     state.tool=t;
-    [['stSelect','select'],['stErase','erase'],['stPick','pick'],['stSelectColorArea','color-area']].forEach(([id,val])=>{const b=document.querySelector('#'+id);if(b)b.className=val===t?'primary':'secondary';});
+    [['stSelect','select'],['stErase','erase'],['stBrushErase','brush-erase'],['stPick','pick'],['stSelectColorArea','color-area']].forEach(([id,val])=>{const b=document.querySelector('#'+id);if(b)b.className=val===t?'primary':'secondary';});
   }
 
   function bind(){
     injectNav();
-    document.querySelector('#stDocW').oninput=e=>{state.widthCm=Number(e.target.value)||1;redraw();};
-    document.querySelector('#stDocH').oninput=e=>{state.heightCm=Number(e.target.value)||1;redraw();};
-    document.querySelectorAll('.stPreset').forEach(b=>b.onclick=()=>{state.widthCm=Number(b.dataset.w);state.heightCm=Number(b.dataset.h);document.querySelector('#stDocW').value=state.widthCm;document.querySelector('#stDocH').value=state.heightCm;redraw();});
+    document.querySelector('#stDocW').onchange=e=>{pushHistory();state.widthCm=Number(e.target.value)||1;redraw();};
+    document.querySelector('#stDocH').onchange=e=>{pushHistory();state.heightCm=Number(e.target.value)||1;redraw();};
+    document.querySelectorAll('.stPreset').forEach(b=>b.onclick=()=>{pushHistory();state.widthCm=Number(b.dataset.w);state.heightCm=Number(b.dataset.h);document.querySelector('#stDocW').value=state.widthCm;document.querySelector('#stDocH').value=state.heightCm;redraw();});
     document.querySelector('#stFile').onchange=e=>addImageFromFile(e.target.files?.[0]);
     document.querySelector('#stAddText').onclick=addText;
     document.querySelector('#stSelect').onclick=()=>setTool('select');
     document.querySelector('#stErase').onclick=()=>setTool('erase');
+    document.querySelector('#stBrushErase').onclick=()=>setTool('brush-erase');
+    document.querySelector('#stBrushSize').onchange=e=>state.brushSizeCm=Math.max(.1,Number(e.target.value)||.5);
     document.querySelector('#stPick').onclick=()=>setTool('pick');
     document.querySelector('#stSelectColorArea').onclick=()=>setTool('color-area');
     document.querySelector('#stFit').onclick=fitSelected;document.querySelector('#stCenter').onclick=centerSelected;
     document.querySelector('#stDuplicate').onclick=duplicate;document.querySelector('#stDelete').onclick=del;
-    document.querySelector('#stUndo').onclick=()=>alert('Historial de deshacer llegará en la siguiente versión. El original importado no se modifica.');
+    document.querySelector('#stUndo').onclick=undo;
+    document.querySelector('#stRedo').onclick=redo;
+    document.querySelector('#stSaveProject').onclick=saveProject;
+    document.querySelector('#stLoadProject').onclick=loadProject;
+    document.querySelector('#stDeleteProject').onclick=deleteProject;
+    refreshProjectList();
+    renderMatrix();
+    renderQueue();
+    updateHistoryButtons();
     document.querySelector('#stPalette').onchange=e=>{const p=state.palette[Number(e.target.value)];if(!p)return;document.querySelector('#stPantoneName').value=p.name;document.querySelector('#stPantoneHex').value=p.hex;};
     document.querySelector('#stAddPantone').onclick=addPantone;
     document.querySelector('#stDeletePantone').onclick=deletePantone;
     refreshPaletteUI();
     document.querySelector('#stAssignPantone').onclick=assignPantone;document.querySelector('#stReplaceColor').onclick=replacePicked;
+    document.querySelector('#stExportMatrix').onclick=exportMatrix;
+    document.querySelector('#stAddQueue').onclick=addCurrentToQueue;
+    document.querySelector('#stExportMultiSheet').onclick=exportMultiSheet;
     document.querySelector('#stExportSheet').onclick=exportSheet;
     document.querySelector('#stExportPng').onclick=exportPng;document.querySelector('#stExportSvg').onclick=exportSvg;
     const c=canvas();c.onpointerdown=canvasDown;c.onpointermove=canvasMove;c.onpointerup=canvasUp;c.onpointercancel=canvasUp;
