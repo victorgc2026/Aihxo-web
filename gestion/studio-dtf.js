@@ -241,6 +241,18 @@
               <button id="stSaveRgbColor" class="secondary">💾 Guardar color RGB</button>
             </div>
             <div class="studio-note">Color libre para marcas de agua, logos y texto sin depender de Pantone.</div>
+            <h3 style="margin-top:16px">Contorno exterior</h3>
+            <div class="studio-field">
+              <label>Grosor mm<input id="stOutlineMm" type="number" min=".5" max="20" step=".5" value="3"></label>
+              <label>Color
+                <select id="stOutlineSource">
+                  <option value="rgb">RGB / HEX actual</option>
+                  <option value="pantone">Pantone / Kamuk seleccionado</option>
+                </select>
+              </label>
+            </div>
+            <button id="stCreateOutline" class="secondary" style="width:100%;margin-top:8px">⭕ Crear contorno exterior</button>
+            <div class="studio-note" style="margin-top:8px">Crea una copia detrás, la recolorea y la agranda de forma centrada.</div>
             <h3 style="margin-top:18px">Paleta RGB AIHXO</h3>
             <div id="stRgbPaletteList"></div>
 
@@ -828,6 +840,59 @@
     state.objects.unshift(bg);state.selectedId=bg.id;redraw();toast?.('Fondo sólido añadido al documento');
   }
 
+  async function createOuterOutline(){
+    const ref=selected();
+    if(!ref){alert('Selecciona primero la capa a la que quieres añadir contorno.');return;}
+    if(ref.locked){alert('La capa seleccionada está bloqueada.');return;}
+    if(!['image','text'].includes(ref.type)){alert('El contorno exterior funciona sobre imágenes o texto.');return;}
+
+    const mm=Math.max(.5,Number(document.querySelector('#stOutlineMm')?.value||3));
+    const grow=cm2px(mm/10);
+    const source=document.querySelector('#stOutlineSource')?.value||'rgb';
+
+    let hex=currentRgbHex(), name='RGB libre';
+    if(source==='pantone'){
+      const pName=(document.querySelector('#stPantoneName')?.value||'').trim();
+      const pHex=document.querySelector('#stPantoneHex')?.value||'';
+      if(!pName && !pHex){alert('Selecciona primero un Pantone / color Kamuk.');return;}
+      hex=(pHex||hex).toUpperCase();
+      name=pName||'Pantone';
+    }else{
+      name=(document.querySelector('#stRgbName')?.value||'RGB libre').trim()||'RGB libre';
+    }
+
+    pushHistory();
+
+    const outline={
+      ...ref,
+      id:uid(),
+      name:'Contorno '+ref.name,
+      x:ref.x-grow,
+      y:ref.y-grow,
+      w:ref.w+grow*2,
+      h:ref.h+grow*2,
+      rotation:ref.rotation||0,
+      opacity:1,
+      visible:true,
+      locked:false,
+      pantone:{name,hex}
+    };
+
+    if(ref.type==='image'){
+      outline.img=ref.img;
+      outline.src=ref.src;
+      await recolorImageWhole(outline,hex,name);
+    }else if(ref.type==='text'){
+      outline.color=hex;
+    }
+
+    const i=state.objects.findIndex(o=>o.id===ref.id);
+    state.objects.splice(Math.max(0,i),0,outline);
+    state.selectedId=outline.id;
+    redraw();
+    toast?.('Contorno exterior creado · '+mm+' mm');
+  }
+
   function layerIndex(){return state.objects.findIndex(o=>o.id===state.selectedId);}
   function layerUp(){
     const i=layerIndex();if(i<0||i>=state.objects.length-1)return;pushHistory();[state.objects[i],state.objects[i+1]]=[state.objects[i+1],state.objects[i]];redraw();
@@ -1067,6 +1132,7 @@
     document.querySelector('#stAddSolidBg').onclick=addSolidBackgroundToLayer;
     document.querySelector('#stAddDocBg').onclick=addSolidBackgroundToDocument;
     document.querySelector('#stSaveRgbColor').onclick=saveCurrentRgbColor;
+    document.querySelector('#stCreateOutline').onclick=createOuterOutline;
     syncRgbInputsFromHex();
     renderRgbPalette();
     document.querySelector('#stAssignPantone').onclick=assignPantone;document.querySelector('#stReplaceColor').onclick=replacePicked;
