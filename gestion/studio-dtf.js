@@ -18,7 +18,7 @@
 
   const state = {
     widthCm: 30, heightCm: 35, objects: [], selectedId: null,
-    tool: 'select', drag: null, pickedColor: null, colorSelection: null,
+    tool: 'select', drag: null, pickedColor: null, colorSelections: [],
     palette: loadPalette(), history: [], future: [], historyBusy:false,
     brushSizeCm: 0.5, lockAspect:true, printQueue: [], projectName:'', matrix: [
       {size:'7/8',w:24,h:27,qty:1,enabled:true},
@@ -52,10 +52,10 @@
   const imgH=o=>o?Number(o.naturalHeight||o.height||0):0;
 
   function objectSnapshot(o){const copy={...o};delete copy.img;delete copy._brushCanvas;return copy;}
-  function snapshot(){return {widthCm:state.widthCm,heightCm:state.heightCm,selectedId:state.selectedId,colorSelection:state.colorSelection?{...state.colorSelection}:null,objects:state.objects.map(objectSnapshot)};}
+  function snapshot(){return {widthCm:state.widthCm,heightCm:state.heightCm,selectedId:state.selectedId,colorSelections:state.colorSelections.map(z=>({...z})),objects:state.objects.map(objectSnapshot)};}
   function imageFromSrc(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=src;});}
   async function restoreSnapshot(snap){
-    if(!snap)return;state.historyBusy=true;state.widthCm=snap.widthCm;state.heightCm=snap.heightCm;state.selectedId=snap.selectedId;state.colorSelection=snap.colorSelection?{...snap.colorSelection}:null;
+    if(!snap)return;state.historyBusy=true;state.widthCm=snap.widthCm;state.heightCm=snap.heightCm;state.selectedId=snap.selectedId;state.colorSelections=Array.isArray(snap.colorSelections)?snap.colorSelections.map(z=>({...z})):[];
     const objs=[];for(const raw of snap.objects||[]){const o={...raw};if(o.type==='image'&&o.src){try{o.img=await imageFromSrc(o.src);}catch(e){o.img=null;}}objs.push(o);}state.objects=objs;state.historyBusy=false;
     const w=document.querySelector('#stDocW'),h=document.querySelector('#stDocH');if(w)w.value=state.widthCm;if(h)h.value=state.heightCm;redraw();
   }
@@ -84,7 +84,7 @@
     pushHistory();
     state.objects=[];
     state.selectedId=null;
-    state.colorSelection=null;
+    state.colorSelections=[];
     state.pickedColor=null;
     state.projectName='';
     state.widthCm=30;
@@ -99,13 +99,13 @@
   async function saveProject(){
     const input=document.querySelector('#stProjectName');const name=(input?.value||state.projectName||'').trim();if(!name){alert('Pon un nombre al proyecto.');return;}
     const btn=document.querySelector('#stSaveProject');if(btn){btn.disabled=true;btn.textContent='Guardando…';}
-    try{const objects=await serializeProjectObjects();await idbPutProject({name,updatedAt:Date.now(),widthCm:state.widthCm,heightCm:state.heightCm,objects,matrix:state.matrix,palette:state.palette});state.projectName=name;await refreshProjectList();toast?.('Proyecto guardado');}
+    try{const objects=await serializeProjectObjects();await idbPutProject({name,updatedAt:Date.now(),widthCm:state.widthCm,heightCm:state.heightCm,objects,matrix:state.matrix,palette:state.palette,colorSelections:state.colorSelections});state.projectName=name;await refreshProjectList();toast?.('Proyecto guardado');}
     catch(e){console.error(e);alert('No se pudo guardar el proyecto en este dispositivo.');}
     finally{if(btn){btn.disabled=false;btn.textContent='💾 Guardar';}}
   }
   async function loadProject(){
     const sel=document.querySelector('#stProjectList');const name=sel?.value;if(!name){alert('Selecciona un proyecto guardado.');return;}
-    try{const p=await idbGetProject(name);if(!p)return;pushHistory();state.projectName=p.name;state.widthCm=p.widthCm;state.heightCm=p.heightCm;if(Array.isArray(p.matrix))state.matrix=p.matrix;const objs=[];for(const raw of p.objects||[]){const o={...raw};if(o.type==='image'&&o.src)o.img=await imageFromSrc(o.src);objs.push(o);}state.objects=objs;state.selectedId=null;document.querySelector('#stProjectName').value=p.name;document.querySelector('#stDocW').value=p.widthCm;document.querySelector('#stDocH').value=p.heightCm;renderMatrix();redraw();toast?.('Proyecto abierto');}
+    try{const p=await idbGetProject(name);if(!p)return;pushHistory();state.projectName=p.name;state.widthCm=p.widthCm;state.heightCm=p.heightCm;if(Array.isArray(p.matrix))state.matrix=p.matrix;state.colorSelections=Array.isArray(p.colorSelections)?p.colorSelections.map(z=>({...z})):[];const objs=[];for(const raw of p.objects||[]){const o={...raw};if(o.type==='image'&&o.src)o.img=await imageFromSrc(o.src);objs.push(o);}state.objects=objs;state.selectedId=null;document.querySelector('#stProjectName').value=p.name;document.querySelector('#stDocW').value=p.widthCm;document.querySelector('#stDocH').value=p.heightCm;renderMatrix();redraw();toast?.('Proyecto abierto');}
     catch(e){console.error(e);alert('No se pudo abrir el proyecto.');}
   }
   async function refreshProjectList(){const sel=document.querySelector('#stProjectList');if(!sel)return;try{const rows=await idbListProjects();sel.innerHTML='<option value="">Proyectos guardados…</option>'+rows.map(p=>'<option value="'+esc(p.name)+'">'+esc(p.name)+'</option>').join('');}catch(e){}}
@@ -176,12 +176,12 @@
               <button id="stSelect" class="primary">↖ Seleccionar</button>
               <button id="stErase" class="secondary">⌫ Borrar zona</button>
               <button id="stBrushErase" class="secondary">🖌️ Borrador</button>
-              <button id="stPick" class="secondary">🎯 Tomar color</button><button id="stSelectColorArea" class="secondary">▭ Seleccionar zona</button>
+              <button id="stPick" class="secondary">🎯 Tomar color</button><button id="stSelectColorArea" class="secondary">▭ Añadir zona</button><button id="stClearColorAreas" class="secondary">🧹 Limpiar zonas</button>
             </div>
             <div class="studio-field" style="margin-bottom:10px"><label>Tamaño pincel (cm)<input id="stBrushSize" type="number" min=".1" max="5" step=".1" value=".5"></label><label style="display:flex;align-items:end;gap:8px;padding-bottom:10px"><input id="stLockAspect" type="checkbox" ${state.lockAspect?'checked':''} style="width:auto"> Mantener proporción</label></div>
             <div class="field"><label>Importar PNG / JPG / WEBP / SVG</label><input id="stFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></div>
             <button id="stAddText" class="secondary" style="width:100%;margin-top:8px">T＋ Añadir texto</button>
-            <div class="studio-note" style="margin-top:12px"><b>Borrar zona</b>: arrastra un rectángulo sobre una imagen seleccionada. <br><b>Seleccionar zona</b>: arrastra un rectángulo para limitar los cambios de color solo a esa parte de la imagen.</div>
+            <div class="studio-note" style="margin-top:12px"><b>Borrar zona</b>: arrastra un rectángulo sobre una imagen seleccionada. <br><b>Añadir zona</b>: puedes marcar varias zonas para limitar los cambios de color solo a esas partes del diseño.</div>
 
             <h3 style="margin-top:18px">Proyecto</h3>
             <div class="field"><label>Nombre del proyecto</label><input id="stProjectName" placeholder="Ej. Pedido Sara - espalda"></div>
@@ -334,12 +334,11 @@
       g.save();g.strokeStyle='#087cf4';g.lineWidth=2;g.setLineDash([7,5]);
       g.strokeRect(o.x*s,o.y*s,o.w*s,o.h*s);g.restore();
     }
-    if(state.colorSelection && state.colorSelection.objectId===state.selectedId){
-      const q=state.colorSelection;
+    state.colorSelections.filter(q=>q.objectId===state.selectedId).forEach(q=>{
       g.save();g.strokeStyle='#8b5cf6';g.fillStyle='rgba(139,92,246,.08)';g.lineWidth=2;g.setLineDash([6,4]);
       const rx=Math.min(q.x1,q.x2)*s, ry=Math.min(q.y1,q.y2)*s, rw=Math.abs(q.x2-q.x1)*s, rh=Math.abs(q.y2-q.y1)*s;
       g.fillRect(rx,ry,rw,rh);g.strokeRect(rx,ry,rw,rh);g.restore();
-    }
+    });
     const st=document.querySelector('#stStatus');
     if(st) st.textContent=`${state.widthCm} × ${state.heightCm} cm · salida ${Math.round(cm2px(state.widthCm))} × ${Math.round(cm2px(state.heightCm))} px a 300 ppp · ${state.objects.length} capas`;
     renderLayers(); renderInspector();
@@ -476,9 +475,18 @@
 
   function setColorArea(d){
     const o=selected(); if(!o||o.type!=='image') return;
-    state.colorSelection={objectId:o.id,x1:d.x,y1:d.y,x2:d.x2,y2:d.y2};
+    state.colorSelections.push({objectId:o.id,x1:d.x,y1:d.y,x2:d.x2,y2:d.y2});
     const info=document.querySelector('#stColorInfo');
-    if(info) info.innerHTML='<b>Zona de color seleccionada.</b> Ahora usa “Tomar color” dentro de esa zona y después “Reemplazar color tomado”.';
+    if(info) info.innerHTML='<b>'+state.colorSelections.filter(z=>z.objectId===o.id).length+' zona(s) seleccionada(s).</b> Usa “Tomar color” y después “Reemplazar color tomado”.';
+    redraw();
+  }
+
+  function clearColorAreas(){
+    const o=selected();
+    if(o) state.colorSelections=state.colorSelections.filter(z=>z.objectId!==o.id);
+    else state.colorSelections=[];
+    const info=document.querySelector('#stColorInfo');
+    if(info) info.innerHTML='Zonas de color limpiadas.';
     redraw();
   }
 
@@ -513,20 +521,26 @@
     const target=hexRgb(document.querySelector('#stPantoneHex').value),tol=Number(document.querySelector('#stTolerance').value||35),src=state.pickedColor;
     const off=document.createElement('canvas');off.width=o.img.naturalWidth;off.height=o.img.naturalHeight;const g=off.getContext('2d',{willReadFrequently:true});
     g.drawImage(o.img,0,0);const id=g.getImageData(0,0,off.width,off.height),d=id.data;let n=0;
-    let sx1=0,sy1=0,sx2=off.width,sy2=off.height;
-    if(state.colorSelection && state.colorSelection.objectId===o.id){
-      const q=state.colorSelection;
-      sx1=clamp(Math.floor((Math.min(q.x1,q.x2)-o.x)/o.w*off.width),0,off.width);
-      sy1=clamp(Math.floor((Math.min(q.y1,q.y2)-o.y)/o.h*off.height),0,off.height);
-      sx2=clamp(Math.ceil((Math.max(q.x1,q.x2)-o.x)/o.w*off.width),0,off.width);
-      sy2=clamp(Math.ceil((Math.max(q.y1,q.y2)-o.y)/o.h*off.height),0,off.height);
-    }
-    for(let y=sy1;y<sy2;y++){
-      for(let x=sx1;x<sx2;x++){
-        const i=(y*off.width+x)*4;
-        if(d[i+3]===0)continue;
-        const dist=Math.hypot(d[i]-src[0],d[i+1]-src[1],d[i+2]-src[2]);
-        if(dist<=tol){d[i]=target[0];d[i+1]=target[1];d[i+2]=target[2];n++;}
+    const zones=state.colorSelections.filter(q=>q.objectId===o.id);
+    const paintRect=(sx1,sy1,sx2,sy2)=>{
+      for(let y=sy1;y<sy2;y++){
+        for(let x=sx1;x<sx2;x++){
+          const i=(y*off.width+x)*4;
+          if(d[i+3]===0)continue;
+          const dist=Math.hypot(d[i]-src[0],d[i+1]-src[1],d[i+2]-src[2]);
+          if(dist<=tol){d[i]=target[0];d[i+1]=target[1];d[i+2]=target[2];n++;}
+        }
+      }
+    };
+    if(!zones.length){
+      paintRect(0,0,off.width,off.height);
+    }else{
+      for(const q of zones){
+        const sx1=clamp(Math.floor((Math.min(q.x1,q.x2)-o.x)/o.w*off.width),0,off.width);
+        const sy1=clamp(Math.floor((Math.min(q.y1,q.y2)-o.y)/o.h*off.height),0,off.height);
+        const sx2=clamp(Math.ceil((Math.max(q.x1,q.x2)-o.x)/o.w*off.width),0,off.width);
+        const sy2=clamp(Math.ceil((Math.max(q.y1,q.y2)-o.y)/o.h*off.height),0,off.height);
+        paintRect(sx1,sy1,sx2,sy2);
       }
     }
     g.putImageData(id,0,0);const im=new Image();im.onload=()=>{o.img=im;o.src=im.src;redraw();toast?.('Color reemplazado en '+n+' píxeles');};im.src=off.toDataURL('image/png');
@@ -894,6 +908,7 @@
     document.querySelector('#stLockAspect').onchange=e=>{state.lockAspect=e.target.checked;toast?.(state.lockAspect?'Proporción bloqueada':'Proporción libre');};
     document.querySelector('#stPick').onclick=()=>setTool('pick');
     document.querySelector('#stSelectColorArea').onclick=()=>setTool('color-area');
+    document.querySelector('#stClearColorAreas').onclick=clearColorAreas;
     document.querySelector('#stFit').onclick=fitSelected;document.querySelector('#stCenter').onclick=centerSelected;
     document.querySelector('#stDuplicate').onclick=duplicate;
     document.querySelector('#stLayerUp').onclick=layerUp;
