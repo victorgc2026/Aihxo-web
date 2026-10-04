@@ -236,6 +236,8 @@
             <div class="studio-toolbar" style="margin-top:8px">
               <button id="stApplyRgbWhole" class="secondary">🎨 Aplicar RGB a toda la capa</button>
               <button id="stApplyRgbZones" class="secondary">🟪 Aplicar RGB a zonas</button>
+              <button id="stAddSolidBg" class="secondary">▰ Fondo sólido a capa</button>
+              <button id="stAddDocBg" class="secondary">▰ Fondo sólido documento</button>
               <button id="stSaveRgbColor" class="secondary">💾 Guardar color RGB</button>
             </div>
             <div class="studio-note">Color libre para marcas de agua, logos y texto sin depender de Pantone.</div>
@@ -337,6 +339,9 @@
     g.globalAlpha=o.opacity??1;
     if(o.type==='image' && o.img){
       g.drawImage(o._brushCanvas||o.img,0,0,o.w*s,o.h*s);
+    }else if(o.type==='rect'){
+      g.fillStyle=o.color||'#ffffff';
+      g.fillRect(0,0,o.w*s,o.h*s);
     }else if(o.type==='text'){
       g.fillStyle=o.color||'#111111';
       g.font=`${Math.max(1,o.fontSize*s)}px ${o.fontFamily||'Arial'}`;
@@ -394,7 +399,7 @@
     box.innerHTML=state.objects.slice().reverse().map(o=>`
       <div class="studio-layer ${o.id===state.selectedId?'active':''}" data-id="${o.id}">
         <button class="secondary stVis" data-id="${o.id}">${o.visible===false?'🙈':'👁️'}</button>
-        <div style="min-width:0;flex:1"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.name)} ${o.locked?'🔒':''}</b><span class="muted">${o.type==='image'?'Imagen':'Texto'}${o.pantone?' · '+esc(o.pantone.name):''}</span></div>
+        <div style="min-width:0;flex:1"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.name)} ${o.locked?'🔒':''}</b><span class="muted">${o.type==='image'?'Imagen':o.type==='rect'?'Fondo':'Texto'}${o.pantone?' · '+esc(o.pantone.name):''}</span></div>
       </div>`).join('')||'<div class="muted">Sin capas.</div>';
     box.querySelectorAll('.studio-layer').forEach(x=>x.onclick=e=>{if(e.target.closest('.stVis'))return;state.selectedId=x.dataset.id;redraw();});
     box.querySelectorAll('.stVis').forEach(b=>b.onclick=e=>{e.stopPropagation();const o=state.objects.find(x=>x.id===b.dataset.id);if(o){o.visible=!o.visible;redraw();}});
@@ -807,6 +812,22 @@
   function duplicate(){const o=selected();if(!o)return;pushHistory();const n={...o,id:uid(),name:o.name+' copia',x:o.x+cm2px(.5),y:o.y+cm2px(.5),pantone:o.pantone?{...o.pantone}:null};state.objects.push(n);state.selectedId=n.id;redraw();}
   function del(){const so=selected();if(so?.locked){alert('Desbloquea la capa antes de eliminarla.');return;}pushHistory();const i=state.objects.findIndex(o=>o.id===state.selectedId);if(i<0)return;state.objects.splice(i,1);state.selectedId=null;redraw();}
 
+  function addSolidBackgroundToLayer(){
+    const ref=selected();if(!ref){alert('Selecciona primero la capa a la que quieres poner fondo.');return;}
+    if(ref.type==='rect'){alert('Selecciona una capa de imagen o texto, no el fondo.');return;}
+    const hex=currentRgbHex();pushHistory();
+    const bg={id:uid(),type:'rect',name:'Fondo '+ref.name,color:hex,x:ref.x,y:ref.y,w:ref.w,h:ref.h,rotation:ref.rotation||0,opacity:1,visible:true,locked:false,pantone:null};
+    const i=state.objects.findIndex(o=>o.id===ref.id);
+    state.objects.splice(Math.max(0,i),0,bg);
+    state.selectedId=bg.id;redraw();toast?.('Fondo sólido añadido detrás de la capa');
+  }
+
+  function addSolidBackgroundToDocument(){
+    const hex=currentRgbHex();pushHistory();
+    const bg={id:uid(),type:'rect',name:'Fondo documento',color:hex,x:0,y:0,w:cm2px(state.widthCm),h:cm2px(state.heightCm),rotation:0,opacity:1,visible:true,locked:false,pantone:null};
+    state.objects.unshift(bg);state.selectedId=bg.id;redraw();toast?.('Fondo sólido añadido al documento');
+  }
+
   function layerIndex(){return state.objects.findIndex(o=>o.id===state.selectedId);}
   function layerUp(){
     const i=layerIndex();if(i<0||i>=state.objects.length-1)return;pushHistory();[state.objects[i],state.objects[i+1]]=[state.objects[i+1],state.objects[i]];redraw();
@@ -985,6 +1006,7 @@
       const tr=o.rotation?` transform="rotate(${o.rotation} ${x} ${y})"`:'';
       const dataAttr=o.pantone?` data-spot-name="${esc(o.pantone.name)}" data-spot-hex="${esc(o.pantone.hex)}"`:'';
       if(o.type==='image') body+=`<image x="${x}" y="${y}" width="${w}" height="${h}" href="${esc(o.src)}" opacity="${o.opacity??1}"${tr}${dataAttr}/>`;
+      else if(o.type==='rect') body+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${esc(o.color||'#ffffff')}" opacity="${o.opacity??1}"${tr}${dataAttr}/>`;
       else body+=`<text x="${x}" y="${y+h*.8}" font-family="${esc(o.fontFamily||'Arial')}" font-size="${h*.75}" fill="${esc(o.color||'#111')}" opacity="${o.opacity??1}"${tr}${dataAttr}>${esc(o.text||'')}</text>`;
     }
     const svg=`<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="${wmm}mm" height="${hmm}mm" viewBox="0 0 ${wmm} ${hmm}"><metadata>${esc(JSON.stringify({producer:'AIHXO Studio',dpi:300,spotReferences:meta}))}</metadata>${body}</svg>`;
@@ -1042,6 +1064,8 @@
     document.querySelector('#stRgbB').onchange=syncRgbFromNumbers;
     document.querySelector('#stApplyRgbWhole').onclick=applyRgbWhole;
     document.querySelector('#stApplyRgbZones').onclick=applyRgbZones;
+    document.querySelector('#stAddSolidBg').onclick=addSolidBackgroundToLayer;
+    document.querySelector('#stAddDocBg').onclick=addSolidBackgroundToDocument;
     document.querySelector('#stSaveRgbColor').onclick=saveCurrentRgbColor;
     syncRgbInputsFromHex();
     renderRgbPalette();
