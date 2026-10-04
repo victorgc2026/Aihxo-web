@@ -139,7 +139,7 @@
     body.innerHTML=`
       <div class="section"><div><h2>🔗 Vincular envío de Packlink</h2><div class="muted">Para envíos creados directamente en Packlink PRO</div></div></div>
       <form id="plLinkForm" class="form">
-        <div class="field"><label>Pedidos AIHXO incluidos en este envío</label><div id="plOrderChecks" style="display:grid;gap:8px;max-height:260px;overflow:auto;padding:8px;border:1px solid #e4e7ec;border-radius:12px">${available.map(o=>`<label style="display:flex;align-items:center;gap:10px"><input type="checkbox" name="order_ids" value="${o.id}"><span><b>${esc(o.order_number||'Pedido')}</b> · ${esc(o.customer_name||'')}</span></label>`).join('')}</div><div class="muted" style="margin-top:6px">Puedes seleccionar dos o más pedidos si viajan juntos en el mismo paquete.</div></div>
+        <div class="field"><label>Pedidos AIHXO incluidos en este envío</label><div id="plOrderChecks" class="pl-order-checks">${available.map(o=>`<label class="pl-order-option"><input type="checkbox" name="order_ids" value="${o.id}"><span><b>${esc(o.order_number||'Pedido')}</b><small>${esc(o.customer_name||'')}</small></span></label>`).join('')}</div><div class="muted" style="margin-top:6px">Puedes seleccionar dos o más pedidos si viajan juntos en el mismo paquete.</div></div>
         <div class="formgrid">
           <div class="field"><label>Destinatario</label><input name="recipient_name" value="${esc(prefill.recipient_name||'')}"></div>
           <div class="field"><label>Transportista</label><input name="carrier_name" value="${esc(prefill.carrier_name||'')}"></div>
