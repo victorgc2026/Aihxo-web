@@ -31,7 +31,7 @@
   injectNav();
 
   async function fetchShipments(){
-    const {data,error}=await supabaseClient.from('shipments').select('*').order('created_at',{ascending:false});
+    const {data,error}=await supabaseClient.from('shipments').select('*, shipment_orders(order_id,allocated_cost)').order('created_at',{ascending:false});
     if(error) throw error;
     return data||[];
   }
@@ -66,10 +66,12 @@
             <thead><tr><th>Pedido</th><th>Cliente</th><th>Transportista</th><th>Coste</th><th>Estado</th><th>Seguimiento</th><th></th></tr></thead>
             <tbody>
               ${rows.length?rows.map(s=>{
-                const o=(orders||[]).find(x=>String(x.id)===String(s.order_id));
+                const linked=(s.shipment_orders||[]).map(l=>(orders||[]).find(x=>String(x.id)===String(l.order_id))).filter(Boolean);
+                const fallback=s.order_id?(orders||[]).find(x=>String(x.id)===String(s.order_id)):null;
+                if(!linked.length && fallback) linked.push(fallback);
                 return `<tr>
-                  <td><b>${esc(o?.order_number||'—')}</b></td>
-                  <td>${esc(s.recipient_name||o?.customer_name||'—')}</td>
+                  <td><b>${linked.length?linked.map(o=>esc(o.order_number||'—')).join('<br>'):'—'}</b></td>
+                  <td>${esc(s.recipient_name||linked[0]?.customer_name||'—')}</td>
                   <td>${esc(s.carrier_name||s.service_name||'—')}</td>
                   <td>${s.price!=null?eur(s.price):'—'}</td>
                   <td>${esc(s.status||'Pendiente')}</td>
@@ -137,7 +139,7 @@
     body.innerHTML=`
       <div class="section"><div><h2>🔗 Vincular envío de Packlink</h2><div class="muted">Para envíos creados directamente en Packlink PRO</div></div></div>
       <form id="plLinkForm" class="form">
-        <div class="field"><label>Pedido AIHXO</label><select name="order_id" required><option value="">Selecciona pedido</option>${available.map(o=>`<option value="${o.id}">${esc(o.order_number||'Pedido')} · ${esc(o.customer_name||'')}</option>`).join('')}</select></div>
+        <div class="field"><label>Pedidos AIHXO incluidos en este envío</label><div id="plOrderChecks" style="display:grid;gap:8px;max-height:260px;overflow:auto;padding:8px;border:1px solid #e4e7ec;border-radius:12px">${available.map(o=>`<label style="display:flex;align-items:center;gap:10px"><input type="checkbox" name="order_ids" value="${o.id}"><span><b>${esc(o.order_number||'Pedido')}</b> · ${esc(o.customer_name||'')}</span></label>`).join('')}</div><div class="muted" style="margin-top:6px">Puedes seleccionar dos o más pedidos si viajan juntos en el mismo paquete.</div></div>
         <div class="formgrid">
           <div class="field"><label>Destinatario</label><input name="recipient_name" value="${esc(prefill.recipient_name||'')}"></div>
           <div class="field"><label>Transportista</label><input name="carrier_name" value="${esc(prefill.carrier_name||'')}"></div>
@@ -154,12 +156,15 @@
     drawer.classList.remove('hidden');
     const form=document.getElementById('plLinkForm');
     form.onsubmit=async e=>{
-      e.preventDefault(); const fd=new FormData(form); const orderId=String(fd.get('order_id')||'');
-      const o=(orders||[]).find(x=>String(x.id)===orderId); if(!o){toast('Selecciona un pedido');return;}
+      e.preventDefault(); const fd=new FormData(form);
+      const orderIds=[...form.querySelectorAll('input[name="order_ids"]:checked')].map(x=>String(x.value));
+      if(!orderIds.length){toast('Selecciona al menos un pedido');return;}
+      const selectedOrders=(orders||[]).filter(o=>orderIds.includes(String(o.id)));
+      const primaryOrder=selectedOrders[0];
       const price=fd.get('price')===''?null:num(fd.get('price'));
       const payload={
-        order_id:orderId,provider:'packlink_pro',status:String(fd.get('status')||'Contratado'),
-        recipient_name:String(fd.get('recipient_name')||o.customer_name||'').trim(),
+        order_id:null,provider:'packlink_pro',status:String(fd.get('status')||'Contratado'),
+        recipient_name:String(fd.get('recipient_name')||primaryOrder?.customer_name||'').trim(),
         carrier_name:String(fd.get('carrier_name')||'').trim(),
         service_name:String(fd.get('service_name')||'').trim(),
         price,packlink_reference:String(fd.get('packlink_reference')||'').trim(),
@@ -168,10 +173,20 @@
         label_url:String(fd.get('label_url')||'').trim(),
         metadata:{source:'manual_packlink_link'},updated_at:new Date().toISOString()
       };
-      const {error}=await supabaseClient.from('shipments').upsert(payload,{onConflict:'order_id'});
-      if(error){console.error(error);toast('No se pudo vincular el envío');return;}
-      if(price!=null){await supabaseClient.from('orders').update({outbound_shipping_cost:price}).eq('id',orderId);o.outbound_shipping_cost=price;}
-      toast('Envío de Packlink vinculado');
+      const ins=await supabaseClient.from('shipments').insert(payload).select('id').single();
+      if(ins.error){console.error(ins.error);toast('No se pudo vincular el envío');return;}
+      const shipmentId=ins.data.id;
+      const splitCost=price==null?null:price/orderIds.length;
+      const links=orderIds.map(id=>({shipment_id:shipmentId,order_id:id,allocated_cost:splitCost}));
+      const linkRes=await supabaseClient.from('shipment_orders').insert(links);
+      if(linkRes.error){console.error(linkRes.error);toast('Envío creado, pero no se pudieron vincular todos los pedidos');return;}
+      if(splitCost!=null){
+        for(const o of selectedOrders){
+          await supabaseClient.from('orders').update({outbound_shipping_cost:splitCost}).eq('id',o.id);
+          o.outbound_shipping_cost=splitCost;
+        }
+      }
+      toast('Envío vinculado a '+orderIds.length+' pedido'+(orderIds.length===1?'':'s'));
       if(typeof closeDrawer==='function')closeDrawer();
       await window.renderEnvios();
     };
