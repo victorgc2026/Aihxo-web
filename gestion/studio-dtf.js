@@ -8,12 +8,6 @@
 
   const DPI = 300;
   const CM_TO_PX = DPI / 2.54;
-  const state = {
-    widthCm: 30, heightCm: 35, objects: [], selectedId: null,
-    tool: 'select', drag: null, pickedColor: null, colorSelection: null,
-    palette: loadPalette()
-  };
-
   const DEFAULT_PALETTE = [
     {name:'PANTONE 533 C', hex:'#031751', source:'Kamuk'},
     {name:'PANTONE 534 C', hex:'#002279', source:'Kamuk'},
@@ -21,6 +15,13 @@
     {name:'PANTONE 430 C', hex:'#628A90', source:'Kamuk'},
     {name:'PANTONE 7506 C', hex:'#EBDAA6', source:'Kamuk'}
   ];
+
+  const state = {
+    widthCm: 30, heightCm: 35, objects: [], selectedId: null,
+    tool: 'select', drag: null, pickedColor: null, colorSelection: null,
+    palette: loadPalette()
+  };
+
   function loadPalette(){
     try{
       const saved=JSON.parse(localStorage.getItem('aihxoStudioPantonePalette')||'null');
