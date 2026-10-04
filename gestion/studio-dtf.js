@@ -259,6 +259,13 @@
             <button id="stAddQueue" class="secondary" style="width:100%;margin-top:8px">＋ Añadir diseño actual a cola</button>
             <div id="stQueueList" style="margin-top:8px"></div>
             <button id="stExportMultiSheet" class="primary" style="width:100%;margin-top:8px">Optimizar cola en hoja DTF</button>
+            <h3 style="margin-top:18px">Control de transparencia</h3>
+            <div class="studio-toolbar">
+              <button id="stCheckTransparency" class="secondary">🔎 Comprobar transparencia</button>
+              <button id="stCleanHalo" class="secondary">✨ Limpiar halo blanco</button>
+            </div>
+            <div id="stTransparencyInfo" class="studio-note">Selecciona una capa de imagen y pulsa “Comprobar transparencia”.</div>
+
             <h3 style="margin-top:18px">Salida</h3>
             <div class="studio-field">
               <label>Copias para impresión<input id="stCopies" type="number" min="1" max="200" value="1"></label>
@@ -574,6 +581,69 @@
     applyWholeLayerColor();
   }
 
+  function transparencyStats(o){
+    if(!o||o.type!=='image'||!o.img)return null;
+    const max=900,iw=imgW(o.img),ih=imgH(o.img),scale=Math.min(1,max/Math.max(iw,ih));
+    const c=document.createElement('canvas');c.width=Math.max(1,Math.round(iw*scale));c.height=Math.max(1,Math.round(ih*scale));
+    const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(o.img,0,0,c.width,c.height);
+    const d=g.getImageData(0,0,c.width,c.height).data;
+    let transparent=0,partial=0,opaque=0,whiteOpaque=0,lightEdge=0,visible=0;
+    const w=c.width,h=c.height;
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const i=(y*w+x)*4,a=d[i+3],r=d[i],gg=d[i+1],b=d[i+2];
+        if(a===0){transparent++;continue;}
+        visible++;
+        if(a<250)partial++;else opaque++;
+        if(a>245&&r>245&&gg>245&&b>245)whiteOpaque++;
+        if(a>10&&a<245&&r>220&&gg>220&&b>220)lightEdge++;
+      }
+    }
+    const total=w*h;
+    return {total,transparent,partial,opaque,whiteOpaque,lightEdge,visible,
+      transparentPct:total?transparent/total*100:0,
+      partialPct:total?partial/total*100:0,
+      whitePct:visible?whiteOpaque/visible*100:0,
+      haloPct:visible?lightEdge/visible*100:0};
+  }
+
+  function checkTransparency(){
+    const o=selected();const info=document.querySelector('#stTransparencyInfo');
+    if(!o||o.type!=='image'||!o.img){alert('Selecciona primero una capa de imagen.');return;}
+    const s=transparencyStats(o);if(!s)return;
+    let status='',details=[];
+    if(s.transparentPct>1)status='✅ PNG con transparencia real';
+    else status='⚠️ No se detecta transparencia significativa';
+    if(s.whitePct>8)details.push('posible fondo blanco sólido');
+    if(s.haloPct>.15)details.push('posible halo claro en bordes');
+    if(s.partialPct>0.1)details.push('transparencia parcial en '+s.partialPct.toFixed(1)+'%');
+    if(info)info.innerHTML='<b>'+status+'</b><br>Transparente: '+s.transparentPct.toFixed(1)+'% · Píxeles blancos opacos: '+s.whitePct.toFixed(1)+'%'+(details.length?'<br>⚠️ '+details.join(' · '):'');
+  }
+
+  async function cleanWhiteHalo(){
+    const o=selected();if(!o||o.type!=='image'||!o.img){alert('Selecciona primero una capa de imagen.');return;}
+    pushHistory();
+    const c=document.createElement('canvas');c.width=imgW(o.img);c.height=imgH(o.img);
+    const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(o.img,0,0,c.width,c.height);
+    const id=g.getImageData(0,0,c.width,c.height),d=id.data;let changed=0;
+    for(let i=0;i<d.length;i+=4){
+      const a=d[i+3],r=d[i],gg=d[i+1],b=d[i+2];
+      if(a===0)continue;
+      const min=Math.min(r,gg,b),max=Math.max(r,gg,b);
+      const nearWhite=min>215 && max-min<28;
+      if(!nearWhite)continue;
+      const whiteness=(min-215)/40;
+      const reduce=clamp(whiteness,0,1);
+      if(a<255 || reduce>.15){
+        d[i+3]=Math.max(0,Math.round(a*(1-reduce*.75)));
+        changed++;
+      }
+    }
+    g.putImageData(id,0,0);
+    const src=c.toDataURL('image/png');o.src=src;o.img=await imageFromSrc(src);redraw();checkTransparency();
+    toast?.('Halo limpiado en '+changed+' píxeles');
+  }
+
   function refreshPaletteUI(){
     const sel=document.querySelector('#stPalette');
     if(sel){
@@ -851,6 +921,8 @@
     document.querySelector('#stAssignPantone').onclick=assignPantone;document.querySelector('#stReplaceColor').onclick=replacePicked;
     document.querySelector('#stApplyWholeLayerColor').onclick=applyWholeLayerColor;
     document.querySelector('#stCopyColorFromLayer').onclick=copyColorFromLayer;
+    document.querySelector('#stCheckTransparency').onclick=checkTransparency;
+    document.querySelector('#stCleanHalo').onclick=cleanWhiteHalo;
     document.querySelector('#stExportMatrix').onclick=exportMatrix;
     document.querySelector('#stAddQueue').onclick=addCurrentToQueue;
     document.querySelector('#stExportMultiSheet').onclick=exportMultiSheet;
