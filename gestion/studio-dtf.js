@@ -20,7 +20,7 @@
     widthCm: 30, heightCm: 35, objects: [], selectedId: null,
     tool: 'select', drag: null, pickedColor: null, colorSelection: null,
     palette: loadPalette(), history: [], future: [], historyBusy:false,
-    brushSizeCm: 0.5, printQueue: [], projectName:'', matrix: [
+    brushSizeCm: 0.5, lockAspect:true, printQueue: [], projectName:'', matrix: [
       {size:'7/8',w:24,h:27,qty:1,enabled:true},
       {size:'9/11',w:26,h:29,qty:1,enabled:true},
       {size:'12/13',w:28,h:31,qty:1,enabled:true},
@@ -160,7 +160,7 @@
               <button id="stBrushErase" class="secondary">🖌️ Borrador</button>
               <button id="stPick" class="secondary">🎯 Tomar color</button><button id="stSelectColorArea" class="secondary">▭ Seleccionar zona</button>
             </div>
-            <div class="studio-field" style="margin-bottom:10px"><label>Tamaño pincel (cm)<input id="stBrushSize" type="number" min=".1" max="5" step=".1" value=".5"></label><label>Proporción<input value="BLOQUEADA" disabled></label></div>
+            <div class="studio-field" style="margin-bottom:10px"><label>Tamaño pincel (cm)<input id="stBrushSize" type="number" min=".1" max="5" step=".1" value=".5"></label><label style="display:flex;align-items:end;gap:8px;padding-bottom:10px"><input id="stLockAspect" type="checkbox" ${state.lockAspect?'checked':''} style="width:auto"> Mantener proporción</label></div>
             <div class="field"><label>Importar PNG / JPG / WEBP / SVG</label><input id="stFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></div>
             <button id="stAddText" class="secondary" style="width:100%;margin-top:8px">T＋ Añadir texto</button>
             <div class="studio-note" style="margin-top:12px"><b>Borrar zona</b>: arrastra un rectángulo sobre una imagen seleccionada. <br><b>Seleccionar zona</b>: arrastra un rectángulo para limitar los cambios de color solo a esa parte de la imagen.</div>
@@ -363,8 +363,8 @@
       <div class="studio-note" style="margin-top:8px">${o.pantone?'<b>'+esc(o.pantone.name)+'</b> · '+esc(o.pantone.hex):'Sin referencia Pantone asignada.'}</div>`;
     const bindNum=(id,fn)=>document.querySelector(id)?.addEventListener('change',e=>{if(o.locked){alert('Esta capa está bloqueada.');renderInspector();return;}pushHistory();fn(Number(e.target.value));redraw();});
     bindNum('#stiX',v=>o.x=cm2px(v));bindNum('#stiY',v=>o.y=cm2px(v));
-    bindNum('#stiW',v=>{const r=o.h/o.w;o.w=cm2px(v);o.h=o.w*r;});
-    bindNum('#stiH',v=>{const r=o.w/o.h;o.h=cm2px(v);o.w=o.h*r;});
+    bindNum('#stiW',v=>{const oldW=o.w,oldH=o.h;o.w=cm2px(v);if(state.lockAspect&&oldW>0)o.h=o.w*(oldH/oldW);});
+    bindNum('#stiH',v=>{const oldW=o.w,oldH=o.h;o.h=cm2px(v);if(state.lockAspect&&oldH>0)o.w=o.h*(oldW/oldH);});
     bindNum('#stiR',v=>o.rotation=v);bindNum('#stiO',v=>o.opacity=clamp(v/100,0,1));
     document.querySelector('#stiText')?.addEventListener('change',e=>{if(o.locked){alert('Esta capa está bloqueada.');renderInspector();return;}pushHistory();o.text=e.target.value;measureText(o);redraw();});
     document.querySelector('#stiFont')?.addEventListener('change',e=>{if(o.locked){alert('Esta capa está bloqueada.');renderInspector();return;}pushHistory();o.fontSize=Number(e.target.value)||1;measureText(o);redraw();});
@@ -739,6 +739,7 @@
     document.querySelector('#stErase').onclick=()=>setTool('erase');
     document.querySelector('#stBrushErase').onclick=()=>setTool('brush-erase');
     document.querySelector('#stBrushSize').onchange=e=>state.brushSizeCm=Math.max(.1,Number(e.target.value)||.5);
+    document.querySelector('#stLockAspect').onchange=e=>{state.lockAspect=e.target.checked;toast?.(state.lockAspect?'Proporción bloqueada':'Proporción libre');};
     document.querySelector('#stPick').onclick=()=>setTool('pick');
     document.querySelector('#stSelectColorArea').onclick=()=>setTool('color-area');
     document.querySelector('#stFit').onclick=fitSelected;document.querySelector('#stCenter').onclick=centerSelected;
