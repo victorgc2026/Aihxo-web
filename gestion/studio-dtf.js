@@ -204,6 +204,8 @@
             <div class="studio-toolbar" style="margin-top:8px">
               <button id="stAssignPantone" class="secondary">Asignar referencia</button>
               <button id="stReplaceColor" class="secondary">Reemplazar color tomado</button>
+              <button id="stApplyWholeLayerColor" class="secondary">🎨 Aplicar color a toda la capa</button>
+              <button id="stCopyColorFromLayer" class="secondary">🧪 Copiar color de otra capa</button>
             </div>
             <details style="margin-top:12px">
               <summary style="cursor:pointer;font-weight:800">＋ Gestionar paleta</summary>
@@ -489,6 +491,55 @@
     g.putImageData(id,0,0);const im=new Image();im.onload=()=>{o.img=im;o.src=im.src;redraw();toast?.('Color reemplazado en '+n+' píxeles');};im.src=off.toDataURL('image/png');
   }
 
+  function dominantLayerColor(o){
+    if(!o)return null;
+    if(o.type==='text') return hexRgb(o.color||'#111111');
+    if(o.type!=='image'||!o.img)return null;
+    const max=220,iw=imgW(o.img),ih=imgH(o.img),scale=Math.min(1,max/Math.max(iw,ih));
+    const c=document.createElement('canvas');c.width=Math.max(1,Math.round(iw*scale));c.height=Math.max(1,Math.round(ih*scale));
+    const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(o.img,0,0,c.width,c.height);
+    const d=g.getImageData(0,0,c.width,c.height).data,bins=new Map();
+    for(let i=0;i<d.length;i+=4){
+      if(d[i+3]<40)continue;
+      const r=Math.round(d[i]/24)*24,gc=Math.round(d[i+1]/24)*24,b=Math.round(d[i+2]/24)*24;
+      const k=r+','+gc+','+b;bins.set(k,(bins.get(k)||0)+1);
+    }
+    let best=null,count=-1;for(const [k,n] of bins){if(n>count){best=k;count=n;}}
+    return best?best.split(',').map(Number):null;
+  }
+
+  function rgbHex(rgb){
+    return '#'+rgb.map(v=>clamp(Math.round(v),0,255).toString(16).padStart(2,'0')).join('').toUpperCase();
+  }
+
+  function applyWholeLayerColor(){
+    const o=selected();if(!o){alert('Selecciona primero la capa que quieres recolorear.');return;}
+    const hex=document.querySelector('#stPantoneHex')?.value||'#000000';
+    const name=(document.querySelector('#stPantoneName')?.value||'').trim()||'Color de producción';
+    pushHistory();
+    if(o.type==='text'){o.color=hex;o.pantone={name,hex};redraw();toast?.('Color aplicado a toda la capa');return;}
+    if(o.type!=='image'||!o.img)return;
+    const c=document.createElement('canvas');c.width=imgW(o.img);c.height=imgH(o.img);
+    const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(o.img,0,0,c.width,c.height);
+    const id=g.getImageData(0,0,c.width,c.height),d=id.data,target=hexRgb(hex);
+    for(let i=0;i<d.length;i+=4){if(d[i+3]===0)continue;d[i]=target[0];d[i+1]=target[1];d[i+2]=target[2];}
+    g.putImageData(id,0,0);
+    const src=c.toDataURL('image/png');imageFromSrc(src).then(im=>{o.img=im;o.src=src;o.pantone={name,hex};redraw();toast?.('Color aplicado a toda la capa');});
+  }
+
+  function copyColorFromLayer(){
+    const target=selected();if(!target){alert('Selecciona primero la capa que quieres recolorear.');return;}
+    const others=state.objects.filter(o=>o.id!==target.id&&o.visible!==false);
+    if(!others.length){alert('No hay otra capa de la que copiar el color.');return;}
+    const names=others.map((o,i)=>(i+1)+'. '+o.name).join('\n');
+    const answer=prompt('¿De qué capa quieres copiar el color?\n\n'+names+'\n\nEscribe el número:','1');
+    if(answer===null)return;const idx=Number(answer)-1;if(!Number.isInteger(idx)||!others[idx]){alert('Número de capa no válido.');return;}
+    const source=others[idx],rgb=dominantLayerColor(source);if(!rgb){alert('No se pudo detectar un color en esa capa.');return;}
+    const hex=rgbHex(rgb),name=source.pantone?.name||('Color copiado de '+source.name);
+    const pi=document.querySelector('#stPantoneName'),ph=document.querySelector('#stPantoneHex');if(pi)pi.value=name;if(ph)ph.value=hex;
+    applyWholeLayerColor();
+  }
+
   function refreshPaletteUI(){
     const sel=document.querySelector('#stPalette');
     if(sel){
@@ -665,6 +716,8 @@
     document.querySelector('#stDeletePantone').onclick=deletePantone;
     refreshPaletteUI();
     document.querySelector('#stAssignPantone').onclick=assignPantone;document.querySelector('#stReplaceColor').onclick=replacePicked;
+    document.querySelector('#stApplyWholeLayerColor').onclick=applyWholeLayerColor;
+    document.querySelector('#stCopyColorFromLayer').onclick=copyColorFromLayer;
     document.querySelector('#stExportMatrix').onclick=exportMatrix;
     document.querySelector('#stAddQueue').onclick=addCurrentToQueue;
     document.querySelector('#stExportMultiSheet').onclick=exportMultiSheet;
