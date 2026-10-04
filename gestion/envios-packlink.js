@@ -50,8 +50,7 @@
         <div class="section">
           <div><h2>🚚 Centro de Envíos</h2><div class="muted">Preparación, coste, etiqueta y seguimiento de pedidos</div></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="primary" id="plSync">🔄 Sincronizar Packlink</button>
-            <button class="secondary" id="plImport">＋ Vincular envío</button>
+            <button class="primary" id="plImport">＋ Vincular envío de Packlink</button>
             <button class="secondary" id="plOpen">Abrir Packlink PRO</button>
           </div>
         </div>
@@ -84,7 +83,6 @@
       </div>`;
     document.getElementById('plOpen').onclick=()=>window.open('https://pro.packlink.es/','_blank','noopener');
     document.getElementById('plImport').onclick=()=>window.vincularEnvioPacklink();
-    document.getElementById('plSync').onclick=()=>window.sincronizarPacklink();
   };
 
   function normalizeRemoteShipment(x){
@@ -132,54 +130,6 @@
     }
     return bestScore>=40?best:null;
   }
-
-  window.sincronizarPacklink=async function(){
-    const btn=document.getElementById('plSync'); if(btn){btn.disabled=true;btn.textContent='Sincronizando…';}
-    try{
-      const {data,error}=await supabaseClient.functions.invoke('packlink-pro',{body:{action:'list'}});
-      if(error) throw error;
-      const raw=Array.isArray(data)?data:(data?.shipments||data?.data||data?.results||data?.items||[]);
-      if(!Array.isArray(raw) || !raw.length){
-        toast('Packlink no devolvió envíos para importar');
-        window.vincularEnvioPacklink();
-        return;
-      }
-      const existing=await fetchShipments();
-      let imported=0,skipped=0;
-      for(const item of raw){
-        const r=normalizeRemoteShipment(item);
-        if(!r.reference && !r.tracking_number){skipped++;continue;}
-        if(existing.some(s=>(r.reference&&s.packlink_reference===r.reference)||(r.tracking_number&&s.tracking_number===r.tracking_number))){skipped++;continue;}
-        const o=candidateOrder(r);
-        if(!o){skipped++;continue;}
-        const payload={
-          order_id:o.id,provider:'packlink_pro',status:r.status||'Contratado',
-          recipient_name:r.recipient_name||o.customer_name,recipient_email:r.recipient_email,recipient_phone:r.recipient_phone,
-          address_line1:r.address_line1,postal_code:r.postal_code,city:r.city,province:r.province,country_code:'ES',
-          weight_kg:r.weight_kg,length_cm:r.length_cm,width_cm:r.width_cm,height_cm:r.height_cm,
-          service_name:r.service_name,carrier_name:r.carrier_name,price:r.price,
-          packlink_reference:r.reference,tracking_number:r.tracking_number,tracking_url:r.tracking_url,label_url:r.label_url,
-          metadata:{source:'packlink_sync',remote:r.raw},updated_at:new Date().toISOString()
-        };
-        const {error:insErr}=await supabaseClient.from('shipments').upsert(payload,{onConflict:'order_id'});
-        if(insErr){console.error(insErr);skipped++;continue;}
-        if(r.price!=null){
-          await supabaseClient.from('orders').update({outbound_shipping_cost:r.price}).eq('id',o.id);
-          o.outbound_shipping_cost=r.price;
-        }
-        imported++;
-      }
-      toast(imported?('Packlink sincronizado · '+imported+' envío'+(imported===1?'':'s')):'No encontré envíos nuevos para vincular automáticamente');
-      await window.renderEnvios();
-      if(!imported && skipped) window.vincularEnvioPacklink();
-    }catch(err){
-      console.error('Packlink sync',err);
-      toast('No se pudo importar automáticamente; abre Vincular envío');
-      window.vincularEnvioPacklink();
-    }finally{
-      const b=document.getElementById('plSync'); if(b){b.disabled=false;b.textContent='🔄 Sincronizar Packlink';}
-    }
-  };
 
   window.vincularEnvioPacklink=function(prefill={}){
     const drawer=document.getElementById('drawer'),body=document.getElementById('drawerBody'); if(!drawer||!body)return;
