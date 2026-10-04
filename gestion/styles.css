@@ -618,3 +618,57 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted
 .tech-hit rect{fill:#087cf4;fill-opacity:.04;stroke:#087cf4;stroke-opacity:.16;stroke-width:1.5;transition:.15s}
 .tech-hit:hover rect,.tech-hit:active rect{fill-opacity:.14;stroke-opacity:.65;stroke-width:2}
 @media print{.tech-hit rect{fill:none!important;stroke:none!important}}
+
+
+/* Packlink · selector multipedido */
+.pl-order-checks{
+  display:grid;
+  gap:8px;
+  max-height:260px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:8px;
+  border:1px solid #e4e7ec;
+  border-radius:12px;
+  background:#fff;
+}
+.pl-order-option{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  padding:10px 12px;
+  border:1px solid #edf0f4;
+  border-radius:10px;
+  background:#f9fafb;
+  box-sizing:border-box;
+  cursor:pointer;
+}
+.pl-order-option input[type="checkbox"]{
+  width:20px !important;
+  min-width:20px !important;
+  max-width:20px !important;
+  height:20px !important;
+  min-height:20px !important;
+  padding:0 !important;
+  margin:0 !important;
+  flex:0 0 20px !important;
+  border:1px solid #cfd6e4 !important;
+  box-shadow:none !important;
+}
+.pl-order-option span{
+  display:block;
+  min-width:0;
+  flex:1;
+  line-height:1.25;
+}
+.pl-order-option b{
+  display:block;
+  overflow-wrap:anywhere;
+}
+.pl-order-option small{
+  display:block;
+  margin-top:2px;
+  color:#667085;
+  overflow-wrap:anywhere;
+}
