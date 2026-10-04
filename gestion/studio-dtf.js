@@ -17,7 +17,7 @@
   ];
 
   const state = {
-    widthCm: 30, heightCm: 35, objects: [], selectedId: null,
+    widthCm: 30, heightCm: 35, docShape:'rect', objects: [], selectedId: null,
     tool: 'select', drag: null, pickedColor: null, colorSelections: [],
     palette: loadPalette(), history: [], future: [], historyBusy:false,
     brushSizeCm: 0.5, lockAspect:true, printQueue: [], projectName:'', matrix: [
@@ -52,10 +52,10 @@
   const imgH=o=>o?Number(o.naturalHeight||o.height||0):0;
 
   function objectSnapshot(o){const copy={...o};delete copy.img;delete copy._brushCanvas;return copy;}
-  function snapshot(){return {widthCm:state.widthCm,heightCm:state.heightCm,selectedId:state.selectedId,colorSelections:state.colorSelections.map(z=>({...z})),objects:state.objects.map(objectSnapshot)};}
+  function snapshot(){return {widthCm:state.widthCm,heightCm:state.heightCm,docShape:state.docShape,selectedId:state.selectedId,colorSelections:state.colorSelections.map(z=>({...z})),objects:state.objects.map(objectSnapshot)};}
   function imageFromSrc(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=src;});}
   async function restoreSnapshot(snap){
-    if(!snap)return;state.historyBusy=true;state.widthCm=snap.widthCm;state.heightCm=snap.heightCm;state.selectedId=snap.selectedId;state.colorSelections=Array.isArray(snap.colorSelections)?snap.colorSelections.map(z=>({...z})):[];
+    if(!snap)return;state.historyBusy=true;state.widthCm=snap.widthCm;state.heightCm=snap.heightCm;state.docShape=snap.docShape||'rect';state.selectedId=snap.selectedId;state.colorSelections=Array.isArray(snap.colorSelections)?snap.colorSelections.map(z=>({...z})):[];
     const objs=[];for(const raw of snap.objects||[]){const o={...raw};if(o.type==='image'&&o.src){try{o.img=await imageFromSrc(o.src);}catch(e){o.img=null;}}objs.push(o);}state.objects=objs;state.historyBusy=false;
     const w=document.querySelector('#stDocW'),h=document.querySelector('#stDocH');if(w)w.value=state.widthCm;if(h)h.value=state.heightCm;redraw();
   }
@@ -89,6 +89,7 @@
     state.projectName='';
     state.widthCm=30;
     state.heightCm=35;
+    state.docShape='rect';
     const name=document.querySelector('#stProjectName');if(name)name.value='';
     const w=document.querySelector('#stDocW'),h=document.querySelector('#stDocH');if(w)w.value=30;if(h)h.value=35;
     setTool('select');
@@ -99,13 +100,13 @@
   async function saveProject(){
     const input=document.querySelector('#stProjectName');const name=(input?.value||state.projectName||'').trim();if(!name){alert('Pon un nombre al proyecto.');return;}
     const btn=document.querySelector('#stSaveProject');if(btn){btn.disabled=true;btn.textContent='Guardando…';}
-    try{const objects=await serializeProjectObjects();await idbPutProject({name,updatedAt:Date.now(),widthCm:state.widthCm,heightCm:state.heightCm,objects,matrix:state.matrix,palette:state.palette,colorSelections:state.colorSelections});state.projectName=name;await refreshProjectList();toast?.('Proyecto guardado');}
+    try{const objects=await serializeProjectObjects();await idbPutProject({name,updatedAt:Date.now(),widthCm:state.widthCm,heightCm:state.heightCm,docShape:state.docShape,objects,matrix:state.matrix,palette:state.palette,colorSelections:state.colorSelections});state.projectName=name;await refreshProjectList();toast?.('Proyecto guardado');}
     catch(e){console.error(e);alert('No se pudo guardar el proyecto en este dispositivo.');}
     finally{if(btn){btn.disabled=false;btn.textContent='💾 Guardar';}}
   }
   async function loadProject(){
     const sel=document.querySelector('#stProjectList');const name=sel?.value;if(!name){alert('Selecciona un proyecto guardado.');return;}
-    try{const p=await idbGetProject(name);if(!p)return;pushHistory();state.projectName=p.name;state.widthCm=p.widthCm;state.heightCm=p.heightCm;if(Array.isArray(p.matrix))state.matrix=p.matrix;state.colorSelections=Array.isArray(p.colorSelections)?p.colorSelections.map(z=>({...z})):[];const objs=[];for(const raw of p.objects||[]){const o={...raw};if(o.type==='image'&&o.src)o.img=await imageFromSrc(o.src);objs.push(o);}state.objects=objs;state.selectedId=null;document.querySelector('#stProjectName').value=p.name;document.querySelector('#stDocW').value=p.widthCm;document.querySelector('#stDocH').value=p.heightCm;renderMatrix();redraw();toast?.('Proyecto abierto');}
+    try{const p=await idbGetProject(name);if(!p)return;pushHistory();state.projectName=p.name;state.widthCm=p.widthCm;state.heightCm=p.heightCm;state.docShape=p.docShape||'rect';if(Array.isArray(p.matrix))state.matrix=p.matrix;state.colorSelections=Array.isArray(p.colorSelections)?p.colorSelections.map(z=>({...z})):[];const objs=[];for(const raw of p.objects||[]){const o={...raw};if(o.type==='image'&&o.src)o.img=await imageFromSrc(o.src);objs.push(o);}state.objects=objs;state.selectedId=null;document.querySelector('#stProjectName').value=p.name;document.querySelector('#stDocW').value=p.widthCm;document.querySelector('#stDocH').value=p.heightCm;renderMatrix();redraw();toast?.('Proyecto abierto');}
     catch(e){console.error(e);alert('No se pudo abrir el proyecto.');}
   }
   async function refreshProjectList(){const sel=document.querySelector('#stProjectList');if(!sel)return;try{const rows=await idbListProjects();sel.innerHTML='<option value="">Proyectos guardados…</option>'+rows.map(p=>'<option value="'+esc(p.name)+'">'+esc(p.name)+'</option>').join('');}catch(e){}}
@@ -162,8 +163,17 @@
           <section class="studio-panel order2">
             <h3 style="margin-top:0">Documento</h3>
             <div class="studio-field">
-              <label>Ancho cm<input id="stDocW" type="number" min="1" max="100" step=".1" value="${state.widthCm}"></label>
-              <label>Alto cm<input id="stDocH" type="number" min="1" max="100" step=".1" value="${state.heightCm}"></label>
+              <label>Forma
+                <select id="stDocShape">
+                  <option value="rect" ${state.docShape==='rect'?'selected':''}>Rectangular</option>
+                  <option value="circle" ${state.docShape==='circle'?'selected':''}>Circular</option>
+                </select>
+              </label>
+              <label id="stDiameterWrap" style="${state.docShape==='circle'?'':'display:none'}">Diámetro cm<input id="stDiameter" type="number" min="1" max="100" step=".1" value="${state.widthCm}"></label>
+            </div>
+            <div class="studio-field" style="margin-top:8px">
+              <label>Ancho cm<input id="stDocW" type="number" min="1" max="100" step=".1" value="${state.widthCm}" ${state.docShape==='circle'?'disabled':''}></label>
+              <label>Alto cm<input id="stDocH" type="number" min="1" max="100" step=".1" value="${state.heightCm}" ${state.docShape==='circle'?'disabled':''}></label>
             </div>
             <div class="studio-toolbar" style="margin-top:10px">
               <button class="secondary stPreset" data-w="3" data-h="2">Pecho 3×2</button>
@@ -368,6 +378,10 @@
     setupCanvas(); const g=ctx(), s=Number(c.dataset.scale||1);
     g.clearRect(0,0,c.width,c.height);
     state.objects.filter(o=>o.visible!==false).forEach(o=>drawObject(g,o,s));
+    if(state.docShape==='circle'){
+      g.save();g.strokeStyle='#087cf4';g.lineWidth=2;g.setLineDash([8,6]);
+      const r=Math.min(c.width,c.height)/2-2;g.beginPath();g.arc(c.width/2,c.height/2,r,0,Math.PI*2);g.stroke();g.restore();
+    }
     const o=selected();
     if(o){
       g.save();g.strokeStyle='#087cf4';g.lineWidth=2;g.setLineDash([7,5]);
@@ -977,7 +991,11 @@
 
   function outputCanvas(){
     const out=document.createElement('canvas');out.width=Math.round(cm2px(state.widthCm));out.height=Math.round(cm2px(state.heightCm));
-    const g=out.getContext('2d');state.objects.filter(o=>o.visible!==false).forEach(o=>drawObject(g,o,1));return out;
+    const g=out.getContext('2d');state.objects.filter(o=>o.visible!==false).forEach(o=>drawObject(g,o,1));
+    if(state.docShape==='circle'){
+      g.save();g.globalCompositeOperation='destination-in';g.beginPath();g.arc(out.width/2,out.height/2,Math.min(out.width,out.height)/2,0,Math.PI*2);g.fill();g.restore();
+    }
+    return out;
   }
   function dl(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);}
   function trimCanvasToContent(src){
@@ -1074,7 +1092,10 @@
       else if(o.type==='rect') body+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${esc(o.color||'#ffffff')}" opacity="${o.opacity??1}"${tr}${dataAttr}/>`;
       else body+=`<text x="${x}" y="${y+h*.8}" font-family="${esc(o.fontFamily||'Arial')}" font-size="${h*.75}" fill="${esc(o.color||'#111')}" opacity="${o.opacity??1}"${tr}${dataAttr}>${esc(o.text||'')}</text>`;
     }
-    const svg=`<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="${wmm}mm" height="${hmm}mm" viewBox="0 0 ${wmm} ${hmm}"><metadata>${esc(JSON.stringify({producer:'AIHXO Studio',dpi:300,spotReferences:meta}))}</metadata>${body}</svg>`;
+    const clip=state.docShape==='circle'?'<defs><clipPath id="aihxoCircle"><circle cx="'+(wmm/2)+'" cy="'+(hmm/2)+'" r="'+(Math.min(wmm,hmm)/2)+'"/></clipPath></defs>':'';
+    const wrapStart=state.docShape==='circle'?'<g clip-path="url(#aihxoCircle)">':'';
+    const wrapEnd=state.docShape==='circle'?'</g>':'';
+    const svg=`<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="${wmm}mm" height="${hmm}mm" viewBox="0 0 ${wmm} ${hmm}"><metadata>${esc(JSON.stringify({producer:'AIHXO Studio',dpi:300,spotReferences:meta,shape:state.docShape}))}</metadata>${clip}${wrapStart}${body}${wrapEnd}</svg>`;
     dl(new Blob([svg],{type:'image/svg+xml'}),`AIHXO_master_${state.widthCm}x${state.heightCm}cm.svg`);
   }
 
@@ -1085,9 +1106,11 @@
 
   function bind(){
     injectNav();
+    document.querySelector('#stDocShape').onchange=e=>{pushHistory();state.docShape=e.target.value;const circ=state.docShape==='circle',wrap=document.querySelector('#stDiameterWrap'),dw=document.querySelector('#stDocW'),dh=document.querySelector('#stDocH'),dia=document.querySelector('#stDiameter');if(wrap)wrap.style.display=circ?'':'none';if(dw)dw.disabled=circ;if(dh)dh.disabled=circ;if(circ){const d=Math.max(1,Number(dw?.value||state.widthCm));state.widthCm=d;state.heightCm=d;if(dia)dia.value=d;if(dw)dw.value=d;if(dh)dh.value=d;}redraw();};
+    document.querySelector('#stDiameter').onchange=e=>{if(state.docShape!=='circle')return;pushHistory();const d=Math.max(1,Number(e.target.value)||1);state.widthCm=d;state.heightCm=d;document.querySelector('#stDocW').value=d;document.querySelector('#stDocH').value=d;redraw();};
     document.querySelector('#stDocW').onchange=e=>{pushHistory();state.widthCm=Number(e.target.value)||1;redraw();};
     document.querySelector('#stDocH').onchange=e=>{pushHistory();state.heightCm=Number(e.target.value)||1;redraw();};
-    document.querySelectorAll('.stPreset').forEach(b=>b.onclick=()=>{pushHistory();state.widthCm=Number(b.dataset.w);state.heightCm=Number(b.dataset.h);document.querySelector('#stDocW').value=state.widthCm;document.querySelector('#stDocH').value=state.heightCm;redraw();});
+    document.querySelectorAll('.stPreset').forEach(b=>b.onclick=()=>{pushHistory();state.docShape='rect';state.widthCm=Number(b.dataset.w);state.heightCm=Number(b.dataset.h);document.querySelector('#stDocW').value=state.widthCm;document.querySelector('#stDocH').value=state.heightCm;redraw();});
     document.querySelector('#stFile').onchange=e=>addImageFromFile(e.target.files?.[0]);
     document.querySelector('#stAddText').onclick=addText;
     document.querySelector('#stSelect').onclick=()=>setTool('select');
