@@ -266,6 +266,7 @@
             </div>
             <div class="field" style="margin-top:8px"><label>Ancho máximo hoja DTF (cm)</label><input id="stSheetWidth" type="number" min="5" max="100" step=".1" value="56"></div>
             <button id="stExportSheet" class="primary" style="width:100%;margin-top:8px">Montar copias en hoja DTF</button>
+            <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;font-weight:700"><input id="stTrimContent" type="checkbox" checked style="width:auto"> Ajustar archivo al contenido</label>
             <button id="stExportPng" class="secondary" style="width:100%;margin-top:8px">Exportar 1 PNG · 300 ppp</button>
             <button id="stExportSvg" class="secondary" style="width:100%;margin-top:8px">Guardar maestro SVG</button>
             <div class="studio-note" style="margin-top:10px"><b>Importante:</b> PNG es RGB. El nombre Pantone se conserva como referencia de producción y en el SVG maestro. Un PDF con tinta plana real requiere una exportación PDF spot específica.</div>
@@ -700,7 +701,26 @@
     const g=out.getContext('2d');state.objects.filter(o=>o.visible!==false).forEach(o=>drawObject(g,o,1));return out;
   }
   function dl(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);}
-  function exportPng(){outputCanvas().toBlob(b=>b&&dl(b,`AIHXO_${state.widthCm}x${state.heightCm}cm_300ppp.png`),'image/png');}
+  function trimCanvasToContent(src){
+    const g=src.getContext('2d',{willReadFrequently:true}),id=g.getImageData(0,0,src.width,src.height),d=id.data;
+    let minX=src.width,minY=src.height,maxX=-1,maxY=-1;
+    for(let y=0;y<src.height;y++){
+      for(let x=0;x<src.width;x++){
+        if(d[(y*src.width+x)*4+3]>0){
+          if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+        }
+      }
+    }
+    if(maxX<minX||maxY<minY)return src;
+    const out=document.createElement('canvas');out.width=maxX-minX+1;out.height=maxY-minY+1;
+    out.getContext('2d').drawImage(src,minX,minY,out.width,out.height,0,0,out.width,out.height);
+    return out;
+  }
+  function exportPng(){
+    const base=outputCanvas(),trim=document.querySelector('#stTrimContent')?.checked!==false,src=trim?trimCanvasToContent(base):base;
+    const wcm=(src.width/CM_TO_PX).toFixed(1),hcm=(src.height/CM_TO_PX).toFixed(1);
+    src.toBlob(b=>b&&dl(b,`AIHXO_${wcm}x${hcm}cm_300ppp.png`),'image/png');
+  }
 
   function exportSheet(){
     const copies=Math.max(1,Math.floor(Number(document.querySelector('#stCopies')?.value||1)));
