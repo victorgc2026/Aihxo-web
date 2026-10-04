@@ -134,7 +134,11 @@
               <div class="field"><label>Ancho cm</label><input name="width_cm" type="number" step=".1" min="0"></div>
               <div class="field"><label>Alto cm</label><input name="height_cm" type="number" step=".1" min="0"></div>
             </div>
-            <button class="primary" type="submit" ${status.connected?'':'disabled'}>${status.connected?'Subir a Drive':'Conecta Drive primero'}</button>
+            <div class="studio-toolbar" style="margin-top:8px">
+              <button class="primary" type="submit" ${status.connected?'':'disabled'}>${status.connected?'Subir a Drive':'Conecta Drive primero'}</button>
+              <button id="driveSaveICloudBtn" class="secondary" type="button">☁️ Guardar en iCloud Drive</button>
+            </div>
+            <div class="muted" style="margin-top:8px;font-size:12px">En iPhone/iPad: selecciona el archivo, pulsa iCloud y después Guardar en Archivos → iCloud Drive.</div>
           </form>
         </div>
 
@@ -198,6 +202,21 @@
     if(connect) connect.onclick=async()=>{try{connect.disabled=true;connect.textContent='Abriendo Google…';await startDriveOAuth()}catch(e){console.error(e);toast(e.message||'No se pudo abrir Google');connect.disabled=false;connect.textContent='Conectar Google Drive'}};
 
     const uploadForm=document.getElementById('driveUploadForm');
+    const iCloudBtn=document.getElementById('driveSaveICloudBtn');
+    if(iCloudBtn && uploadForm) iCloudBtn.onclick=async()=>{
+      const input=uploadForm.querySelector('input[name="file"]');
+      const file=input?.files?.[0];
+      if(!file){toast('Selecciona primero el archivo');return;}
+      try{
+        if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+          await navigator.share({files:[file],title:file.name});
+        }else{
+          toast('Este dispositivo no permite compartir archivos desde el navegador');
+        }
+      }catch(err){
+        if(err?.name!=='AbortError'){console.error(err);toast('No se pudo abrir Compartir');}
+      }
+    };
     if(uploadForm) uploadForm.onsubmit=async e=>{
       e.preventDefault();
       const fd=new FormData(uploadForm);
