@@ -209,6 +209,7 @@
           <section class="studio-panel">
             <div class="studio-toolbar">
               <button id="stFit" class="secondary">Encajar</button>
+              <button id="stFitAll" class="secondary">Encajar capas en documento</button>
               <button id="stCenter" class="secondary">Centrar</button>
               <button id="stDuplicate" class="secondary">Duplicar</button>
               <button id="stLayerUp" class="secondary">↑ Subir</button>
@@ -833,6 +834,33 @@
     if(o.type==='text')o.color=hex;redraw();
   }
 
+  function fitAllToDocument(){
+    if(!state.objects.length)return;
+    pushHistory();
+    const dw=cm2px(state.widthCm),dh=cm2px(state.heightCm);
+    const margin=cm2px(.3);
+    const visible=state.objects.filter(o=>o.visible!==false);
+    if(!visible.length)return;
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    for(const o of visible){minX=Math.min(minX,o.x);minY=Math.min(minY,o.y);maxX=Math.max(maxX,o.x+o.w);maxY=Math.max(maxY,o.y+o.h);}
+    const bw=Math.max(1,maxX-minX),bh=Math.max(1,maxY-minY);
+    const scale=Math.min((dw-margin*2)/bw,(dh-margin*2)/bh,1);
+    for(const o of visible){
+      o.x=margin+(o.x-minX)*scale;
+      o.y=margin+(o.y-minY)*scale;
+      o.w*=scale;o.h*=scale;
+    }
+    redraw();toast?.('Capas encajadas dentro del documento');
+  }
+
+  function keepSelectionVisible(){
+    const o=selected();if(!o)return;
+    const dw=cm2px(state.widthCm),dh=cm2px(state.heightCm);
+    if(o.w>dw||o.h>dh)return;
+    o.x=clamp(o.x,0,Math.max(0,dw-o.w));
+    o.y=clamp(o.y,0,Math.max(0,dh-o.h));
+  }
+
   function fitSelected(){
     const o=selected();if(o)pushHistory();if(!o)return;const dw=cm2px(state.widthCm),dh=cm2px(state.heightCm),r=Math.min(dw*.9/o.w,dh*.9/o.h);o.w*=r;o.h*=r;o.x=(dw-o.w)/2;o.y=(dh-o.h)/2;redraw();
   }
@@ -1129,8 +1157,8 @@
     injectNav();
     document.querySelector('#stDocShape').onchange=e=>{pushHistory();state.docShape=e.target.value;const circ=state.docShape==='circle',wrap=document.querySelector('#stDiameterWrap'),dw=document.querySelector('#stDocW'),dh=document.querySelector('#stDocH'),dia=document.querySelector('#stDiameter');if(wrap)wrap.style.display=circ?'':'none';if(dw)dw.disabled=circ;if(dh)dh.disabled=circ;if(circ){const d=Math.max(1,Number(dw?.value||state.widthCm));state.widthCm=d;state.heightCm=d;if(dia)dia.value=d;if(dw)dw.value=d;if(dh)dh.value=d;}redraw();};
     document.querySelector('#stDiameter').onchange=e=>{if(state.docShape!=='circle')return;pushHistory();const d=Math.max(1,Number(e.target.value)||1);state.widthCm=d;state.heightCm=d;document.querySelector('#stDocW').value=d;document.querySelector('#stDocH').value=d;redraw();};
-    document.querySelector('#stDocW').onchange=e=>{pushHistory();state.widthCm=Number(e.target.value)||1;redraw();};
-    document.querySelector('#stDocH').onchange=e=>{pushHistory();state.heightCm=Number(e.target.value)||1;redraw();};
+    document.querySelector('#stDocW').onchange=e=>{pushHistory();state.widthCm=Number(e.target.value)||1;keepSelectionVisible();redraw();};
+    document.querySelector('#stDocH').onchange=e=>{pushHistory();state.heightCm=Number(e.target.value)||1;keepSelectionVisible();redraw();};
     document.querySelectorAll('.stPreset').forEach(b=>b.onclick=()=>{pushHistory();state.docShape='rect';state.widthCm=Number(b.dataset.w);state.heightCm=Number(b.dataset.h);document.querySelector('#stDocW').value=state.widthCm;document.querySelector('#stDocH').value=state.heightCm;redraw();});
     document.querySelector('#stFile').onchange=e=>addImageFromFile(e.target.files?.[0]);
     document.querySelector('#stAddText').onclick=addText;
@@ -1142,7 +1170,9 @@
     document.querySelector('#stPick').onclick=()=>setTool('pick');
     document.querySelector('#stSelectColorArea').onclick=()=>setTool('color-area');
     document.querySelector('#stClearColorAreas').onclick=clearColorAreas;
-    document.querySelector('#stFit').onclick=fitSelected;document.querySelector('#stCenter').onclick=centerSelected;
+    document.querySelector('#stFit').onclick=fitSelected;
+    document.querySelector('#stFitAll').onclick=fitAllToDocument;
+    document.querySelector('#stCenter').onclick=centerSelected;
     document.querySelector('#stDuplicate').onclick=duplicate;
     document.querySelector('#stLayerUp').onclick=layerUp;
     document.querySelector('#stLayerDown').onclick=layerDown;
