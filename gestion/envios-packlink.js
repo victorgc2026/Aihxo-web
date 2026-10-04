@@ -49,7 +49,11 @@
       <div class="page">
         <div class="section">
           <div><h2>🚚 Centro de Envíos</h2><div class="muted">Preparación, coste, etiqueta y seguimiento de pedidos</div></div>
-          <button class="secondary" id="plOpen">Abrir Packlink PRO</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="primary" id="plSync">🔄 Sincronizar Packlink</button>
+            <button class="secondary" id="plImport">＋ Vincular envío</button>
+            <button class="secondary" id="plOpen">Abrir Packlink PRO</button>
+          </div>
         </div>
         <div class="grid four">
           ${typeof kpi==='function'?kpi('Envíos',rows.length,'registrados'):''}
@@ -79,6 +83,148 @@
         </div>
       </div>`;
     document.getElementById('plOpen').onclick=()=>window.open('https://pro.packlink.es/','_blank','noopener');
+    document.getElementById('plImport').onclick=()=>window.vincularEnvioPacklink();
+    document.getElementById('plSync').onclick=()=>window.sincronizarPacklink();
+  };
+
+  function normalizeRemoteShipment(x){
+    const address=x?.to || x?.destination || x?.recipient || x?.address_to || {};
+    const service=x?.service || x?.service_info || {};
+    const carrier=x?.carrier || service?.carrier || {};
+    const parcel=(x?.packages||x?.parcels||x?.package||[]); const p=Array.isArray(parcel)?(parcel[0]||{}):parcel;
+    return {
+      reference:String(x?.reference||x?.shipment_reference||x?.id||x?.order_reference||''),
+      recipient_name:String(address?.name||address?.full_name||x?.recipient_name||x?.name||''),
+      recipient_email:String(address?.email||x?.recipient_email||''),
+      recipient_phone:String(address?.phone||address?.telephone||x?.recipient_phone||''),
+      address_line1:String(address?.street1||address?.address||address?.address1||x?.address||''),
+      postal_code:String(address?.zip_code||address?.postal_code||address?.zip||x?.postal_code||''),
+      city:String(address?.city||x?.city||''),
+      province:String(address?.state||address?.province||x?.province||''),
+      carrier_name:String(carrier?.name||service?.carrier_name||x?.carrier_name||x?.carrier||''),
+      service_name:String(service?.name||service?.label||x?.service_name||x?.service||''),
+      price:Number(x?.price?.total_price??x?.price?.total??x?.total_price??x?.price??0)||null,
+      tracking_number:String(x?.tracking_number||x?.tracking||x?.tracking_code||''),
+      tracking_url:String(x?.tracking_url||x?.tracking_link||''),
+      label_url:String(x?.label_url||x?.labels?.[0]?.url||''),
+      status:String(x?.status||x?.state||'Contratado'),
+      weight_kg:Number(p?.weight??p?.weight_kg??x?.weight??0)||null,
+      length_cm:Number(p?.length??p?.length_cm??0)||null,
+      width_cm:Number(p?.width??p?.width_cm??0)||null,
+      height_cm:Number(p?.height??p?.height_cm??0)||null,
+      raw:x
+    };
+  }
+
+  function candidateOrder(remote){
+    const rn=String(remote.recipient_name||'').toLowerCase().replace(/[^a-z0-9áéíóúüñ ]/g,' ').replace(/\s+/g,' ').trim();
+    if(!rn) return null;
+    let best=null,bestScore=0;
+    for(const o of (orders||[])){
+      const on=String(o.customer_name||'').toLowerCase().replace(/[^a-z0-9áéíóúüñ ]/g,' ').replace(/\s+/g,' ').trim();
+      let score=0;
+      if(on===rn) score=100;
+      else {
+        const a=new Set(on.split(' ').filter(Boolean)), b=new Set(rn.split(' ').filter(Boolean));
+        for(const w of a) if(b.has(w)) score+=20;
+      }
+      if(score>bestScore){best=o;bestScore=score;}
+    }
+    return bestScore>=40?best:null;
+  }
+
+  window.sincronizarPacklink=async function(){
+    const btn=document.getElementById('plSync'); if(btn){btn.disabled=true;btn.textContent='Sincronizando…';}
+    try{
+      const {data,error}=await supabaseClient.functions.invoke('packlink-pro',{body:{action:'list'}});
+      if(error) throw error;
+      const raw=Array.isArray(data)?data:(data?.shipments||data?.data||data?.results||data?.items||[]);
+      if(!Array.isArray(raw) || !raw.length){
+        toast('Packlink no devolvió envíos para importar');
+        window.vincularEnvioPacklink();
+        return;
+      }
+      const existing=await fetchShipments();
+      let imported=0,skipped=0;
+      for(const item of raw){
+        const r=normalizeRemoteShipment(item);
+        if(!r.reference && !r.tracking_number){skipped++;continue;}
+        if(existing.some(s=>(r.reference&&s.packlink_reference===r.reference)||(r.tracking_number&&s.tracking_number===r.tracking_number))){skipped++;continue;}
+        const o=candidateOrder(r);
+        if(!o){skipped++;continue;}
+        const payload={
+          order_id:o.id,provider:'packlink_pro',status:r.status||'Contratado',
+          recipient_name:r.recipient_name||o.customer_name,recipient_email:r.recipient_email,recipient_phone:r.recipient_phone,
+          address_line1:r.address_line1,postal_code:r.postal_code,city:r.city,province:r.province,country_code:'ES',
+          weight_kg:r.weight_kg,length_cm:r.length_cm,width_cm:r.width_cm,height_cm:r.height_cm,
+          service_name:r.service_name,carrier_name:r.carrier_name,price:r.price,
+          packlink_reference:r.reference,tracking_number:r.tracking_number,tracking_url:r.tracking_url,label_url:r.label_url,
+          metadata:{source:'packlink_sync',remote:r.raw},updated_at:new Date().toISOString()
+        };
+        const {error:insErr}=await supabaseClient.from('shipments').upsert(payload,{onConflict:'order_id'});
+        if(insErr){console.error(insErr);skipped++;continue;}
+        if(r.price!=null){
+          await supabaseClient.from('orders').update({outbound_shipping_cost:r.price}).eq('id',o.id);
+          o.outbound_shipping_cost=r.price;
+        }
+        imported++;
+      }
+      toast(imported?('Packlink sincronizado · '+imported+' envío'+(imported===1?'':'s')):'No encontré envíos nuevos para vincular automáticamente');
+      await window.renderEnvios();
+      if(!imported && skipped) window.vincularEnvioPacklink();
+    }catch(err){
+      console.error('Packlink sync',err);
+      toast('No se pudo importar automáticamente; abre Vincular envío');
+      window.vincularEnvioPacklink();
+    }finally{
+      const b=document.getElementById('plSync'); if(b){b.disabled=false;b.textContent='🔄 Sincronizar Packlink';}
+    }
+  };
+
+  window.vincularEnvioPacklink=function(prefill={}){
+    const drawer=document.getElementById('drawer'),body=document.getElementById('drawerBody'); if(!drawer||!body)return;
+    const available=(orders||[]).filter(o=>String(o.status||'').toLowerCase()!=='cancelado');
+    body.innerHTML=`
+      <div class="section"><div><h2>🔗 Vincular envío de Packlink</h2><div class="muted">Para envíos creados directamente en Packlink PRO</div></div></div>
+      <form id="plLinkForm" class="form">
+        <div class="field"><label>Pedido AIHXO</label><select name="order_id" required><option value="">Selecciona pedido</option>${available.map(o=>`<option value="${o.id}">${esc(o.order_number||'Pedido')} · ${esc(o.customer_name||'')}</option>`).join('')}</select></div>
+        <div class="formgrid">
+          <div class="field"><label>Destinatario</label><input name="recipient_name" value="${esc(prefill.recipient_name||'')}"></div>
+          <div class="field"><label>Transportista</label><input name="carrier_name" value="${esc(prefill.carrier_name||'')}"></div>
+          <div class="field"><label>Servicio</label><input name="service_name" value="${esc(prefill.service_name||'')}"></div>
+          <div class="field"><label>Coste real (€)</label><input name="price" type="number" min="0" step="0.01" value="${prefill.price??''}"></div>
+          <div class="field"><label>Referencia Packlink</label><input name="packlink_reference" value="${esc(prefill.reference||'')}"></div>
+          <div class="field"><label>Seguimiento</label><input name="tracking_number" value="${esc(prefill.tracking_number||'')}"></div>
+        </div>
+        <div class="field"><label>URL seguimiento</label><input name="tracking_url" value="${esc(prefill.tracking_url||'')}"></div>
+        <div class="field"><label>URL etiqueta</label><input name="label_url" value="${esc(prefill.label_url||'')}"></div>
+        <div class="field"><label>Estado</label><select name="status">${['Preparado','Contratado','Listo para enviar','En tránsito','Entregado','Incidencia'].map(x=>`<option>${x}</option>`).join('')}</select></div>
+        <button class="primary" type="submit">Guardar y vincular</button>
+      </form>`;
+    drawer.classList.remove('hidden');
+    const form=document.getElementById('plLinkForm');
+    form.onsubmit=async e=>{
+      e.preventDefault(); const fd=new FormData(form); const orderId=String(fd.get('order_id')||'');
+      const o=(orders||[]).find(x=>String(x.id)===orderId); if(!o){toast('Selecciona un pedido');return;}
+      const price=fd.get('price')===''?null:num(fd.get('price'));
+      const payload={
+        order_id:orderId,provider:'packlink_pro',status:String(fd.get('status')||'Contratado'),
+        recipient_name:String(fd.get('recipient_name')||o.customer_name||'').trim(),
+        carrier_name:String(fd.get('carrier_name')||'').trim(),
+        service_name:String(fd.get('service_name')||'').trim(),
+        price,packlink_reference:String(fd.get('packlink_reference')||'').trim(),
+        tracking_number:String(fd.get('tracking_number')||'').trim(),
+        tracking_url:String(fd.get('tracking_url')||'').trim(),
+        label_url:String(fd.get('label_url')||'').trim(),
+        metadata:{source:'manual_packlink_link'},updated_at:new Date().toISOString()
+      };
+      const {error}=await supabaseClient.from('shipments').upsert(payload,{onConflict:'order_id'});
+      if(error){console.error(error);toast('No se pudo vincular el envío');return;}
+      if(price!=null){await supabaseClient.from('orders').update({outbound_shipping_cost:price}).eq('id',orderId);o.outbound_shipping_cost=price;}
+      toast('Envío de Packlink vinculado');
+      if(typeof closeDrawer==='function')closeDrawer();
+      await window.renderEnvios();
+    };
   };
 
   window.prepararEnvio=async function(orderId){
