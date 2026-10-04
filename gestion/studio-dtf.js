@@ -182,6 +182,13 @@
               <button id="stFit" class="secondary">Encajar</button>
               <button id="stCenter" class="secondary">Centrar</button>
               <button id="stDuplicate" class="secondary">Duplicar</button>
+              <button id="stLayerUp" class="secondary">↑ Subir</button>
+              <button id="stLayerDown" class="secondary">↓ Bajar</button>
+              <button id="stLayerFront" class="secondary">⇈ Frente</button>
+              <button id="stLayerBack" class="secondary">⇊ Fondo</button>
+              <button id="stOverlayLayer" class="secondary">◎ Superponer</button>
+              <button id="stToggleLock" class="secondary">🔒 Bloquear</button>
+              <button id="stHalfOpacity" class="secondary">50% opacidad</button>
               <button id="stDelete" class="secondary">Eliminar</button>
               <button id="stUndo" class="secondary" title="Deshacer">↶</button>
               <button id="stRedo" class="secondary" title="Rehacer">↷</button>
@@ -313,7 +320,7 @@
       pushHistory();
       const o={id:uid(),type:'image',name:file.name||'Imagen',img:im,src:url,
         originalType:file.type, x:docW*.11,y:docH*.11,w:im.naturalWidth*ratio,h:im.naturalHeight*ratio,
-        rotation:0,opacity:1,visible:true,pantone:null};
+        rotation:0,opacity:1,visible:true,pantone:null,locked:false};
       state.objects.push(o);state.selectedId=o.id;redraw();
     };
     im.onerror=()=>{URL.revokeObjectURL(url); alert('No se pudo abrir el archivo.');};
@@ -323,7 +330,7 @@
   function addText(){
     pushHistory();
     const o={id:uid(),type:'text',name:'Texto',text:'AIHXO',x:cm2px(2),y:cm2px(2),w:cm2px(10),h:cm2px(2),
-      fontSize:120,fontFamily:'Arial',color:'#111111',rotation:0,opacity:1,visible:true,pantone:null};
+      fontSize:120,fontFamily:'Arial',color:'#111111',rotation:0,opacity:1,visible:true,pantone:null,locked:false};
     state.objects.push(o);state.selectedId=o.id;redraw();
   }
 
@@ -332,7 +339,7 @@
     box.innerHTML=state.objects.slice().reverse().map(o=>`
       <div class="studio-layer ${o.id===state.selectedId?'active':''}" data-id="${o.id}">
         <button class="secondary stVis" data-id="${o.id}">${o.visible===false?'🙈':'👁️'}</button>
-        <div style="min-width:0;flex:1"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.name)}</b><span class="muted">${o.type==='image'?'Imagen':'Texto'}${o.pantone?' · '+esc(o.pantone.name):''}</span></div>
+        <div style="min-width:0;flex:1"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.name)} ${o.locked?'🔒':''}</b><span class="muted">${o.type==='image'?'Imagen':'Texto'}${o.pantone?' · '+esc(o.pantone.name):''}</span></div>
       </div>`).join('')||'<div class="muted">Sin capas.</div>';
     box.querySelectorAll('.studio-layer').forEach(x=>x.onclick=e=>{if(e.target.closest('.stVis'))return;state.selectedId=x.dataset.id;redraw();});
     box.querySelectorAll('.stVis').forEach(b=>b.onclick=e=>{e.stopPropagation();const o=state.objects.find(x=>x.id===b.dataset.id);if(o){o.visible=!o.visible;redraw();}});
@@ -354,14 +361,14 @@
       <div class="field" style="margin-top:8px"><label>Texto</label><input id="stiText" value="${esc(o.text)}"></div>
       <div class="studio-field" style="margin-top:8px"><label>Tamaño px<input id="stiFont" type="number" value="${o.fontSize}"></label><label>Color<input id="stiColor" type="color" value="${o.color}"></label></div>` : ''}
       <div class="studio-note" style="margin-top:8px">${o.pantone?'<b>'+esc(o.pantone.name)+'</b> · '+esc(o.pantone.hex):'Sin referencia Pantone asignada.'}</div>`;
-    const bindNum=(id,fn)=>document.querySelector(id)?.addEventListener('change',e=>{pushHistory();fn(Number(e.target.value));redraw();});
+    const bindNum=(id,fn)=>document.querySelector(id)?.addEventListener('change',e=>{if(o.locked){alert('Esta capa está bloqueada.');renderInspector();return;}pushHistory();fn(Number(e.target.value));redraw();});
     bindNum('#stiX',v=>o.x=cm2px(v));bindNum('#stiY',v=>o.y=cm2px(v));
     bindNum('#stiW',v=>{const r=o.h/o.w;o.w=cm2px(v);o.h=o.w*r;});
     bindNum('#stiH',v=>{const r=o.w/o.h;o.h=cm2px(v);o.w=o.h*r;});
     bindNum('#stiR',v=>o.rotation=v);bindNum('#stiO',v=>o.opacity=clamp(v/100,0,1));
-    document.querySelector('#stiText')?.addEventListener('change',e=>{pushHistory();o.text=e.target.value;measureText(o);redraw();});
-    document.querySelector('#stiFont')?.addEventListener('change',e=>{pushHistory();o.fontSize=Number(e.target.value)||1;measureText(o);redraw();});
-    document.querySelector('#stiColor')?.addEventListener('change',e=>{pushHistory();o.color=e.target.value;redraw();});
+    document.querySelector('#stiText')?.addEventListener('change',e=>{if(o.locked){alert('Esta capa está bloqueada.');renderInspector();return;}pushHistory();o.text=e.target.value;measureText(o);redraw();});
+    document.querySelector('#stiFont')?.addEventListener('change',e=>{if(o.locked){alert('Esta capa está bloqueada.');renderInspector();return;}pushHistory();o.fontSize=Number(e.target.value)||1;measureText(o);redraw();});
+    document.querySelector('#stiColor')?.addEventListener('change',e=>{if(o.locked){alert('Esta capa está bloqueada.');renderInspector();return;}pushHistory();o.color=e.target.value;redraw();});
   }
 
   function measureText(o){
@@ -394,7 +401,7 @@
       if(!selected() || selected().type!=='image'){alert('Selecciona primero una capa de imagen.');return;}
       state.drag={kind:'color-area',x:p.x,y:p.y,x2:p.x,y2:p.y}; return;
     }
-    if(o){state.selectedId=o.id;pushHistory();state.drag={kind:'move',dx:p.x-o.x,dy:p.y-o.y};}else{state.selectedId=null;state.drag=null;}
+    if(o){state.selectedId=o.id;if(o.locked){redraw();return;}pushHistory();state.drag={kind:'move',dx:p.x-o.x,dy:p.y-o.y};}else{state.selectedId=null;state.drag=null;}
     redraw();
   }
   function canvasMove(ev){
@@ -585,7 +592,41 @@
   }
   function centerSelected(){const o=selected();if(!o)return;pushHistory();o.x=(cm2px(state.widthCm)-o.w)/2;o.y=(cm2px(state.heightCm)-o.h)/2;redraw();}
   function duplicate(){const o=selected();if(!o)return;pushHistory();const n={...o,id:uid(),name:o.name+' copia',x:o.x+cm2px(.5),y:o.y+cm2px(.5),pantone:o.pantone?{...o.pantone}:null};state.objects.push(n);state.selectedId=n.id;redraw();}
-  function del(){pushHistory();const i=state.objects.findIndex(o=>o.id===state.selectedId);if(i<0)return;state.objects.splice(i,1);state.selectedId=null;redraw();}
+  function del(){const so=selected();if(so?.locked){alert('Desbloquea la capa antes de eliminarla.');return;}pushHistory();const i=state.objects.findIndex(o=>o.id===state.selectedId);if(i<0)return;state.objects.splice(i,1);state.selectedId=null;redraw();}
+
+  function layerIndex(){return state.objects.findIndex(o=>o.id===state.selectedId);}
+  function layerUp(){
+    const i=layerIndex();if(i<0||i>=state.objects.length-1)return;pushHistory();[state.objects[i],state.objects[i+1]]=[state.objects[i+1],state.objects[i]];redraw();
+  }
+  function layerDown(){
+    const i=layerIndex();if(i<=0)return;pushHistory();[state.objects[i],state.objects[i-1]]=[state.objects[i-1],state.objects[i]];redraw();
+  }
+  function layerFront(){
+    const i=layerIndex();if(i<0||i===state.objects.length-1)return;pushHistory();const [o]=state.objects.splice(i,1);state.objects.push(o);redraw();
+  }
+  function layerBack(){
+    const i=layerIndex();if(i<=0)return;pushHistory();const [o]=state.objects.splice(i,1);state.objects.unshift(o);redraw();
+  }
+  function toggleLock(){
+    const o=selected();if(!o)return;pushHistory();o.locked=!o.locked;redraw();toast?.(o.locked?'Capa bloqueada':'Capa desbloqueada');
+  }
+  function halfOpacity(){
+    const o=selected();if(!o)return;if(o.locked){alert('Esta capa está bloqueada.');return;}pushHistory();o.opacity=(Math.abs((o.opacity??1)-.5)<.01)?1:.5;redraw();
+  }
+  function overlayLayer(){
+    const target=selected();if(!target){alert('Selecciona primero la capa que quieres mover.');return;}
+    if(target.locked){alert('La capa seleccionada está bloqueada.');return;}
+    const others=state.objects.filter(o=>o.id!==target.id&&o.visible!==false);
+    if(!others.length){alert('No hay otra capa para usar como referencia.');return;}
+    const names=others.map((o,i)=>(i+1)+'. '+o.name).join('\n');
+    const ans=prompt('¿Sobre qué capa quieres superponerla?\n\n'+names+'\n\nEscribe el número:','1');
+    if(ans===null)return;const idx=Number(ans)-1;if(!Number.isInteger(idx)||!others[idx]){alert('Número de capa no válido.');return;}
+    const ref=others[idx];
+    const exact=confirm('Aceptar = copiar posición Y tamaño exactos.\nCancelar = copiar solo la posición y mantener el tamaño actual.');
+    pushHistory();target.x=ref.x;target.y=ref.y;
+    if(exact){target.w=ref.w;target.h=ref.h;target.rotation=ref.rotation||0;}
+    redraw();toast?.('Capa superpuesta');
+  }
 
   function renderMatrix(){
     const box=document.querySelector('#stMatrix');if(!box)return;
@@ -701,7 +742,15 @@
     document.querySelector('#stPick').onclick=()=>setTool('pick');
     document.querySelector('#stSelectColorArea').onclick=()=>setTool('color-area');
     document.querySelector('#stFit').onclick=fitSelected;document.querySelector('#stCenter').onclick=centerSelected;
-    document.querySelector('#stDuplicate').onclick=duplicate;document.querySelector('#stDelete').onclick=del;
+    document.querySelector('#stDuplicate').onclick=duplicate;
+    document.querySelector('#stLayerUp').onclick=layerUp;
+    document.querySelector('#stLayerDown').onclick=layerDown;
+    document.querySelector('#stLayerFront').onclick=layerFront;
+    document.querySelector('#stLayerBack').onclick=layerBack;
+    document.querySelector('#stOverlayLayer').onclick=overlayLayer;
+    document.querySelector('#stToggleLock').onclick=toggleLock;
+    document.querySelector('#stHalfOpacity').onclick=halfOpacity;
+    document.querySelector('#stDelete').onclick=del;
     document.querySelector('#stUndo').onclick=undo;
     document.querySelector('#stRedo').onclick=redo;
     document.querySelector('#stSaveProject').onclick=saveProject;
