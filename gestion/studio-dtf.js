@@ -78,6 +78,24 @@
   async function serializeProjectObjects(){
     const out=[];for(const o of state.objects){const copy=objectSnapshot(o);if(o.type==='image')copy.src=imageToDataUrl(o);out.push(copy);}return out;
   }
+  function newProject(){
+    const hasWork=state.objects.length>0;
+    if(hasWork && !confirm('Se limpiará el lienzo actual. Los proyectos guardados y la cola DTF se conservarán. ¿Continuar?'))return;
+    pushHistory();
+    state.objects=[];
+    state.selectedId=null;
+    state.colorSelection=null;
+    state.pickedColor=null;
+    state.projectName='';
+    state.widthCm=30;
+    state.heightCm=35;
+    const name=document.querySelector('#stProjectName');if(name)name.value='';
+    const w=document.querySelector('#stDocW'),h=document.querySelector('#stDocH');if(w)w.value=30;if(h)h.value=35;
+    setTool('select');
+    redraw();
+    toast?.('Nuevo proyecto listo · cola DTF conservada');
+  }
+
   async function saveProject(){
     const input=document.querySelector('#stProjectName');const name=(input?.value||state.projectName||'').trim();if(!name){alert('Pon un nombre al proyecto.');return;}
     const btn=document.querySelector('#stSaveProject');if(btn){btn.disabled=true;btn.textContent='Guardando…';}
@@ -168,6 +186,7 @@
             <h3 style="margin-top:18px">Proyecto</h3>
             <div class="field"><label>Nombre del proyecto</label><input id="stProjectName" placeholder="Ej. Pedido Sara - espalda"></div>
             <div class="studio-toolbar" style="margin-top:8px">
+              <button id="stNewProject" class="secondary">＋ Nuevo proyecto</button>
               <button id="stSaveProject" class="secondary">💾 Guardar</button>
               <button id="stLoadProject" class="secondary">📂 Abrir</button>
             </div>
@@ -754,6 +773,7 @@
     document.querySelector('#stDelete').onclick=del;
     document.querySelector('#stUndo').onclick=undo;
     document.querySelector('#stRedo').onclick=redo;
+    document.querySelector('#stNewProject').onclick=newProject;
     document.querySelector('#stSaveProject').onclick=saveProject;
     document.querySelector('#stLoadProject').onclick=loadProject;
     document.querySelector('#stDeleteProject').onclick=deleteProject;
