@@ -220,6 +220,28 @@
             <h3 style="margin-top:0">Elemento seleccionado</h3>
             <div id="stInspector"><div class="muted">Selecciona una capa.</div></div>
 
+            <h3 style="margin-top:18px">Color libre RGB / HEX</h3>
+            <div class="studio-field">
+              <label>Selector<input id="stRgbHex" type="color" value="#1B365D"></label>
+              <label>Nombre<input id="stRgbName" placeholder="Ej. Azul marca de agua"></label>
+            </div>
+            <div class="studio-field" style="margin-top:8px">
+              <label>HEX<input id="stRgbHexText" value="#1B365D"></label>
+              <label>R<input id="stRgbR" type="number" min="0" max="255" value="27"></label>
+            </div>
+            <div class="studio-field" style="margin-top:8px">
+              <label>G<input id="stRgbG" type="number" min="0" max="255" value="54"></label>
+              <label>B<input id="stRgbB" type="number" min="0" max="255" value="93"></label>
+            </div>
+            <div class="studio-toolbar" style="margin-top:8px">
+              <button id="stApplyRgbWhole" class="secondary">🎨 Aplicar RGB a toda la capa</button>
+              <button id="stApplyRgbZones" class="secondary">🟪 Aplicar RGB a zonas</button>
+              <button id="stSaveRgbColor" class="secondary">💾 Guardar color RGB</button>
+            </div>
+            <div class="studio-note">Color libre para marcas de agua, logos y texto sin depender de Pantone.</div>
+            <h3 style="margin-top:18px">Paleta RGB AIHXO</h3>
+            <div id="stRgbPaletteList"></div>
+
             <h3 style="margin-top:18px">Pantone / color de producción</h3>
             <div class="field"><label>Nombre Pantone o tinta plana</label><input id="stPantoneName" placeholder="Ej. PANTONE 534 C"></div>
             <div class="studio-field" style="margin-top:8px">
@@ -658,6 +680,86 @@
     toast?.('Halo limpiado en '+changed+' píxeles');
   }
 
+  function loadCustomRgbPalette(){
+    try{
+      const saved=JSON.parse(localStorage.getItem('aihxoStudioRgbPalette')||'[]');
+      return Array.isArray(saved)?saved:[];
+    }catch(e){return [];}
+  }
+  function saveCustomRgbPalette(list){
+    try{localStorage.setItem('aihxoStudioRgbPalette',JSON.stringify(list||[]));}catch(e){}
+  }
+  function rgbToHexFromInts(r,g,b){
+    const h=v=>clamp(Math.round(Number(v)||0),0,255).toString(16).padStart(2,'0');
+    return ('#'+h(r)+h(g)+h(b)).toUpperCase();
+  }
+  function hexToRgbObject(hex){
+    const h=String(hex||'#000000').replace('#','').padEnd(6,'0').slice(0,6);
+    return {r:parseInt(h.slice(0,2),16)||0,g:parseInt(h.slice(2,4),16)||0,b:parseInt(h.slice(4,6),16)||0};
+  }
+  function syncRgbInputsFromHex(){
+    const hex=(document.querySelector('#stRgbHex')?.value||'#000000').toUpperCase();
+    const rgb=hexToRgbObject(hex);
+    const r=document.querySelector('#stRgbR'),g=document.querySelector('#stRgbG'),b=document.querySelector('#stRgbB'),t=document.querySelector('#stRgbHexText');
+    if(r)r.value=rgb.r;if(g)g.value=rgb.g;if(b)b.value=rgb.b;if(t)t.value=hex;
+  }
+  function syncRgbFromNumbers(){
+    const r=Number(document.querySelector('#stRgbR')?.value||0),g=Number(document.querySelector('#stRgbG')?.value||0),b=Number(document.querySelector('#stRgbB')?.value||0);
+    const hex=rgbToHexFromInts(r,g,b);
+    const p=document.querySelector('#stRgbHex'),t=document.querySelector('#stRgbHexText');if(p)p.value=hex;if(t)t.value=hex;
+  }
+  function syncRgbFromHexText(){
+    let hex=(document.querySelector('#stRgbHexText')?.value||'').trim();
+    if(!hex.startsWith('#'))hex='#'+hex;
+    if(!/^#[0-9A-Fa-f]{6}$/.test(hex)){alert('Introduce un HEX válido, por ejemplo #1B365D.');return;}
+    const p=document.querySelector('#stRgbHex');if(p)p.value=hex.toUpperCase();syncRgbInputsFromHex();
+  }
+  function currentRgbHex(){return (document.querySelector('#stRgbHex')?.value||'#000000').toUpperCase();}
+  function renderRgbPalette(){
+    const box=document.querySelector('#stRgbPaletteList');if(!box)return;
+    const list=loadCustomRgbPalette();
+    box.innerHTML=list.length?list.map((c,i)=>'<div class="studio-layer"><span style="width:22px;height:22px;border-radius:6px;border:1px solid #ccd3dd;background:'+esc(c.hex)+'"></span><div style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(c.name||c.hex)+'</b><span class="muted">'+esc(c.hex)+'</span></div><button class="secondary stUseRgbSaved" data-i="'+i+'">Usar</button><button class="secondary stDelRgbSaved" data-i="'+i+'">×</button></div>').join(''):'<div class="muted">Sin colores RGB guardados.</div>';
+    box.querySelectorAll('.stUseRgbSaved').forEach(btn=>btn.onclick=()=>{const item=list[Number(btn.dataset.i)];if(!item)return;document.querySelector('#stRgbHex').value=item.hex;document.querySelector('#stRgbHexText').value=item.hex;syncRgbInputsFromHex();});
+    box.querySelectorAll('.stDelRgbSaved').forEach(btn=>btn.onclick=()=>{const copy=list.slice();copy.splice(Number(btn.dataset.i),1);saveCustomRgbPalette(copy);renderRgbPalette();});
+  }
+  function saveCurrentRgbColor(){
+    const hex=currentRgbHex(),name=(document.querySelector('#stRgbName')?.value||hex).trim()||hex;
+    const list=loadCustomRgbPalette(),idx=list.findIndex(x=>String(x.name).toLowerCase()===name.toLowerCase()),item={name,hex};
+    if(idx>=0)list[idx]=item;else list.push(item);
+    saveCustomRgbPalette(list);renderRgbPalette();toast?.('Color RGB guardado');
+  }
+  function recolorImageWhole(o,hex,name){
+    const c=document.createElement('canvas');c.width=imgW(o.img);c.height=imgH(o.img);
+    const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(o.img,0,0,c.width,c.height);
+    const id=g.getImageData(0,0,c.width,c.height),d=id.data,target=hexRgb(hex);
+    for(let i=0;i<d.length;i+=4){if(d[i+3]===0)continue;d[i]=target[0];d[i+1]=target[1];d[i+2]=target[2];}
+    g.putImageData(id,0,0);const src=c.toDataURL('image/png');
+    return imageFromSrc(src).then(im=>{o.img=im;o.src=src;o.pantone={name:name||'RGB libre',hex};});
+  }
+  async function applyRgbWhole(){
+    const o=selected();if(!o){alert('Selecciona primero una capa.');return;}
+    if(o.locked){alert('La capa está bloqueada.');return;}
+    const hex=currentRgbHex(),name=(document.querySelector('#stRgbName')?.value||'RGB libre').trim()||'RGB libre';pushHistory();
+    if(o.type==='text'){o.color=hex;o.pantone={name,hex};redraw();toast?.('RGB aplicado a toda la capa');return;}
+    if(o.type!=='image'||!o.img)return;
+    await recolorImageWhole(o,hex,name);redraw();toast?.('RGB aplicado a toda la capa');
+  }
+  async function applyRgbZones(){
+    const o=selected();if(!o||o.type!=='image'||!o.img){alert('Selecciona primero una capa de imagen.');return;}
+    if(o.locked){alert('La capa está bloqueada.');return;}
+    const zones=state.colorSelections.filter(z=>z.objectId===o.id);if(!zones.length){alert('Marca primero una o varias zonas con “Añadir zona”.');return;}
+    pushHistory();
+    const target=hexRgb(currentRgbHex()),c=document.createElement('canvas');c.width=imgW(o.img);c.height=imgH(o.img);
+    const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(o.img,0,0,c.width,c.height);
+    const id=g.getImageData(0,0,c.width,c.height),d=id.data;
+    for(const q of zones){
+      const sx1=clamp(Math.floor((Math.min(q.x1,q.x2)-o.x)/o.w*c.width),0,c.width),sy1=clamp(Math.floor((Math.min(q.y1,q.y2)-o.y)/o.h*c.height),0,c.height);
+      const sx2=clamp(Math.ceil((Math.max(q.x1,q.x2)-o.x)/o.w*c.width),0,c.width),sy2=clamp(Math.ceil((Math.max(q.y1,q.y2)-o.y)/o.h*c.height),0,c.height);
+      for(let y=sy1;y<sy2;y++)for(let x=sx1;x<sx2;x++){const i=(y*c.width+x)*4;if(d[i+3]===0)continue;d[i]=target[0];d[i+1]=target[1];d[i+2]=target[2];}
+    }
+    g.putImageData(id,0,0);const src=c.toDataURL('image/png');o.src=src;o.img=await imageFromSrc(src);redraw();toast?.('RGB aplicado a las zonas seleccionadas');
+  }
+
   function refreshPaletteUI(){
     const sel=document.querySelector('#stPalette');
     if(sel){
@@ -678,6 +780,16 @@
     const item={name,hex:hex.toUpperCase(),source};
     if(existing>=0) state.palette[existing]=item; else state.palette.push(item);
     savePalette();refreshPaletteUI();
+    document.querySelector('#stRgbHex').onchange=syncRgbInputsFromHex;
+    document.querySelector('#stRgbHexText').onchange=syncRgbFromHexText;
+    document.querySelector('#stRgbR').onchange=syncRgbFromNumbers;
+    document.querySelector('#stRgbG').onchange=syncRgbFromNumbers;
+    document.querySelector('#stRgbB').onchange=syncRgbFromNumbers;
+    document.querySelector('#stApplyRgbWhole').onclick=applyRgbWhole;
+    document.querySelector('#stApplyRgbZones').onclick=applyRgbZones;
+    document.querySelector('#stSaveRgbColor').onclick=saveCurrentRgbColor;
+    syncRgbInputsFromHex();
+    renderRgbPalette();
     const sel=document.querySelector('#stPalette');if(sel)sel.value=String(existing>=0?existing:state.palette.length-1);
     document.querySelector('#stPantoneName').value=item.name;document.querySelector('#stPantoneHex').value=item.hex;
     toast?.('Color guardado en la paleta');
