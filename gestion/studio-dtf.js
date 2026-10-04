@@ -266,7 +266,14 @@
             </div>
             <div class="field" style="margin-top:8px"><label>Ancho máximo hoja DTF (cm)</label><input id="stSheetWidth" type="number" min="5" max="100" step=".1" value="56"></div>
             <button id="stExportSheet" class="primary" style="width:100%;margin-top:8px">Montar copias en hoja DTF</button>
-            <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;font-weight:700"><input id="stTrimContent" type="checkbox" checked style="width:auto"> Ajustar archivo al contenido</label>
+            <div class="field" style="margin-top:10px">
+              <label>Modo de exportación PNG</label>
+              <select id="stExportMode">
+                <option value="layer" selected>Tamaño exacto de la capa seleccionada</option>
+                <option value="trim">Recortar al dibujo visible</option>
+                <option value="document">Tamaño completo del documento</option>
+              </select>
+            </div>
             <button id="stExportPng" class="secondary" style="width:100%;margin-top:8px">Exportar 1 PNG · 300 ppp</button>
             <button id="stExportSvg" class="secondary" style="width:100%;margin-top:8px">Guardar maestro SVG</button>
             <div class="studio-note" style="margin-top:10px"><b>Importante:</b> PNG es RGB. El nombre Pantone se conserva como referencia de producción y en el SVG maestro. Un PDF con tinta plana real requiere una exportación PDF spot específica.</div>
@@ -716,10 +723,46 @@
     out.getContext('2d').drawImage(src,minX,minY,out.width,out.height,0,0,out.width,out.height);
     return out;
   }
+  function selectedLayerCanvas(){
+    const o=selected();
+    if(!o)return null;
+    const out=document.createElement('canvas');
+    out.width=Math.max(1,Math.round(o.w));
+    out.height=Math.max(1,Math.round(o.h));
+    const g=out.getContext('2d');
+    g.save();
+    g.globalAlpha=o.opacity??1;
+    if(o.type==='image'&&o.img){
+      g.drawImage(o.img,0,0,out.width,out.height);
+    }else if(o.type==='text'){
+      const sx=out.width/Math.max(1,o.w),sy=out.height/Math.max(1,o.h);
+      g.scale(sx,sy);
+      g.fillStyle=o.color||'#111111';
+      g.font=`${Math.max(1,o.fontSize)}px ${o.fontFamily||'Arial'}`;
+      g.textBaseline='top';
+      g.fillText(o.text||'',0,0);
+    }
+    g.restore();
+    return out;
+  }
+
   function exportPng(){
-    const base=outputCanvas(),trim=document.querySelector('#stTrimContent')?.checked!==false,src=trim?trimCanvasToContent(base):base;
-    const wcm=(src.width/CM_TO_PX).toFixed(1),hcm=(src.height/CM_TO_PX).toFixed(1);
-    src.toBlob(b=>b&&dl(b,`AIHXO_${wcm}x${hcm}cm_300ppp.png`),'image/png');
+    const mode=document.querySelector('#stExportMode')?.value||'layer';
+    let src=null,wcm=0,hcm=0;
+    if(mode==='layer'){
+      const o=selected();
+      if(!o){alert('Selecciona la capa que quieres exportar.');return;}
+      src=selectedLayerCanvas();
+      wcm=px2cm(o.w);hcm=px2cm(o.h);
+    }else if(mode==='trim'){
+      src=trimCanvasToContent(outputCanvas());
+      wcm=src.width/CM_TO_PX;hcm=src.height/CM_TO_PX;
+    }else{
+      src=outputCanvas();
+      wcm=state.widthCm;hcm=state.heightCm;
+    }
+    const ws=Number(wcm).toFixed(1),hs=Number(hcm).toFixed(1);
+    src.toBlob(b=>b&&dl(b,`AIHXO_${ws}x${hs}cm_300ppp.png`),'image/png');
   }
 
   function exportSheet(){
