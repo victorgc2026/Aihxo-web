@@ -328,7 +328,9 @@
               </select>
             </div>
             <button id="stExportPng" class="secondary" style="width:100%;margin-top:8px">Exportar 1 PNG · 300 ppp</button>
+            <button id="stSaveICloud" class="secondary" style="width:100%;margin-top:8px">☁️ Guardar último archivo en iCloud Drive</button>
             <button id="stExportSvg" class="secondary" style="width:100%;margin-top:8px">Guardar maestro SVG</button>
+            <div class="studio-note" style="margin-top:8px">En iPhone/iPad se abrirá Compartir. Pulsa <b>Guardar en Archivos</b> y elige <b>iCloud Drive</b>.</div>
             <div class="studio-note" style="margin-top:10px"><b>Importante:</b> PNG es RGB. El nombre Pantone se conserva como referencia de producción y en el SVG maestro. Un PDF con tinta plana real requiere una exportación PDF spot específica.</div>
           </section>
         </div>
@@ -997,7 +999,26 @@
     }
     return out;
   }
-  function dl(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);}
+  let lastExportFile=null;
+  function dl(blob,name){
+    lastExportFile={blob,name};
+    const u=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(u),4000);
+  }
+  async function saveLastToICloud(){
+    if(!lastExportFile?.blob){alert('Primero exporta un PNG, una hoja DTF o un SVG.');return;}
+    const file=new File([lastExportFile.blob],lastExportFile.name,{type:lastExportFile.blob.type||'application/octet-stream'});
+    try{
+      if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+        await navigator.share({files:[file],title:lastExportFile.name});
+        return;
+      }
+      alert('En este dispositivo no está disponible el menú Compartir para archivos. Descarga el archivo y usa Archivos → iCloud Drive.');
+    }catch(err){
+      if(err?.name!=='AbortError'){console.error(err);alert('No se pudo abrir Compartir. Prueba a exportar el archivo de nuevo.');}
+    }
+  }
   function trimCanvasToContent(src){
     const g=src.getContext('2d',{willReadFrequently:true}),id=g.getImageData(0,0,src.width,src.height),d=id.data;
     let minX=src.width,minY=src.height,maxX=-1,maxY=-1;
@@ -1167,7 +1188,9 @@
     document.querySelector('#stAddQueue').onclick=addCurrentToQueue;
     document.querySelector('#stExportMultiSheet').onclick=exportMultiSheet;
     document.querySelector('#stExportSheet').onclick=exportSheet;
-    document.querySelector('#stExportPng').onclick=exportPng;document.querySelector('#stExportSvg').onclick=exportSvg;
+    document.querySelector('#stExportPng').onclick=exportPng;
+    document.querySelector('#stSaveICloud').onclick=saveLastToICloud;
+    document.querySelector('#stExportSvg').onclick=exportSvg;
     const c=canvas();c.onpointerdown=canvasDown;c.onpointermove=canvasMove;c.onpointerup=canvasUp;c.onpointercancel=canvasUp;
     window.addEventListener('resize',()=>{if(document.querySelector('#studioCanvas'))redraw();},{passive:true});
   }
