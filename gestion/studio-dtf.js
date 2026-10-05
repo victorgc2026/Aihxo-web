@@ -357,6 +357,175 @@
 
   function selected(){return state.objects.find(o=>o.id===state.selectedId)||null;}
 
+  function syncDocShapeUI(){
+    const shape=document.querySelector('#stDocShape'),wrap=document.querySelector('#stDiameterWrap'),dw=document.querySelector('#stDocW'),dh=document.querySelector('#stDocH'),dia=document.querySelector('#stDiameter');
+    const circ=state.docShape==='circle';
+    if(shape)shape.value=state.docShape;
+    if(wrap)wrap.style.display=circ?'':'none';
+    if(dw){dw.disabled=circ;dw.value=state.widthCm;}
+    if(dh){dh.disabled=circ;dh.value=state.heightCm;}
+    if(dia)dia.value=state.widthCm;
+  }
+
+  function alphaBoundsForObject(o){
+    if(!o||o.type!=='image'||!o.img)return null;
+    const iw=imgW(o.img),ih=imgH(o.img);if(!iw||!ih)return null;
+    const max=1400,scale=Math.min(1,max/Math.max(iw,ih));
+    const c=document.createElement('canvas');
+    c.width=Math.max(1,Math.round(iw*scale));c.height=Math.max(1,Math.round(ih*scale));
+    const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(o.img,0,0,c.width,c.height);
+    const d=g.getImageData(0,0,c.width,c.height).data;
+    let minX=c.width,minY=c.height,maxX=-1,maxY=-1;
+    for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++){
+      if(d[(y*c.width+x)*4+3]>5){if(x<minX)minX=x;if(y<minY)minY=y;if(x>maxX)maxX=x;if(y>maxY)maxY=y;}
+    }
+    if(maxX<0)return null;
+    return {x:minX/c.width,y:minY/c.height,w:(maxX-minX+1)/c.width,h:(maxY-minY+1)/c.height};
+  }
+
+  async function cropSelectedToVisible(){
+    const o=selected();
+    if(!o||o.type!=='image'||!o.img){alert('Selecciona una capa de imagen.');return;}
+    if(Math.abs(o.rotation||0)>0.01){alert('Pon primero la rotación a 0° para recortar por transparencia.');return;}
+    const b=alphaBoundsForObject(o);if(!b){alert('No se encontró contenido visible.');return;}
+    pushHistory();
+    const iw=imgW(o.img),ih=imgH(o.img),sx=Math.floor(b.x*iw),sy=Math.floor(b.y*ih),sw=Math.max(1,Math.ceil(b.w*iw)),sh=Math.max(1,Math.ceil(b.h*ih));
+    const c=document.createElement('canvas');c.width=sw;c.height=sh;c.getContext('2d').drawImage(o.img,sx,sy,sw,sh,0,0,sw,sh);
+    const ox=o.x,oy=o.y,ow=o.w,oh=o.h;
+    o.x=ox+b.x*ow;o.y=oy+b.y*oh;o.w=b.w*ow;o.h=b.h*oh;
+    o.src=c.toDataURL('image/png');o.img=await imageFromSrc(o.src);redraw();toast?.('Transparencia sobrante recortada');
+  }
+
+  function centerVisibleContent(){
+    const o=selected();if(!o)return;
+    pushHistory();
+    if(o.type==='image'&&o.img){
+      const b=alphaBoundsForObject(o);
+      if(b){
+        const vcx=o.x+(b.x+b.w/2)*o.w,vcy=o.y+(b.y+b.h/2)*o.h;
+        o.x+=cm2px(state.widthCm)/2-vcx;o.y+=cm2px(state.heightCm)/2-vcy;
+      }else{
+        o.x=(cm2px(state.widthCm)-o.w)/2;o.y=(cm2px(state.heightCm)-o.h)/2;
+      }
+    }else{
+      o.x=(cm2px(state.widthCm)-o.w)/2;o.y=(cm2px(state.heightCm)-o.h)/2;
+    }
+    redraw();
+  }
+
+  function alignSelected(mode){
+    const o=selected();if(!o)return;pushHistory();
+    const dw=cm2px(state.widthCm),dh=cm2px(state.heightCm);
+    if(mode==='left')o.x=0;
+    if(mode==='right')o.x=dw-o.w;
+    if(mode==='h')o.x=(dw-o.w)/2;
+    if(mode==='top')o.y=0;
+    if(mode==='bottom')o.y=dh-o.h;
+    if(mode==='v')o.y=(dh-o.h)/2;
+    redraw();
+  }
+
+  async function flipSelected(axis){
+    const o=selected();if(!o||o.type!=='image'||!o.img){alert('Selecciona una capa de imagen.');return;}
+    pushHistory();
+    const c=document.createElement('canvas');c.width=imgW(o.img);c.height=imgH(o.img);const g=c.getContext('2d');
+    g.save();
+    if(axis==='h'){g.translate(c.width,0);g.scale(-1,1);}else{g.translate(0,c.height);g.scale(1,-1);}
+    g.drawImage(o.img,0,0);g.restore();
+    o.src=c.toDataURL('image/png');o.img=await imageFromSrc(o.src);redraw();
+  }
+
+  async function extractRectToLayer(d){
+    const o=selected();if(!o||o.type!=='image'||!o.img)return;
+    if(Math.abs(o.rotation||0)>0.01){alert('Pon primero la rotación a 0° para extraer una zona.');return;}
+    const x1=Math.max(o.x,Math.min(d.x,d.x2)),y1=Math.max(o.y,Math.min(d.y,d.y2)),x2=Math.min(o.x+o.w,Math.max(d.x,d.x2)),y2=Math.min(o.y+o.h,Math.max(d.y,d.y2));
+    if(x2<=x1||y2<=y1)return;
+    pushHistory();
+    const iw=imgW(o.img),ih=imgH(o.img);
+    const sx=Math.floor((x1-o.x)/o.w*iw),sy=Math.floor((y1-o.y)/o.h*ih),sw=Math.max(1,Math.ceil((x2-x1)/o.w*iw)),sh=Math.max(1,Math.ceil((y2-y1)/o.h*ih));
+    const part=document.createElement('canvas');part.width=sw;part.height=sh;part.getContext('2d').drawImage(o.img,sx,sy,sw,sh,0,0,sw,sh);
+    const base=document.createElement('canvas');base.width=iw;base.height=ih;const bg=base.getContext('2d');bg.drawImage(o.img,0,0);bg.clearRect(sx,sy,sw,sh);
+    o.src=base.toDataURL('image/png');o.img=await imageFromSrc(o.src);
+    const src=part.toDataURL('image/png'),im=await imageFromSrc(src);
+    const n={id:uid(),type:'image',name:(o.name||'Imagen')+' · extraído',img:im,src:src,x:x1,y:y1,w:x2-x1,h:y2-y1,rotation:0,opacity:o.opacity??1,visible:true,pantone:o.pantone?{...o.pantone}:null,locked:false};
+    state.objects.push(n);state.selectedId=n.id;setTool('select');redraw();toast?.('Zona extraída a una capa nueva');
+  }
+
+  function runPreflight(){
+    const report=document.querySelector('#stPreflightReport');if(!report)return;
+    const visible=state.objects.filter(o=>o.visible!==false),dw=cm2px(state.widthCm),dh=cm2px(state.heightCm);
+    const issues=[],oks=[];
+    if(!visible.length)issues.push('No hay capas visibles.');else oks.push(visible.length+' capa(s) visible(s)');
+    let lowRes=0,outside=0,opaqueBg=0;
+    for(const o of visible){
+      if(o.x<0||o.y<0||o.x+o.w>dw||o.y+o.h>dh)outside++;
+      if(o.type==='image'&&o.img){
+        const ppiX=imgW(o.img)/(Math.max(.001,px2cm(o.w))/2.54),ppiY=imgH(o.img)/(Math.max(.001,px2cm(o.h))/2.54);
+        if(Math.min(ppiX,ppiY)<250)lowRes++;
+        const c=document.createElement('canvas');c.width=80;c.height=80;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(o.img,0,0,80,80);
+        const d=g.getImageData(0,0,80,80).data;let transparent=0,white=0;
+        for(let i=0;i<d.length;i+=4){if(d[i+3]<10)transparent++;else if(d[i]>248&&d[i+1]>248&&d[i+2]>248&&d[i+3]>245)white++;}
+        if(transparent===0&&white>80*80*.45)opaqueBg++;
+      }
+    }
+    if(lowRes)issues.push(lowRes+' imagen(es) por debajo de 250 ppp efectivos.');else if(visible.some(o=>o.type==='image'))oks.push('Resolución efectiva correcta');
+    if(outside)issues.push(outside+' capa(s) salen fuera del documento.');else oks.push('Todas las capas están dentro del documento');
+    if(opaqueBg)issues.push(opaqueBg+' imagen(es) parecen tener fondo blanco opaco.');
+    if(state.docShape==='circle')oks.push('Máscara circular activa');
+    const status=issues.length?'⚠️ REVISAR ANTES DE IMPRIMIR':'✅ LISTO PARA IMPRIMIR';
+    report.innerHTML='<b>'+status+'</b><br>'+oks.map(x=>'✅ '+esc(x)).join('<br>')+(issues.length?'<br>'+issues.map(x=>'⚠️ '+esc(x)).join('<br>'):'');
+  }
+
+  async function serializeProjectPayload(){
+    const objects=await serializeProjectObjects();
+    return {name:(document.querySelector('#stProjectName')?.value||state.projectName||'').trim(),updatedAt:Date.now(),widthCm:state.widthCm,heightCm:state.heightCm,docShape:state.docShape,objects:objects,matrix:state.matrix,palette:state.palette,colorSelections:state.colorSelections,printQueue:state.printQueue};
+  }
+
+  async function saveSharedProject(){
+    const client=window.supabaseClient;if(!client){alert('No está disponible la conexión compartida de Gestión.');return;}
+    const p=await serializeProjectPayload();if(!p.name){alert('Pon un nombre al proyecto.');return;}
+    const btn=document.querySelector('#stSaveShared');if(btn){btn.disabled=true;btn.textContent='Guardando…';}
+    try{
+      const ud=await client.auth.getUser();const email=ud?.data?.user?.email||null;
+      const res=await client.from('studio_projects').upsert({name:p.name,payload:p,updated_at:new Date().toISOString(),updated_by:email},{onConflict:'name'});
+      if(res.error)throw res.error;
+      state.projectName=p.name;await refreshSharedProjects();toast?.('Proyecto guardado y compartido');
+    }catch(e){console.error(e);alert('No se pudo guardar el proyecto compartido.');}
+    finally{if(btn){btn.disabled=false;btn.textContent='☁️ Guardar compartido';}}
+  }
+
+  async function refreshSharedProjects(){
+    const sel=document.querySelector('#stSharedProjectList'),client=window.supabaseClient;if(!sel||!client)return;
+    try{
+      const res=await client.from('studio_projects').select('name,updated_at').order('updated_at',{ascending:false}).limit(100);
+      if(res.error)throw res.error;
+      sel.innerHTML='<option value="">Proyectos compartidos…</option>'+(res.data||[]).map(p=>'<option value="'+esc(p.name)+'">'+esc(p.name)+'</option>').join('');
+    }catch(e){console.warn('Studio shared list',e);}
+  }
+
+  async function applyProjectPayload(p){
+    if(!p)return;pushHistory();
+    state.projectName=p.name||'';state.widthCm=Number(p.widthCm)||30;state.heightCm=Number(p.heightCm)||35;state.docShape=p.docShape||'rect';
+    if(Array.isArray(p.matrix))state.matrix=p.matrix;
+    state.colorSelections=Array.isArray(p.colorSelections)?p.colorSelections.map(z=>({...z})):[];
+    if(Array.isArray(p.printQueue))state.printQueue=p.printQueue;
+    const objs=[];for(const raw of p.objects||[]){const o={...raw};if(o.type==='image'&&o.src)o.img=await imageFromSrc(o.src);objs.push(o);}
+    state.objects=objs;state.selectedId=null;
+    const name=document.querySelector('#stProjectName');if(name)name.value=state.projectName;
+    syncDocShapeUI();renderMatrix();renderQueue();redraw();
+  }
+
+  async function loadSharedProject(){
+    const sel=document.querySelector('#stSharedProjectList'),name=sel?.value,client=window.supabaseClient;
+    if(!name||!client){if(!name)alert('Selecciona un proyecto compartido.');return;}
+    try{
+      const res=await client.from('studio_projects').select('payload').eq('name',name).single();
+      if(res.error)throw res.error;
+      await applyProjectPayload(res.data?.payload);toast?.('Proyecto compartido abierto');
+    }catch(e){console.error(e);alert('No se pudo abrir el proyecto compartido.');}
+  }
+
+
   function drawObject(g,o,s){
     g.save();
     g.translate(o.x*s,o.y*s);
