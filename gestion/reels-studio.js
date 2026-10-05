@@ -107,7 +107,7 @@
             <div class="reels-row">
               <button class="primary" id="reelCamera">📹 Grabar</button>
               <button class="secondary" id="reelStop" disabled>⏹ Parar</button>
-              <label class="secondary" style="cursor:pointer;padding:9px 12px">＋ Añadir clips<input id="reelFiles" type="file" accept="video/*" multiple hidden></label>
+              <label class="secondary" style="cursor:pointer;padding:9px 12px">＋ Añadir clips<input id="reelFiles" type="file" accept="video/*" multiple hidden></label><label class="secondary" style="cursor:pointer;padding:9px 12px">📱 Cámara iPhone<input id="reelNativeCamera" type="file" accept="video/*" capture="environment" hidden></label>
             </div>
             <div class="reels-note" style="margin-top:12px"><b>Guía rápida:</b> prenda → diseño → plancha → peel → detalle → resultado. Graba tomas cortas de 2–5 segundos.</div>
             <h3>Proyecto</h3>
@@ -116,7 +116,7 @@
           </section>
           <section class="reels-panel preview">
             <div class="reels-phone">
-              <video id="reelPreview" playsinline controls></video>
+              <video id="reelPreview" playsinline webkit-playsinline controls preload="metadata"></video>
               <img class="reels-logo" id="reelLogoPreview" src="icon-512.png" alt="AIHXO">
               <div class="reels-overlay" id="reelTextPreview"></div>
             </div>
@@ -141,7 +141,7 @@
     const tx=document.querySelector('#reelTitleText');tx.value=state.title;tx.oninput=()=>{state.title=tx.value;syncOverlays();};
     const wm=document.querySelector('#reelWatermark');wm.checked=state.watermark;wm.onchange=()=>{state.watermark=wm.checked;syncOverlays();};const ab=document.querySelector('#reelAutoBrand');ab.checked=state.autoBrand;ab.onchange=()=>state.autoBrand=ab.checked;const tr=document.querySelector('#reelTransition');tr.value=state.transition;tr.onchange=()=>{state.transition=tr.value;state.clips.forEach(x=>x.transition=tr.value);};
     const pn=document.querySelector('#reelProject');pn.value=state.projectName;
-    document.querySelector('#reelFiles').onchange=e=>addFiles([...e.target.files]);
+    document.querySelector('#reelFiles').onchange=e=>addFiles([...e.target.files]);document.querySelector('#reelNativeCamera').onchange=e=>addFiles([...e.target.files]);
     document.querySelector('#reelCamera').onclick=startCamera;
     document.querySelector('#reelStop').onclick=stopRecording;
     document.querySelector('#reelSave').onclick=saveProject;
@@ -174,14 +174,14 @@
     try{
       state.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1080},height:{ideal:1920}},audio:true});
       const p=document.querySelector('#reelPreview');p.srcObject=state.stream;p.controls=false;p.muted=true;await p.play();
-      const preferred=['video/mp4;codecs=h264,aac','video/mp4','video/webm;codecs=vp9,opus','video/webm'].find(x=>MediaRecorder.isTypeSupported?.(x));
+      const preferred=['video/mp4','video/mp4;codecs="avc1.42E01E,mp4a.40.2"','video/webm;codecs=vp8,opus','video/webm'].find(x=>MediaRecorder.isTypeSupported?.(x));
       state.chunks=[];state.recorder=new MediaRecorder(state.stream,preferred?{mimeType:preferred}:undefined);
       state.recorder.ondataavailable=e=>{if(e.data?.size)state.chunks.push(e.data);};
-      state.recorder.onstop=async()=>{const type=state.recorder.mimeType||state.chunks[0]?.type||'video/webm';const blob=new Blob(state.chunks,{type});state.stream.getTracks().forEach(t=>t.stop());state.stream=null;p.srcObject=null;p.controls=true;await addBlob(blob,'Grabación '+new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}));};
-      state.recorder.start(500);document.querySelector('#reelCamera').disabled=true;document.querySelector('#reelStop').disabled=false;toastMsg('Grabando…');
+      state.recorder.onstop=async()=>{const type=state.chunks[0]?.type||state.recorder.mimeType||'video/mp4';const blob=new Blob(state.chunks,{type});state.stream?.getTracks().forEach(t=>t.stop());state.stream=null;p.pause();p.srcObject=null;p.controls=true;p.muted=false;if(!blob.size){toastMsg('La grabación salió vacía. Prueba Cámara iPhone.');return;}await addBlob(blob,'Grabación '+new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}));const clip=selected();if(clip){p.src=clip.url;p.load();p.onloadedmetadata=()=>{try{p.currentTime=Math.min(clip.start||0,Math.max(0,(p.duration||0)-.05));}catch(e){}};p.oncanplay=()=>{p.controls=true;};}toastMsg('Grabación lista · toca ▶ para verla');};
+      state.recorder.start();document.querySelector('#reelCamera').disabled=true;document.querySelector('#reelStop').disabled=false;toastMsg('Grabando…');
     }catch(e){console.error(e);toastMsg('No se pudo abrir la cámara o el micrófono');}
   }
-  function stopRecording(){if(state.recorder&&state.recorder.state!=='inactive')state.recorder.stop();document.querySelector('#reelCamera').disabled=false;document.querySelector('#reelStop').disabled=true;}
+  function stopRecording(){if(state.recorder&&state.recorder.state!=='inactive'){try{state.recorder.requestData?.();}catch(e){}setTimeout(()=>{try{if(state.recorder?.state!=='inactive')state.recorder.stop();}catch(e){}},120);}document.querySelector('#reelCamera').disabled=false;document.querySelector('#reelStop').disabled=true;}
 
   function renderClips(){
     const root=document.querySelector('#reelClips');if(!root)return;
@@ -210,7 +210,7 @@
   function updatePreview(){
     const p=document.querySelector('#reelPreview');const c=selected();if(!p)return;
     if(!c){p.removeAttribute('src');p.load();document.querySelector('#reelTrim').innerHTML='<div class="muted">Selecciona un clip para previsualizarlo.</div>';syncOverlays();return;}
-    p.srcObject=null;p.src=c.url;p.controls=true;p.muted=false;p.currentTime=c.start||0;
+    p.pause();p.srcObject=null;p.removeAttribute('src');p.load();p.src=c.url;p.controls=true;p.muted=false;p.preload='metadata';p.load();const setStart=()=>{try{p.currentTime=Math.min(c.start||0,Math.max(0,(p.duration||c.duration||0)-.05));}catch(e){}};if(p.readyState>=1)setStart();else p.addEventListener('loadedmetadata',setStart,{once:true});
     document.querySelector('#reelTrim').innerHTML=`<div class="reels-trimbar">
       <div class="section" style="margin-bottom:6px"><b>Recorte del clip</b><span class="reels-chip">${fmt(((c.end||c.duration)-(c.start||0))/(c.speed||1))}</span></div>
       <label>Inicio · <b id="reelStartLabel">${Number(c.start||0).toFixed(1)} s</b></label><input id="reelStart" type="range" min="0" max="${c.duration}" step=".1" value="${Number(c.start||0).toFixed(1)}">
