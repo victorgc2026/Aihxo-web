@@ -20,7 +20,7 @@
     widthCm: 30, heightCm: 35, docShape:'rect', objects: [], selectedId: null,
     tool: 'select', drag: null, pickedColor: null, colorSelections: [],
     palette: loadPalette(), history: [], future: [], historyBusy:false,
-    brushSizeCm: 0.5, lockAspect:true, showGuides:true, snap:true, printQueue: [], projectName:'', matrix: [
+    brushSizeCm: 0.5, lockAspect:true, showGuides:true, snap:true, garmentPreview:false, garmentColor:'#FFFFFF', printQueue: [], projectName:'', matrix: [
       {size:'7/8',w:24,h:27,qty:1,enabled:true},
       {size:'9/11',w:26,h:29,qty:1,enabled:true},
       {size:'12/13',w:28,h:31,qty:1,enabled:true},
@@ -252,6 +252,46 @@
               <button id="stSaveRgbColor" class="secondary">💾 Guardar color RGB</button>
             </div>
             <div class="studio-note">Color libre para marcas de agua, logos y texto sin depender de Pantone.</div>
+            
+            <h3 style="margin-top:16px">Marca de agua sobre prenda</h3>
+            <div class="studio-field">
+              <label>Color de prenda
+                <select id="stGarmentPreset">
+                  <option value="#FFFFFF">Blanca</option>
+                  <option value="#000000">Negra</option>
+                  <option value="#1B263B">Azul marino</option>
+                  <option value="#808080">Gris medio</option>
+                  <option value="#D9D9D9">Gris claro</option>
+                  <option value="#6B2D3A">Burdeos</option>
+                  <option value="#2F4F3E">Verde oscuro</option>
+                  <option value="custom">Personalizado</option>
+                </select>
+              </label>
+              <label>Color personalizado<input id="stGarmentColor" type="color" value="#FFFFFF"></label>
+            </div>
+            <div class="studio-field" style="margin-top:8px">
+              <label>Modo
+                <select id="stWatermarkMode">
+                  <option value="tone">Tono sobre tono automático</option>
+                  <option value="lighter">Más clara que la prenda</option>
+                  <option value="darker">Más oscura que la prenda</option>
+                  <option value="manual">Usar RGB / HEX actual</option>
+                </select>
+              </label>
+              <label>Intensidad
+                <select id="stWatermarkStrength">
+                  <option value="subtle">Muy sutil</option>
+                  <option value="medium">Media</option>
+                  <option value="visible">Visible</option>
+                </select>
+              </label>
+            </div>
+            <div class="studio-field" style="margin-top:8px">
+              <label>Opacidad %<input id="stWatermarkOpacity" type="number" min="5" max="100" step="5" value="30"></label>
+              <label style="display:flex;align-items:end;gap:8px;padding-bottom:10px"><input id="stGarmentPreview" type="checkbox" style="width:auto"> Simular color de prenda</label>
+            </div>
+            <button id="stCreateWatermark" class="primary" style="width:100%;margin-top:8px">💧 Crear marca de agua</button>
+            <div id="stWatermarkInfo" class="studio-note" style="margin-top:8px">Selecciona una capa de imagen o texto. Studio creará una copia independiente adaptada al color de la prenda.</div>
             <h3 style="margin-top:16px">Contorno exterior</h3>
             <div class="studio-field">
               <label>Grosor mm<input id="stOutlineMm" type="number" min=".5" max="20" step=".5" value="3"></label>
@@ -549,6 +589,7 @@
     const c=canvas(); if(!c) return;
     setupCanvas(); const g=ctx(), s=Number(c.dataset.scale||1);
     g.clearRect(0,0,c.width,c.height);
+    if(state.garmentPreview){g.save();g.fillStyle=state.garmentColor||'#FFFFFF';g.fillRect(0,0,c.width,c.height);g.restore();}
     state.objects.filter(o=>o.visible!==false).forEach(o=>drawObject(g,o,s));
     if(state.showGuides){
       g.save();g.strokeStyle='rgba(8,124,244,.45)';g.lineWidth=1;g.setLineDash([5,5]);
@@ -971,6 +1012,53 @@
       for(let y=sy1;y<sy2;y++)for(let x=sx1;x<sx2;x++){const i=(y*c.width+x)*4;if(d[i+3]===0)continue;d[i]=target[0];d[i+1]=target[1];d[i+2]=target[2];}
     }
     g.putImageData(id,0,0);const src=c.toDataURL('image/png');o.src=src;o.img=await imageFromSrc(src);redraw();toast?.('RGB aplicado a las zonas seleccionadas');
+  }
+
+
+  function mixHex(a,b,t){
+    const A=hexRgb(a),B=hexRgb(b),q=clamp(Number(t)||0,0,1);
+    const C=A.map((v,i)=>Math.round(v+(B[i]-v)*q));
+    return '#'+C.map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
+  }
+  function luminanceHex(hex){
+    const [r,g,b]=hexRgb(hex).map(v=>v/255);
+    const f=v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);
+    return .2126*f(r)+.7152*f(g)+.0722*f(b);
+  }
+  function selectedGarmentColor(){
+    const preset=document.querySelector('#stGarmentPreset')?.value||'#FFFFFF';
+    return (preset==='custom'?(document.querySelector('#stGarmentColor')?.value||'#FFFFFF'):preset).toUpperCase();
+  }
+  function computeWatermarkColor(){
+    const garment=selectedGarmentColor(),mode=document.querySelector('#stWatermarkMode')?.value||'tone',strength=document.querySelector('#stWatermarkStrength')?.value||'subtle';
+    if(mode==='manual')return currentRgbHex();
+    const amount=strength==='visible'?.34:strength==='medium'?.22:.13;
+    if(mode==='lighter')return mixHex(garment,'#FFFFFF',amount);
+    if(mode==='darker')return mixHex(garment,'#000000',amount);
+    return luminanceHex(garment)<.32?mixHex(garment,'#FFFFFF',amount):mixHex(garment,'#000000',amount);
+  }
+  function updateWatermarkInfo(){
+    const info=document.querySelector('#stWatermarkInfo');if(!info)return;
+    const garment=selectedGarmentColor(),wm=computeWatermarkColor(),opacity=Math.max(5,Math.min(100,Number(document.querySelector('#stWatermarkOpacity')?.value||30)));
+    info.innerHTML='Prenda <b>'+esc(garment)+'</b> · marca propuesta <b>'+esc(wm)+'</b> · '+opacity+'% opacidad.';
+  }
+  async function createWatermark(){
+    const o=selected();if(!o){alert('Selecciona primero la imagen o texto que quieres convertir en marca de agua.');return;}
+    if(o.locked){alert('La capa está bloqueada.');return;}
+    if(o.type!=='image'&&o.type!=='text'){alert('Selecciona una capa de imagen o texto.');return;}
+    pushHistory();
+    const hex=computeWatermarkColor(),opacity=clamp(Number(document.querySelector('#stWatermarkOpacity')?.value||30)/100,.05,1);
+    const n={...o,id:uid(),name:(o.name||'Diseño')+' · marca de agua',x:o.x,y:o.y,opacity:opacity,locked:false,pantone:{name:'Marca de agua · '+selectedGarmentColor(),hex:hex}};
+    if(o.type==='image'){
+      n.img=o.img;n.src=o.src;
+      await recolorImageWhole(n,hex,'Marca de agua · '+selectedGarmentColor());
+    }else{
+      n.color=hex;
+    }
+    const idx=state.objects.findIndex(x=>x.id===o.id);
+    state.objects.splice(Math.max(0,idx+1),0,n);
+    state.selectedId=n.id;
+    redraw();updateWatermarkInfo();toast?.('Marca de agua creada como capa independiente');
   }
 
   function refreshPaletteUI(){
@@ -1405,6 +1493,19 @@
     document.querySelector('#stAddDocBg').onclick=addSolidBackgroundToDocument;
     document.querySelector('#stSaveRgbColor').onclick=saveCurrentRgbColor;
     document.querySelector('#stCreateOutline').onclick=createOuterOutline;
+    document.querySelector('#stCreateWatermark').onclick=createWatermark;
+    document.querySelector('#stGarmentPreset').onchange=e=>{
+      if(e.target.value!=='custom')document.querySelector('#stGarmentColor').value=e.target.value;
+      state.garmentColor=selectedGarmentColor();updateWatermarkInfo();if(state.garmentPreview)redraw();
+    };
+    document.querySelector('#stGarmentColor').oninput=e=>{
+      document.querySelector('#stGarmentPreset').value='custom';state.garmentColor=e.target.value.toUpperCase();updateWatermarkInfo();if(state.garmentPreview)redraw();
+    };
+    document.querySelector('#stWatermarkMode').onchange=updateWatermarkInfo;
+    document.querySelector('#stWatermarkStrength').onchange=updateWatermarkInfo;
+    document.querySelector('#stWatermarkOpacity').oninput=updateWatermarkInfo;
+    document.querySelector('#stGarmentPreview').onchange=e=>{state.garmentPreview=e.target.checked;state.garmentColor=selectedGarmentColor();redraw();};
+    updateWatermarkInfo();
     syncRgbInputsFromHex();
     renderRgbPalette();
     document.querySelector('#stAssignPantone').onclick=assignPantone;document.querySelector('#stReplaceColor').onclick=replacePicked;
