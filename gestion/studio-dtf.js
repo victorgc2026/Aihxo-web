@@ -20,7 +20,7 @@
     widthCm: 30, heightCm: 35, docShape:'rect', objects: [], selectedId: null,
     tool: 'select', drag: null, pickedColor: null, colorSelections: [],
     palette: loadPalette(), history: [], future: [], historyBusy:false,
-    brushSizeCm: 0.5, lockAspect:true, printQueue: [], projectName:'', matrix: [
+    brushSizeCm: 0.5, lockAspect:true, showGuides:true, snap:true, printQueue: [], projectName:'', matrix: [
       {size:'7/8',w:24,h:27,qty:1,enabled:true},
       {size:'9/11',w:26,h:29,qty:1,enabled:true},
       {size:'12/13',w:28,h:31,qty:1,enabled:true},
@@ -186,9 +186,9 @@
               <button id="stSelect" class="primary">↖ Seleccionar</button>
               <button id="stErase" class="secondary">⌫ Borrar zona</button>
               <button id="stBrushErase" class="secondary">🖌️ Borrador</button>
-              <button id="stPick" class="secondary">🎯 Tomar color</button><button id="stSelectColorArea" class="secondary">▭ Añadir zona</button><button id="stClearColorAreas" class="secondary">🧹 Limpiar zonas</button>
+              <button id="stPick" class="secondary">🎯 Tomar color</button><button id="stExtractArea" class="secondary">✂️ Extraer a capa</button><button id="stSelectColorArea" class="secondary">▭ Añadir zona</button><button id="stClearColorAreas" class="secondary">🧹 Limpiar zonas</button>
             </div>
-            <div class="studio-field" style="margin-bottom:10px"><label>Tamaño pincel (cm)<input id="stBrushSize" type="number" min=".1" max="5" step=".1" value=".5"></label><label style="display:flex;align-items:end;gap:8px;padding-bottom:10px"><input id="stLockAspect" type="checkbox" ${state.lockAspect?'checked':''} style="width:auto"> Mantener proporción</label></div>
+            <div class="studio-field" style="margin-bottom:10px"><label>Tamaño pincel (cm)<input id="stBrushSize" type="number" min=".1" max="5" step=".1" value=".5"></label><label style="display:flex;align-items:end;gap:8px;padding-bottom:10px"><input id="stLockAspect" type="checkbox" ${state.lockAspect?'checked':''} style="width:auto"> Mantener proporción</label></div><div class="studio-toolbar"><label style="display:flex;align-items:center;gap:6px"><input id="stShowGuides" type="checkbox" checked style="width:auto"> Guías</label><label style="display:flex;align-items:center;gap:6px"><input id="stSnap" type="checkbox" checked style="width:auto"> Ajuste magnético</label></div>
             <div class="field"><label>Importar PNG / JPG / WEBP / SVG</label><input id="stFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></div>
             <button id="stAddText" class="secondary" style="width:100%;margin-top:8px">T＋ Añadir texto</button>
             <div class="studio-note" style="margin-top:12px"><b>Borrar zona</b>: arrastra un rectángulo sobre una imagen seleccionada. <br><b>Añadir zona</b>: puedes marcar varias zonas para limitar los cambios de color solo a esas partes del diseño.</div>
@@ -201,7 +201,7 @@
               <button id="stLoadProject" class="secondary">📂 Abrir</button>
             </div>
             <select id="stProjectList"><option value="">Proyectos guardados…</option></select>
-            <button id="stDeleteProject" class="secondary" style="width:100%;margin-top:8px">Eliminar proyecto guardado</button>
+            <button id="stDeleteProject" class="secondary" style="width:100%;margin-top:8px">Eliminar proyecto guardado</button><div class="studio-note" style="margin-top:10px"><b>Compartido</b>: guarda el proyecto en Gestión para abrirlo desde otro dispositivo autorizado.</div><div class="studio-toolbar" style="margin-top:8px"><button id="stSaveShared" class="secondary">☁️ Guardar compartido</button><button id="stLoadShared" class="secondary">☁️ Abrir compartido</button></div><select id="stSharedProjectList"><option value="">Proyectos compartidos…</option></select>
             <h3 style="margin-top:18px">Capas</h3>
             <div id="stLayers"></div>
           </section>
@@ -210,7 +210,7 @@
             <div class="studio-toolbar">
               <button id="stFit" class="secondary">Encajar</button>
               <button id="stFitAll" class="secondary">Encajar capas en documento</button>
-              <button id="stCenter" class="secondary">Centrar</button>
+              <button id="stCenter" class="secondary">Centrar</button><button id="stCenterVisible" class="secondary">◎ Centrar contenido</button><button id="stCropVisible" class="secondary">✂️ Recortar transparencia</button><button id="stAlignLeft" class="secondary">⇤ Izquierda</button><button id="stAlignH" class="secondary">↔ Centro H</button><button id="stAlignRight" class="secondary">⇥ Derecha</button><button id="stAlignTop" class="secondary">⇧ Arriba</button><button id="stAlignV" class="secondary">↕ Centro V</button><button id="stAlignBottom" class="secondary">⇩ Abajo</button><button id="stFlipH" class="secondary">⇆ Voltear H</button><button id="stFlipV" class="secondary">⇅ Voltear V</button>
               <button id="stDuplicate" class="secondary">Duplicar</button>
               <button id="stLayerUp" class="secondary">↑ Subir</button>
               <button id="stLayerDown" class="secondary">↓ Bajar</button>
@@ -313,7 +313,7 @@
             </div>
             <div id="stTransparencyInfo" class="studio-note">Selecciona una capa de imagen y pulsa “Comprobar transparencia”.</div>
 
-            <h3 style="margin-top:18px">Salida</h3>
+            <h3 style="margin-top:18px">Preflight DTF</h3><button id="stPreflight" class="primary" style="width:100%">✅ Revisar archivo para impresión</button><div id="stPreflightReport" class="studio-note" style="margin-top:8px">Comprueba tamaño, resolución, transparencia, fondos y elementos fuera del documento.</div><h3 style="margin-top:18px">Salida</h3>
             <div class="studio-field">
               <label>Copias para impresión<input id="stCopies" type="number" min="1" max="200" value="1"></label>
               <label>Separación cm<input id="stGap" type="number" min="0" max="5" step=".1" value=".5"></label>
