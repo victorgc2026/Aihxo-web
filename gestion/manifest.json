@@ -1,7 +1,7 @@
 {
   "name": "AIHXO Gestión",
   "short_name": "AIHXO",
-  "start_url": "/gestion/",
+  "start_url": "/gestion/?v=20261007-hotfix2",
   "display": "standalone",
   "background_color": "#07152f",
   "theme_color": "#07152f",
