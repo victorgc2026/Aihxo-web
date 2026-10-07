@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07152f"><title>AIHXO · Briefing cliente</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#13213a;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}.top{background:#07152f;color:#fff;padding:22px 18px}.brand{font-family:Georgia,serif;font-size:34px;font-weight:900;color:#1687ff}.top small{color:#b8c5d9}.wrap{max-width:760px;margin:auto;padding:18px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 8px 28px rgba(7,21,47,.06)}h1{font-size:24px;margin:0 0 8px}h2{font-size:18px;margin:0 0 12px}.muted{color:#6d7890;font-size:13px}.field{display:grid;gap:6px;margin:12px 0}.field label{font-size:12px;font-weight:800;color:#536078}input,textarea,select{width:100%;border:1px solid #d8deea;border-radius:11px;padding:12px;font:inherit}textarea{min-height:90px}.item{padding:10px 0;border-bottom:1px solid #edf0f4}.item:last-child{border:0}.btn{width:100%;border:0;border-radius:12px;padding:14px;font-weight:900;font-size:15px;cursor:pointer}.primary{background:#087cf4;color:#fff}.secondary{background:#eef2f7;color:#22324d}.sig{border:2px dashed #b8c5d9;border-radius:14px;background:#fff;width:100%;height:190px;touch-action:none}.row{display:flex;gap:10px}.row>*{flex:1}.ok{padding:18px;text-align:center}.hidden{display:none!important}@media(max-width:600px){.wrap{padding:14px}.row{display:block}.row>*{margin-bottom:8px}}
+</style>
+</head>
+<body>
+<div class="top"><div class="brand">AIHXO</div><small>Personalización textil · Briefing del cliente</small></div>
+<main class="wrap"><div id="app"><div class="card">Cargando ficha…</div></div></main>
+<script>
+const FN='https://zoiesxtchnesrilpuqek.supabase.co/functions/v1/client-briefing';
+const token=new URLSearchParams(location.search).get('token')||'';
+const E=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+async function api(action,payload={}){
+ const r=await fetch(FN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token,...payload})});
+ const j=await r.json().catch(()=>({})); if(!r.ok)throw new Error(j.error||'No se pudo cargar la ficha'); return j;
+}
+function canvasInit(){
+ const c=document.getElementById('signature'); if(!c)return;
+ const ctx=c.getContext('2d'); let down=false,last=null,drawn=false;
+ const resize=()=>{const ratio=devicePixelRatio||1,r=c.getBoundingClientRect();const old=c.toDataURL();c.width=r.width*ratio;c.height=r.height*ratio;ctx.scale(ratio,ratio);ctx.lineWidth=2.4;ctx.lineCap='round';ctx.strokeStyle='#17233c';};
+ resize();
+ const p=e=>{const r=c.getBoundingClientRect(),x=(e.touches?e.touches[0].clientX:e.clientX)-r.left,y=(e.touches?e.touches[0].clientY:e.clientY)-r.top;return{x,y}};
+ const start=e=>{e.preventDefault();down=true;last=p(e)};
+ const move=e=>{if(!down)return;e.preventDefault();const q=p(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(q.x,q.y);ctx.stroke();last=q;drawn=true};
+ const end=e=>{if(e)e.preventDefault();down=false};
+ ['pointerdown'].forEach(x=>c.addEventListener(x,start));['pointermove'].forEach(x=>c.addEventListener(x,move));['pointerup','pointerleave','pointercancel'].forEach(x=>c.addEventListener(x,end));
+ c._hasSignature=()=>drawn;c._clear=()=>{ctx.clearRect(0,0,c.width,c.height);drawn=false};
+}
+function itemsHtml(items){return (items||[]).map(i=>'<div class="item"><b>'+E([i.brand,i.garment_model,i.garment_variant].filter(Boolean).join(' · ')||i.garment_type||'Prenda')+'</b><div class="muted">'+E(i.size||'—')+' · '+E(i.color||'—')+' · '+(i.quantity||1)+' ud.'+(i.personalization_area?' · '+E(i.personalization_area):'')+'</div></div>').join('')||'<div class="muted">Sin artículos cargados.</div>'}
+async function load(){
+ try{
+  if(!token)throw new Error('Falta el enlace de acceso.');
+  const d=await api('get'); const order=d.order||{},pre=d.payload?.prefill||{},approval=d.kind==='design_approval';
+  if(!['pending','changes_requested'].includes(d.status)){
+   document.getElementById('app').innerHTML='<div class="card ok"><h1>✅ Ficha ya enviada</h1><p>Esta versión ya está registrada en AIHXO.</p></div>';return;
+  }
+  document.getElementById('app').innerHTML=
+   '<div class="card"><div class="muted">'+(approval?'APROBACIÓN FINAL DE DISEÑO':'BRIEFING DEL PEDIDO')+' · v'+d.version+'</div><h1>'+E(order.order_number||'Pedido AIHXO')+'</h1><div>'+E(order.customer_name||'')+'</div></div>'+
+   '<div class="card"><h2>👕 Prendas del pedido</h2>'+itemsHtml(d.items)+'</div>'+
+   (approval?
+   '<div class="card"><h2>🎨 Revisión final</h2><p>Revisa el diseño final y confirma si está correcto para producción.</p><div class="field"><label>Observaciones o cambios</label><textarea id="notes" placeholder="Si necesitas algún cambio, indícalo aquí."></textarea></div><div class="field"><label>Decisión</label><select id="decision"><option value="approved">Apruebo el diseño para producción</option><option value="changes_requested">Solicito cambios antes de producir</option></select></div></div>':
+   '<div class="card"><h2>📝 Qué necesitas</h2><div class="field"><label>Describe el encargo *</label><textarea id="request" placeholder="Texto, idea, estilo, logos, referencias…" required>'+E(pre.brief||'')+'</textarea></div><div class="row"><div class="field"><label>Colores / Pantone</label><input id="colors" placeholder="Ej. Pantone 534 C, blanco…"></div><div class="field"><label>Zonas de impresión</label><input id="zones" placeholder="Pecho, espalda, manga…"></div></div><div class="field"><label>Medidas deseadas</label><input id="measurements" placeholder="Ej. pecho 8 × 6 cm, espalda 30 × 35 cm"></div><div class="field"><label>Elementos que NO deben modificarse</label><textarea id="locked" placeholder="Tipografía, geometría, proporciones, colores corporativos…"></textarea></div><div class="field"><label>Observaciones</label><textarea id="notes" placeholder="Cualquier detalle adicional"></textarea></div></div>')+
+   '<div class="card"><h2>✍️ Confirmación y firma</h2><div class="row"><div class="field"><label>Nombre y apellidos *</label><input id="clientName" value="'+E(order.customer_name||'')+'"></div><div class="field"><label>Teléfono</label><input id="clientPhone" value="'+E(order.contact||'')+'"></div></div><div class="field"><label>Email</label><input id="clientEmail" type="email"></div><label style="display:flex;gap:10px;align-items:flex-start;margin:14px 0"><input id="consent" type="checkbox" style="width:22px;flex:none;margin-top:2px"><span>Confirmo que los datos anteriores son correctos y que esta firma corresponde a mi aprobación de esta versión.</span></label><canvas id="signature" class="sig"></canvas><button class="secondary btn" type="button" style="margin-top:8px" onclick="signature._clear()">Borrar firma</button></div>'+
+   '<button class="btn primary" id="send">'+(approval?'ENVIAR APROBACIÓN':'ENVIAR BRIEFING A AIHXO')+'</button><div id="msg" class="muted" style="padding:12px;text-align:center"></div>';
+  canvasInit();
+  document.getElementById('send').onclick=async()=>{
+   const btn=document.getElementById('send'),msg=document.getElementById('msg'),c=document.getElementById('signature');
+   if(!document.getElementById('clientName').value.trim()||!document.getElementById('consent').checked||!c._hasSignature()){msg.textContent='Completa el nombre, marca la confirmación y firma.';return}
+   btn.disabled=true;btn.textContent='ENVIANDO…';
+   const payload=approval?{notes:document.getElementById('notes').value.trim()}:{request:document.getElementById('request').value.trim(),colors:document.getElementById('colors').value.trim(),zones:document.getElementById('zones').value.trim(),measurements:document.getElementById('measurements').value.trim(),locked:document.getElementById('locked').value.trim(),notes:document.getElementById('notes').value.trim()};
+   try{
+    await api('submit',{client_name:document.getElementById('clientName').value.trim(),client_phone:document.getElementById('clientPhone').value.trim(),client_email:document.getElementById('clientEmail').value.trim(),consent:true,decision:approval?document.getElementById('decision').value:undefined,payload,signature:c.toDataURL('image/png')});
+    document.getElementById('app').innerHTML='<div class="card ok"><h1>✅ Enviado correctamente</h1><p>AIHXO ha recibido esta versión firmada.</p><p class="muted">Ya puedes cerrar esta página.</p></div>';
+   }catch(e){msg.textContent=e.message;btn.disabled=false;btn.textContent=approval?'ENVIAR APROBACIÓN':'ENVIAR BRIEFING A AIHXO'}
+  };
+ }catch(e){document.getElementById('app').innerHTML='<div class="card ok"><h1>No se pudo abrir la ficha</h1><p>'+E(e.message)+'</p></div>'}
+}
+load();
+</script>
+</body></html>
