@@ -48,7 +48,7 @@
   ]
 }
 </script>
-<link rel="stylesheet" href="styles.css?v=392">
+<link rel="stylesheet" href="styles.css?v=500">
  <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-NBDR7343Y6"></script>
 <script>
@@ -61,30 +61,65 @@
   
 </head>
 <body class="aihxo-v33">
-<header class="hero">
-  <div class="hero-inner">
-    <div class="logo-box"><img src="AIHXO_logo_web_recortadooscuro_recortado.png" alt="AIHXO - Viste tu historia"></div>
-    <div class="mini">COLECCIÓN · PERSONALIZA · X MEMORIES</div>
-    <h1>Viste tu historia.<br><span>Diseños con identidad propia.</span></h1>
-    <p>Diseños AIHXO y prendas personalizadas creadas en Galicia.</p>
-    <div class="buttons">
-      <a class="btn primary" href="#coleccion">VER COLECCIÓN</a>
-      <a class="btn light" href="#personaliza">PERSONALIZAR</a>
+<header class="hero editorial-hero">
+  <nav class="site-nav" aria-label="Navegación principal">
+    <a class="nav-logo" href="#" aria-label="AIHXO inicio"><img src="AIHXO_logo_web_recortadooscuro_recortado.png" alt="AIHXO"></a>
+    <div class="nav-links">
+      <a href="#coleccion">NUEVO</a>
+      <a href="#coleccion">COLECCIONES</a>
+      <a href="#personaliza">PERSONALIZA</a>
+      <a href="#pedidos-personalizados">PEDIDOS PERSONALIZADOS</a>
+      <a href="#contacto">CONTACTO</a>
+    </div>
+    <a class="nav-cta" href="https://wa.me/34634344174?text=Hola%20AIHXO%2C%20quiero%20informaci%C3%B3n" target="_blank" rel="noopener">HABLAMOS →</a>
+  </nav>
+  <div class="hero-inner editorial-hero-inner">
+    <div class="hero-copy">
+      <div class="mini">DISEÑOS PROPIOS · PERSONALIZACIÓN · GALICIA</div>
+      <h1>NO LLEVES<br><span>LO DE SIEMPRE.</span></h1>
+      <p>Diseños AIHXO y prendas personalizadas para gente con ideas propias.</p>
+      <div class="buttons">
+        <a class="btn primary" href="#coleccion">VER COLECCIONES →</a>
+        <a class="btn light" href="#personaliza">CREAR MI CAMISETA</a>
+      </div>
+      <div class="hero-meta">
+        <span>DISEÑADO EN GALICIA</span><span>PERSONALIZACIÓN REAL</span><span>PEQUEÑAS TIRADAS</span>
+      </div>
+    </div>
+    <div class="hero-visual" aria-hidden="true">
+      <div class="hero-poster">
+        <span class="poster-tag">AIHXO / 2026</span>
+        <div class="poster-x">X</div>
+        <strong>TU IDEA<br>SE LLEVA.</strong>
+        <small>Oleiros · A Coruña</small>
+      </div>
     </div>
   </div>
 </header>
-<section class="brand-paths" aria-label="Accesos principales">
-  <a href="#coleccion" class="brand-path">
-    <strong>COLECCIÓN</strong>
-    <span>Diseños propios AIHXO</span>
+<section class="brand-paths editorial-grid" aria-label="Accesos principales">
+  <a href="#coleccion" class="brand-path editorial-card editorial-card-new">
+    <span class="card-index">01 / NUEVO</span>
+    <strong>NUEVOS<br>DISEÑOS</strong>
+    <span>Descubre la selección AIHXO.</span>
+    <b>VER COLECCIÓN →</b>
   </a>
-  <a href="#personaliza" class="brand-path brand-path-dark">
-    <strong>PERSONALIZA</strong>
-    <span>Tu idea. Nuestra camiseta.</span>
+  <a href="#personaliza" class="brand-path brand-path-dark editorial-card editorial-card-custom">
+    <span class="card-index">02 / CUSTOM</span>
+    <strong>PERSONALIZA<br>TU CAMISETA</strong>
+    <span>Tú traes la idea. Nosotros la hacemos realidad.</span>
+    <b>EMPEZAR →</b>
   </a>
-  <a href="x/" class="brand-path brand-path-x">
-    <strong>X MEMORIES</strong>
-    <span>Convierte recuerdos en algo que puedas llevar</span>
+  <a href="#x-memories" class="brand-path brand-path-x editorial-card editorial-card-memories">
+    <span class="card-index">03 / MEMORIES</span>
+    <strong>MEMORIES</strong>
+    <span>Un ejemplo de cómo un recuerdo puede convertirse en una prenda única.</span>
+    <b>PIDE INFORMACIÓN →</b>
+  </a>
+  <a href="#pedidos-personalizados" class="editorial-card editorial-card-orders">
+    <span class="card-index">04 / ENCARGOS</span>
+    <strong>PEDIDOS<br>PERSONALIZADOS</strong>
+    <span>Animal Friends, ilustraciones, eventos, equipos y mucho más.</span>
+    <b>VER EJEMPLOS →</b>
   </a>
 </section>
 <main>
@@ -108,12 +143,46 @@
   </div>
 </section>
 
-<section id="personaliza" class="custom home-personaliza">
-  <div>
-    <span>PERSONALIZA</span>
-    <h2>Tu idea. Nuestra camiseta.</h2>
-    <p>Elige la prenda, envíanos tu diseño o cuéntanos qué quieres crear. Nosotros nos encargamos del resto.</p>
-    <button id="openPersonalCatalog" class="btn primary" type="button">CREAR MI CAMISETA</button>
+<section id="personaliza" class="custom home-personaliza editorial-personaliza">
+  <div class="personaliza-copy">
+    <span>AIHXO / CUSTOM</span>
+    <h2>CREA<br>LA TUYA.</h2>
+    <p>Tú traes la idea. Nosotros la convertimos en una prenda preparada para llevar.</p>
+    <button id="openPersonalCatalog" class="btn primary" type="button">EMPEZAR MI DISEÑO →</button>
+  </div>
+  <div class="custom-steps" aria-label="Cómo funciona">
+    <div><b>01</b><strong>Elige la prenda</strong><span>Camisetas, sudaderas y más.</span></div>
+    <div><b>02</b><strong>Cuéntanos tu idea</strong><span>Diseño, foto o referencia.</span></div>
+    <div><b>03</b><strong>La preparamos</strong><span>Revisamos contigo el resultado.</span></div>
+    <div><b>04</b><strong>La recibes</strong><span>Lista para que la disfrutes.</span></div>
+  </div>
+</section>
+
+<section id="pedidos-personalizados" class="section editorial-orders">
+  <div class="heading home-heading">
+    <span>PEDIDOS PERSONALIZADOS</span>
+    <h2>UNA IDEA.<br>NINGUNA PLANTILLA.</h2>
+    <p>Trabajamos encargos que nacen de una historia, una persona, un equipo o simplemente una idea que quieres llevar puesta.</p>
+  </div>
+  <div class="orders-grid">
+    <article class="order-story animal-friends">
+      <div class="order-story-number">01</div>
+      <div>
+        <em>ANIMAL FRIENDS</em>
+        <h3>Tu animal convertido en diseño.</h3>
+        <p>Retratos, ilustraciones y composiciones personalizadas creadas a partir de tus fotos e ideas.</p>
+      </div>
+      <a href="https://wa.me/34634344174?text=Hola%20AIHXO%2C%20quiero%20informaci%C3%B3n%20sobre%20un%20pedido%20Animal%20Friends" target="_blank" rel="noopener">PIDE INFORMACIÓN →</a>
+    </article>
+    <article class="order-story">
+      <div class="order-story-number">02</div>
+      <div>
+        <em>PERSONALIZADOS</em>
+        <h3>Equipos, eventos y piezas únicas.</h3>
+        <p>Desde una sola camiseta hasta pequeños pedidos para grupos, clubes, celebraciones o marcas.</p>
+      </div>
+      <a href="#personaliza">CREAR MI CAMISETA →</a>
+    </article>
   </div>
 </section>
 
@@ -168,16 +237,20 @@
   </div>
 </section>
 
-<section id="x-memories" class="memories-teaser home-memories" aria-label="X by AIHXO Memories">
+<section id="x-memories" class="memories-teaser home-memories editorial-memories" aria-label="X by AIHXO Memories">
   <div class="memories-inner">
     <div class="memories-logo-wrap">
       <img class="memories-logo" src="x-aihxo-memories-white.png" alt="X by AIHXO Memories">
+      <span class="memories-example-label">EJEMPLO DE IDEA</span>
     </div>
     <div class="memories-copy">
       <span class="memories-kicker">X BY AIHXO · MEMORIES</span>
       <h2>Hay recuerdos que merecen salir de la galería.</h2>
-      <p>Fotos, firmas, fechas y momentos convertidos en una prenda con historia.</p>
-      <a class="memories-coming" href="x/">DESCUBRIR X →</a>
+      <p>Memories no es un producto cerrado: es una idea de partida. Podemos convertir fotos, firmas, fechas y momentos en una prenda hecha para ti.</p>
+      <div class="memories-actions">
+        <a class="memories-info-btn" href="https://wa.me/34634344174?text=Hola%20AIHXO%2C%20quiero%20informaci%C3%B3n%20sobre%20Memories" target="_blank" rel="noopener">PIDE INFORMACIÓN →</a>
+        <a class="memories-coming" href="x/">VER EJEMPLO DE IDEA</a>
+      </div>
     </div>
   </div>
 </section>
