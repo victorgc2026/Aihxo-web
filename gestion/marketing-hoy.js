@@ -29,12 +29,20 @@
    root.innerHTML=`${M.tabbar('today')}
    <div class="grid kpis">${M.kpi('Pipeline',EUR(pipe))}${M.kpi('Leads abiertos',M.state.leads.filter(x=>!['ganado','perdido'].includes(x.stage)).length)}${M.kpi('Campañas activas',M.state.campaigns.filter(x=>x.status==='activa').length)}${M.kpi('Ventas sin origen',M.state.orders.filter(x=>norm(x.status)!=='cancelado'&&!x.marketing_source).length)}</div>
    <div class="grid two" style="margin-top:14px">
-    <div class="card"><div class="section"><div><h3 style="margin:0">🎯 Marketing de hoy</h3><div class="muted">Acciones prioritarias</div></div></div>
+    <div class="card"><div class="section"><div><h3 style="margin:0">🎯 Marketing de hoy</h3><div class="muted">Acciones prioritarias</div></div><button class="primary small" onclick="AIHXOMarketing.newTask()">＋ Tarea</button></div>
       ${tasks.length?tasks.slice(0,5).map(x=>`<div class="statline"><span><b>${E(x.title)}</b><br><span class="muted">${dtLabel(x.due_at)}</span></span><button class="secondary small" onclick="AIHXOMarketing.finishTask('${x.id}')">Hecha</button></div>`).join(''):'<div class="empty">Sin tareas urgentes.</div>'}
-      ${leads.slice(0,4).map(x=>`<div class="statline"><span><b>📞 ${E(x.name)}</b><br><span class="muted">${E(x.next_action||'Seguimiento')}</span></span><button class="secondary small" onclick="AIHXOMarketing.showTab('leads')">Abrir</button></div>`).join('')}
+      ${leads.slice(0,4).map(x=>`<div class="statline"><span><b>📞 ${E(x.name)}</b><br><span class="muted">${E(x.next_action||'Seguimiento')}</span></span><button class="secondary small" onclick="AIHXOMarketing.editLead('${x.id}')">Abrir</button></div>`).join('')}
     </div>
     <div class="card"><h3 style="margin-top:0">📅 Próximas oportunidades</h3>
       ${upcoming().map(x=>`<div class="statline"><span><b>${E(x.title)}</b><br><span class="muted">${E(x.audience||'General')}</span></span><b>${dateLabel(x.event_date)}</b></div>`).join('')||'<div class="empty">Sin fechas próximas.</div>'}
+    </div>
+   </div>
+   <div class="grid two" style="margin-top:14px">
+    <div class="card"><h3 style="margin-top:0">💶 Ventas sin origen</h3>
+      ${unattributed.length?unattributed.map(o=>`<div class="statline"><span><b>${E(o.order_number)}</b><br><span class="muted">${E(o.customer_name)} · ${EUR(o.total)}</span></span><button class="secondary small" onclick="AIHXOMarketing.attributeOrder('${o.id}')">Origen</button></div>`).join(''):'<div class="empty">Todas las ventas tienen origen.</div>'}
+    </div>
+    <div class="card"><h3 style="margin-top:0">♻️ Clientes para recuperar</h3>
+      ${recovery().map(c=>`<div class="statline"><span><b>${E([c.name,c.surname].filter(Boolean).join(' '))}</b><br><span class="muted">${E(c.phone||c.contact||c.email||'Sin contacto')}</span></span><button class="secondary small" onclick="AIHXOMarketing.createRecoveryLead('${c.id}')">Seguimiento</button></div>`).join('')||'<div class="empty">Sin clientes a recuperar.</div>'}
     </div>
    </div>`;
  };
