@@ -5,7 +5,7 @@
   if(window.__aihxoReelsStudio) return;
   window.__aihxoReelsStudio=true;
 
-  const state={clips:[],selected:null,stream:null,recorder:null,chunks:[],projectName:'',orderId:'',title:'',watermark:true,autoBrand:true,transition:'fade',template:'dtf',musicBlob:null,musicUrl:'',musicName:'',musicVolume:.22,textAnimation:'fadeUp'};
+  const state={clips:[],selected:null,stream:null,recorder:null,chunks:[],projectName:'',orderId:'',title:'',watermark:true,autoBrand:true,transition:'fade',template:'dtf',musicBlob:null,musicUrl:'',musicName:'',musicVolume:.22,textAnimation:'fadeUp',finalBlob:null,finalUrl:'',finalType:'',finalName:''};
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const uid=()=> 'rv'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
   const fmt=n=>{n=Math.max(0,Number(n)||0);const m=Math.floor(n/60),s=Math.floor(n%60);return m+':'+String(s).padStart(2,'0');};
@@ -23,7 +23,7 @@
     if(!name){toastMsg('Pon un nombre al montaje');return;}
     const d=await db();
     const clips=state.clips.map(c=>({id:c.id,name:c.name,blob:c.blob,start:c.start,end:c.end,duration:c.duration,speed:c.speed||1,text:c.text||'',transition:c.transition||'fade'}));
-    await new Promise((resolve,reject)=>{const tx=d.transaction('projects','readwrite');tx.objectStore('projects').put({name,updatedAt:Date.now(),orderId:state.orderId,title:state.title,watermark:state.watermark,autoBrand:state.autoBrand,transition:state.transition,template:state.template,musicBlob:state.musicBlob,musicName:state.musicName,musicVolume:state.musicVolume,textAnimation:state.textAnimation,clips});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});
+    await new Promise((resolve,reject)=>{const tx=d.transaction('projects','readwrite');tx.objectStore('projects').put({name,updatedAt:Date.now(),orderId:state.orderId,title:state.title,watermark:state.watermark,autoBrand:state.autoBrand,transition:state.transition,template:state.template,musicBlob:state.musicBlob,musicName:state.musicName,musicVolume:state.musicVolume,textAnimation:state.textAnimation,finalBlob:state.finalBlob,finalType:state.finalType,finalName:state.finalName,clips});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});
     d.close(); state.projectName=name; await refreshProjects(); toastMsg('Montaje guardado');
   }
   async function listProjects(){const d=await db();return new Promise((resolve,reject)=>{const tx=d.transaction('projects','readonly'),r=tx.objectStore('projects').getAll();r.onsuccess=()=>{d.close();resolve((r.result||[]).sort((a,b)=>b.updatedAt-a.updatedAt));};r.onerror=()=>reject(r.error);});}
@@ -39,12 +39,12 @@
     if(!p)return;
     clearClipUrls();
     state.clips=(p.clips||[]).map(c=>({...c,url:URL.createObjectURL(c.blob)}));
-    state.projectName=p.name;state.orderId=p.orderId||'';state.title=p.title||'';state.watermark=p.watermark!==false;state.autoBrand=p.autoBrand!==false;state.transition=p.transition||'fade';state.template=p.template||'dtf';state.musicBlob=p.musicBlob||null;state.musicName=p.musicName||'';state.musicVolume=Number(p.musicVolume??.22);state.textAnimation=p.textAnimation||'fadeUp';if(state.musicUrl){try{URL.revokeObjectURL(state.musicUrl);}catch(e){}}state.musicUrl=state.musicBlob?URL.createObjectURL(state.musicBlob):'';state.clips.forEach(x=>{x.speed=x.speed||1;x.text=x.text||'';x.transition=x.transition||state.transition;});state.selected=state.clips[0]?.id||null;
+    state.projectName=p.name;state.orderId=p.orderId||'';state.title=p.title||'';state.watermark=p.watermark!==false;state.autoBrand=p.autoBrand!==false;state.transition=p.transition||'fade';state.template=p.template||'dtf';state.musicBlob=p.musicBlob||null;state.musicName=p.musicName||'';state.musicVolume=Number(p.musicVolume??.22);state.textAnimation=p.textAnimation||'fadeUp';state.finalBlob=p.finalBlob||null;state.finalType=p.finalType||'';state.finalName=p.finalName||'';if(state.finalUrl){try{URL.revokeObjectURL(state.finalUrl);}catch(e){}}state.finalUrl=state.finalBlob?URL.createObjectURL(state.finalBlob):'';if(state.musicUrl){try{URL.revokeObjectURL(state.musicUrl);}catch(e){}}state.musicUrl=state.musicBlob?URL.createObjectURL(state.musicBlob):'';state.clips.forEach(x=>{x.speed=x.speed||1;x.text=x.text||'';x.transition=x.transition||state.transition;});state.selected=state.clips[0]?.id||null;
     document.querySelector('#reelProject').value=p.name;
     document.querySelector('#reelOrder').value=state.orderId;
     document.querySelector('#reelTitleText').value=state.title;
     document.querySelector('#reelWatermark').checked=state.watermark;document.querySelector('#reelAutoBrand').checked=state.autoBrand;document.querySelector('#reelTransition').value=state.transition;document.querySelector('#reelTemplate').value=state.template;document.querySelector('#reelTextAnimation').value=state.textAnimation;document.querySelector('#reelMusicVolume').value=state.musicVolume;document.querySelector('#reelMusicName').textContent=state.musicName||'Sin música';
-    renderClips();updatePreview();toastMsg('Montaje abierto');
+    renderClips();updatePreview();renderFinalPreview();toastMsg('Montaje abierto');
   }
   async function deleteProject(){
     const name=document.querySelector('#reelSaved')?.value;if(!name)return;
@@ -68,7 +68,7 @@
       .reels-actions{display:flex;gap:5px;flex-wrap:wrap}
       .reels-actions button{padding:5px 7px;font-size:11px}.reels-clip[draggable="true"]{touch-action:manipulation}.reels-clip.dragging{opacity:.45}.reels-trimbar{padding:12px;border:1px solid #e5eaf1;border-radius:12px;background:#f7f9fc}.reels-trimbar input[type=range]{width:100%}.reels-chip{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;background:#eef5ff;color:#0868c7;font-weight:800;font-size:11px}
       .reels-note{background:#f6f8fb;border:1px solid #e5eaf1;padding:10px;border-radius:11px;font-size:12px;line-height:1.45;color:#526078}
-      .reels-export{padding:12px;border-radius:12px;background:#07152f;color:#fff}
+      .reels-export{padding:12px;border-radius:12px;background:#07152f;color:#fff}.reels-final{margin-top:14px;padding:12px;border:1px solid #dfe5ee;border-radius:14px;background:#fff}.reels-final video{width:100%;max-height:60vh;background:#000;border-radius:12px}.reels-final-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
       @media(max-width:1050px){.reels-shell{grid-template-columns:1fr}.reels-phone{max-height:68vh}.reels-panel.preview{order:-1}}
     `;document.head.appendChild(s);
   }
@@ -132,8 +132,12 @@
             <div id="reelClips"><div class="empty">Graba o añade vídeos para empezar.</div></div>
             <div class="reels-export" style="margin-top:14px">
               <b>Salida Instagram / TikTok</b><div style="opacity:.75;font-size:12px;margin:5px 0 10px">1080×1920 · 9:16 · vídeo vertical</div>
-              <button class="primary" id="reelExport" style="width:100%">⬇️ Crear vídeo final</button>
+              <button class="primary" id="reelExport" style="width:100%">🎬 Crear vídeo final</button>
               <div id="reelExportStatus" style="font-size:12px;margin-top:8px"></div>
+            </div>
+            <div class="reels-final" id="reelFinalBox">
+              <div class="section" style="margin-bottom:8px"><div><b>Vídeo final</b><div class="muted">Reprodúcelo aquí antes de compartirlo</div></div></div>
+              <div id="reelFinalContent"><div class="empty">Todavía no has creado el vídeo final.</div></div>
             </div>
           </section>
         </div>
@@ -152,7 +156,7 @@
     document.querySelector('#reelSave').onclick=saveProject;
     document.querySelector('#reelOpen').onclick=openProject;
     document.querySelector('#reelDelete').onclick=deleteProject;
-    document.querySelector('#reelExport').onclick=exportVideo;
+    document.querySelector('#reelExport').onclick=exportVideo;renderFinalPreview();
   }
 
   async function durationFor(url){
@@ -272,7 +276,33 @@
   }
   async function holdFrames(ms,draw){const start=performance.now();return new Promise(resolve=>{const tick=()=>{const now=performance.now();draw(Math.min(1,(now-start)/ms));if(now-start>=ms){resolve();return;}requestAnimationFrame(tick);};tick();});}
 
-  async function exportVideo(){
+  
+  function renderFinalPreview(){
+    const root=document.querySelector('#reelFinalContent');if(!root)return;
+    if(!state.finalBlob||!state.finalUrl){root.innerHTML='<div class="empty">Todavía no has creado el vídeo final.</div>';return;}
+    const size=(state.finalBlob.size/1024/1024).toFixed(1);
+    root.innerHTML=`<video id="reelFinalVideo" playsinline webkit-playsinline controls preload="metadata" src="${state.finalUrl}"></video>
+      <div class="muted" style="margin-top:6px">${esc(state.finalName||'AIHXO Reel')} · ${size} MB · ${esc(state.finalType||'vídeo')}</div>
+      <div class="reels-final-actions">
+        <button class="primary" type="button" id="reelFinalShare">Compartir</button>
+        <button class="secondary" type="button" id="reelFinalSave">Guardar archivo</button>
+      </div>`;
+    document.querySelector('#reelFinalShare').onclick=shareFinalVideo;
+    document.querySelector('#reelFinalSave').onclick=downloadFinalVideo;
+  }
+  async function shareFinalVideo(){
+    if(!state.finalBlob)return;
+    const file=new File([state.finalBlob],state.finalName||'AIHXO-Reel.'+(state.finalType.includes('mp4')?'mp4':'webm'),{type:state.finalType||state.finalBlob.type||'video/mp4'});
+    if(navigator.share&&navigator.canShare?.({files:[file]})){
+      try{await navigator.share({files:[file],title:'AIHXO Reel'});return;}catch(e){if(e?.name==='AbortError')return;}
+    }
+    toastMsg('Este navegador no permite compartir directamente este vídeo.');
+  }
+  function downloadFinalVideo(){
+    if(!state.finalBlob)return;
+    const a=document.createElement('a');a.href=state.finalUrl;a.download=state.finalName||'AIHXO-Reel.'+(state.finalType.includes('mp4')?'mp4':'webm');document.body.appendChild(a);a.click();a.remove();
+  }
+async function exportVideo(){
     if(!state.clips.length){toastMsg('Añade al menos un clip');return;}
     const status=document.querySelector('#reelExportStatus'),btn=document.querySelector('#reelExport');btn.disabled=true;status.textContent='Preparando vídeo…';
     let audioCtx=null,dest=null,musicEl=null,musicSrc=null,musicGain=null;
@@ -299,12 +329,12 @@
       }
       if(state.autoBrand){status.textContent='Creando cierre AIHXO…';await holdFrames(1200,()=>drawBrandCard(ctx,1080,1920,'outro'));}rec.stop();await new Promise(r=>rec.onstop=r);
       const type=rec.mimeType||chunks[0]?.type||'video/webm',blob=new Blob(chunks,{type}),ext=type.includes('mp4')?'mp4':'webm';
-      const file=new File([blob],(state.projectName||'AIHXO-Reel').replace(/[^a-z0-9-_]+/gi,'-')+'.'+ext,{type});
-      status.textContent='Vídeo listo · '+Math.round(blob.size/1024/1024*10)/10+' MB';
-      if(navigator.share&&navigator.canShare?.({files:[file]})){
-        try{await navigator.share({files:[file],title:'AIHXO Reel'});return;}catch(e){if(e?.name==='AbortError')return;}
-      }
-      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000);
+      if(state.finalUrl){try{URL.revokeObjectURL(state.finalUrl);}catch(e){}}
+      state.finalBlob=blob;state.finalType=type;state.finalName=(state.projectName||'AIHXO-Reel').replace(/[^a-z0-9-_]+/gi,'-')+'.'+ext;state.finalUrl=URL.createObjectURL(blob);
+      status.textContent='Vídeo listo · '+Math.round(blob.size/1024/1024*10)/10+' MB · puedes verlo aquí abajo';
+      renderFinalPreview();
+      const vf=document.querySelector('#reelFinalVideo');if(vf){vf.load();}
+      if(state.projectName){try{await saveProject();}catch(e){console.warn('No se pudo guardar el vídeo final en el proyecto',e);}}
     }catch(e){
       console.error(e);
       status.textContent='Este navegador no permite montar el vídeo final aquí. Los clips y recortes siguen guardados.';
