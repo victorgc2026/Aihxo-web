@@ -65,7 +65,19 @@
   };
 
   window.AIHXOMarketing=M;
-  const oldSet=window.setView;window.setView=function(v){if(v==='marketing-center'){M.view();return;}return oldSet(v);};
-  const wire=()=>{const b=document.querySelector('#aihxoMarketingNav');if(!b)return;b.innerHTML='📣 <span>Marketing</span>';b.onclick=()=>window.setView('marketing-center');};
-  new MutationObserver(wire).observe(document.documentElement,{childList:true,subtree:true});setTimeout(wire,0);
+  const oldSet=window.setView;
+  window.setView=function(v){
+    if(v==='marketing-center'){M.view();return;}
+    return typeof oldSet==='function' ? oldSet(v) : undefined;
+  };
+  const wire=()=>{
+    const b=document.querySelector('#aihxoMarketingNav');
+    if(!b || b.dataset.marketingCenterWired==='1') return;
+    b.dataset.marketingCenterWired='1';
+    b.innerHTML='📣 <span>Marketing</span>';
+    b.onclick=()=>window.setView('marketing-center');
+  };
+  const observer=new MutationObserver(wire);
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+  setTimeout(wire,0);
 })();
