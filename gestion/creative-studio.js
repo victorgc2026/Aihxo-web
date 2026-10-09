@@ -1,7 +1,7 @@
 /* AIHXO Creative Studio v1 — editor local de conceptos y mockups, sin generación IA remota */
 (function(){
  if(window.__aihxoCreativeStudio)return;window.__aihxoCreativeStudio=true;
- const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;':'&quot;',"'":'&#39;'}[c]));
+ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const scenes={studio:['#ebeff4','#ced7e0'],urbano:['#0a1024','#2a3c60'],playa:['#b8e4f1','#e4c9a4'],minimal:['#f6f6f2','#d9dad4']};
  let state={idea:'',scene:'studio',shirt:'#111827',placement:'front',size:44,x:50,y:43,design:null,designName:'',widthCm:25,heightCm:30};
  const $=id=>document.getElementById(id);
