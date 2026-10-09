@@ -124,6 +124,8 @@ function showApp(session){document.body.innerHTML=`<div id="app"><aside class="s
     🎁 <span>Sorteos</span>
   </button>
 
+  <button type="button" id="aihxoCreativeNav" onclick="window.renderAIHXOCreativeStudio && window.renderAIHXOCreativeStudio()">✨ <span>Creative Studio</span></button>
+
   <button type="button" data-aihxo-reels-static="1" onclick="window.renderReels && window.renderReels()">
     🎬 <span>Reels</span>
   </button>
