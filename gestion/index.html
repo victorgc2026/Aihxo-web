@@ -19,10 +19,6 @@
 </head>
 <body>
 <div id="app"></div>
-<!-- Control de recarga para iPhone/PWA y navegadores -->
-<button id="aihxo-refresh" type="button" aria-label="Recargar Gestión" title="Recargar Gestión" onclick="window.location.reload()" style="position:fixed;right:14px;bottom:calc(82px + env(safe-area-inset-bottom, 0px));z-index:2147483000;display:flex;align-items:center;gap:7px;padding:11px 14px;border:1px solid rgba(255,255,255,.3);border-radius:999px;background:#07152f;color:#fff;font:600 13px system-ui,-apple-system,sans-serif;box-shadow:0 3px 16px rgba(0,0,0,.28);cursor:pointer;touch-action:manipulation;">
-  <span aria-hidden="true" style="font-size:20px;line-height:1">↻</span><span>Recargar</span>
-</button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>document.write('<script src="app.js?v=' + '20261009-creative-diagnostics-v4' + '"><\/script>');</script>
 <script>
@@ -98,6 +94,26 @@ const archivosAIHXO = [
 archivosAIHXO.forEach(archivo => {
   document.write('<script src="' + archivo + '?v=' + '20261009-creative-diagnostics-v4' + '"><\/script>');
 });
+</script>
+<script>
+/* Mantiene la recarga visible incluso cuando app.js sustituye document.body.innerHTML */
+(function(){
+  function asegurarRecarga(){
+    if (!document.body || document.getElementById('aihxo-refresh')) return;
+    const boton=document.createElement('button');
+    boton.id='aihxo-refresh';
+    boton.type='button';
+    boton.setAttribute('aria-label','Recargar Gestión');
+    boton.title='Recargar Gestión';
+    boton.innerHTML='<span aria-hidden="true" style="font-size:21px;line-height:1">↻</span><span>Recargar</span>';
+    boton.style.cssText='position:fixed;right:14px;bottom:calc(82px + env(safe-area-inset-bottom, 0px));z-index:2147483000;display:flex;align-items:center;gap:7px;padding:11px 14px;border:1px solid rgba(255,255,255,.3);border-radius:999px;background:#07152f;color:#fff;font:600 13px system-ui,-apple-system,sans-serif;box-shadow:0 3px 16px rgba(0,0,0,.28);cursor:pointer;touch-action:manipulation;';
+    boton.addEventListener('click',function(){window.location.reload();});
+    document.body.appendChild(boton);
+  }
+  const observador=new MutationObserver(asegurarRecarga);
+  observador.observe(document.documentElement,{childList:true,subtree:true});
+  asegurarRecarga();
+})();
 </script>
 </body>
 </html>
