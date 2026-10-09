@@ -23,5 +23,5 @@
  $('crLoad').onclick=()=>{try{const s=JSON.parse(localStorage.getItem('aihxoCreativeConceptV1')||'null');if(!s)throw Error('No hay concepto guardado');state={...state,...s,design:null};render();}catch(e){$('crStatus').textContent=e.message;}};
  $('crExport').onclick=()=>{draw();c.toBlob(blob=>{if(!blob){$('crStatus').textContent='No se pudo exportar';return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='AIHXO-creative-mockup.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);},'image/png');};draw();}
  window.renderAIHXOCreativeStudio=render;
- const observer=new MutationObserver(()=>{if(document.querySelector('#nav')&&!document.getElementById('aihxoCreativeNav'))mountNav();});observer.observe(document.documentElement,{childList:true,subtree:true});mountNav();
+ const observer=new MutationObserver(()=>{if(document.querySelector('#nav'))mountNav();});observer.observe(document.documentElement,{childList:true,subtree:true});mountNav();
 })();
