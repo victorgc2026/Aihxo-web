@@ -97,6 +97,7 @@ window.cargarStockCamisetas = async function () {
   let consulta = supabaseClient
     .from("base_stock_items")
     .select("*")
+    .eq("active", true)
     .order("color")
     .order("size");
 
