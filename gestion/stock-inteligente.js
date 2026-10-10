@@ -5,7 +5,7 @@
  const statusNorm=v=>String(v||'').trim().toLowerCase();
  window.stockInteligenteView=async function(c){
    const [{data:items,error},{data:activeOrders},{data:cycles}]=await Promise.all([
-     supabaseClient.from('base_stock_items').select('*').order('supplier').order('supplier_model').order('size'),
+     supabaseClient.from('base_stock_items').select('*').eq('active',true).order('supplier').order('supplier_model').order('size'),
      supabaseClient.from('orders').select('id,order_number,customer_name,base_stock_item_id,base_stock_quantity,quantity,status,production_status,base_stock_allocated,order_lines'),
      supabaseClient.from('inventory_cycles').select('id,status,started_at').eq('status','active').order('started_at',{ascending:false}).limit(1)
    ]);
