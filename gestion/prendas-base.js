@@ -114,7 +114,7 @@
                   font-weight:900;
                   margin-top:3px;
                 ">
-                  ${escPB(p.model)}
+                  ${escPB(p.model)} <small style="display:block;font-size:12px;color:#667085;margin-top:4px;">SKU: ${escPB(p.sku || "Sin asignar")}</small>
                 </div>
 
                 <div class="muted" style="margin-top:5px;">

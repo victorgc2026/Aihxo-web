@@ -56,8 +56,8 @@ function normalizarSKU(value) {
             <p style="margin:0;color:#667085;line-height:1.5;">Añade un nuevo diseño de AIHXO y prepara su publicación en la web.</p>
           </div>
           <form id="formDisenoPropio">
-            <label class="dp-label">SKU *<input id="dpSku" class="dp-input" type="text" placeholder="Ej. AIHXO-002" autocomplete="off" required></label>
-            <div style="font-size:12px;color:#667085;margin:-8px 0 18px;">El SKU lo introduces tú. AIHXO comprobará que no esté repetido.</div>
+            <label class="dp-label">SKU automático<input id="dpSku" class="dp-input" type="text" value="Se asignará al guardar" readonly></label>
+            <div style="font-size:12px;color:#667085;margin:-8px 0 18px;">Numeración independiente: AIHXO-DIS-00001, AIHXO-DIS-00002…</div>
             <label class="dp-label">Nombre del diseño *<input id="dpNombre" class="dp-input" type="text" placeholder="Ej. Ainhoa Mera" required></label>
             <label class="dp-label">Prenda base<select id="dpGarment" class="dp-input"><option value="">Sin asignar</option></select></label>
             <div style="font-size:12px;color:#667085;margin:-8px 0 18px;">Selecciona el fabricante y modelo. Las tallas y colores se podrán ajustar después.</div>
@@ -133,7 +133,7 @@ function normalizarSKU(value) {
     event.preventDefault();
     const boton = document.getElementById('dpGuardar');
     const mensaje = document.getElementById('dpMensaje');
-    const sku = normalizarSKU(document.getElementById('dpSku').value);
+    let sku = '';
     const nombre = document.getElementById('dpNombre').value.trim();
     const tipo = document.getElementById('dpTipo').value;
     const publico = document.getElementById('dpPublico').value;
@@ -153,16 +153,17 @@ function normalizarSKU(value) {
       ...Array.from(window._aihxoPendingMockupFiles || [])
     ];
 
-    if (!sku || !nombre || !fotoPrincipal) { mostrarMensaje(mensaje,'Completa el SKU, el nombre y la foto principal.',false); return; }
+    if (!nombre || !fotoPrincipal) { mostrarMensaje(mensaje,'Completa el nombre y la foto principal.',false); return; }
     if (precio <= 0) { mostrarMensaje(mensaje,'Introduce un precio normal válido.',false); return; }
     boton.disabled = true; boton.textContent = 'GUARDANDO DISEÑO...';
 
     try {
       if (typeof supabaseClient === 'undefined') throw new Error('No se ha encontrado la conexión con Supabase.');
-      mostrarMensaje(mensaje,'Comprobando SKU...',true);
-      const {data:existente,error:errorSku}=await supabaseClient.from('products').select('id,sku').eq('sku',sku).limit(1);
-      if(errorSku) throw errorSku;
-      if(existente&&existente.length){mostrarMensaje(mensaje,`El SKU ${escDP(sku)} ya existe.`,false);boton.disabled=false;boton.textContent='GUARDAR Y PUBLICAR';return}
+      mostrarMensaje(mensaje,'Asignando SKU automático...',true);
+      const {data:codigo,error:errorSku}=await supabaseClient.rpc('aihxo_next_sku',{p_kind:'DIS'});
+      if(errorSku) throw new Error('Activa primero la migración SQL de SKU: '+errorSku.message);
+      sku = codigo;
+      document.getElementById('dpSku').value = sku;
 
       boton.textContent='SUBIENDO FOTO PRINCIPAL...';
       const extPrincipal=(fotoPrincipal.name.split('.').pop()||'jpg').toLowerCase();
