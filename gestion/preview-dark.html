@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="theme-color" content="#07152f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="/gestion/icon-512.png?v=20261002-5">
+<link rel="icon" type="image/png" sizes="512x512" href="/gestion/icon-512.png?v=20261002-5">
+<meta name="apple-mobile-web-app-title" content="AIHXO Gestión">
+<title>AIHXO · Dark Premium (pruebas)</title>
+<link rel="canonical" href="https://aihxo.es/gestion/">
+<link rel="manifest" href="/gestion/manifest.json?v=8">
+<script>document.write('<link rel="stylesheet" href="styles.css?v=' + '20261007-reels-v3-finalpreview-hotfix6' + '">');</script>
+<!-- aihxo-icon-deploy-20261002 -->
+<link rel="stylesheet" href="dark-premium-preview.css?v=1">
+<style>#aihxo-preview-ribbon{position:fixed;top:5px;right:6px;z-index:2147483001;background:#d5fb42;color:#101827;border-radius:999px;padding:6px 12px;font:800 10px system-ui;pointer-events:none;letter-spacing:.04em}</style>
+</head>
+<body><div id="aihxo-preview-ribbon">VISTA DE PRUEBAS</div>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>document.write('<script src="app.js?v=' + '20261011-design-library-colors-v6' + '"><\/script>');</script>
+<script>
+const archivosAIHXO = [
+  'presupuestos-facturas.js',
+  'memories.js',
+  'memories-detail.js',
+  'prendas-base.js',
+  'prendas-base-medidas.js',
+  'productos-v2.js',
+  'disenos-propios.js',
+  'mockup-disenos.js',
+  'mockup-auto-v2.js',
+  'mockup-auto-generate-fix.js',
+  'mockup-banco.js',
+  'cupones.js',
+  'sorteos.js',
+  'stock-camisetas.js',
+  'erp-articulos.js',
+  'inventario-reset.js',
+  'produccion.js',
+  'pedido-extras.js',
+  'pedido-detalle-v2.js',
+  'dashboard-v2.js',
+  'stock-inteligente.js',
+  'rentabilidad-compras.js',
+  'costes-produccion.js',
+  'compras-recepcion-manual.js',
+  'compras-nav-fix.js',
+  'compras-proteccion-ui.js',
+  'proveedores-ui.js',
+  'rentabilidad-filtros.js',
+  'clientes-360.js',
+  'disenos-personalizados.js',
+  'biblioteca-disenos.js',
+  'pedidos-personalizados.js',
+  'ficha-tecnica.js',
+  'cliente-briefing.js',
+  'caja-cobros.js',
+  'recepcion-etiquetas.js',
+  'recepcion-etiquetas-v2.js',
+  'pedidos-pendiente-stock.js',
+  'produccion-pendiente-stock.js',
+  'pedido-stock-checklist-fix.js',
+  'pedido-imagenes-grandes.js',
+  'gastos-facturas-ia.js',
+  'aihxo-ia.js',
+  'aihxo-ia-format.js',
+  'aihxo-ia-integraciones.js',
+  'aihxo-ia-alta-pedidos.js',
+  'aihxo-image-check.js',
+  'aihxo-marketing-pro.js',
+  'marketing-core.js',
+  'marketing-hoy.js',
+  'marketing-acciones.js',
+  'marketing-crm.js',
+  'marketing-campanas.js',
+  'marketing-contenido.js',
+  'marketing-analitica.js',  'comercial-crm.js',
+  'exportador-dtf.js',
+  'studio-dtf.js',
+  'reels-studio.js',
+  'creative-studio.js',
+  'instagram-share.js',
+  'compras-v2.js',
+  'drive-disenos.js',
+  'envios-packlink.js',
+  'web-admin.js',
+  'tpv-ui.js',
+  'tpv-stock-order.js',
+  'tpv-cash.js',
+  'tpv-production.js'
+];
+archivosAIHXO.forEach(archivo => {
+  document.write('<script src="' + archivo + '?v=' + '20261011-design-library-colors-v6' + '"><\/script>');
+});
+</script>
+<script>
+/* Mantiene la recarga visible incluso cuando app.js sustituye document.body.innerHTML */
+(function(){
+  function asegurarRecarga(){
+    if (!document.body || document.getElementById('aihxo-refresh')) return;
+    const boton=document.createElement('button');
+    boton.id='aihxo-refresh';
+    boton.type='button';
+    boton.setAttribute('aria-label','Recargar Gestión');
+    boton.title='Recargar Gestión';
+    boton.innerHTML='<span aria-hidden="true" style="font-size:21px;line-height:1">↻</span><span>Recargar</span>';
+    boton.style.cssText='position:fixed;right:14px;bottom:calc(82px + env(safe-area-inset-bottom, 0px));z-index:2147483000;display:flex;align-items:center;gap:7px;padding:11px 14px;border:1px solid rgba(255,255,255,.3);border-radius:999px;background:#07152f;color:#fff;font:600 13px system-ui,-apple-system,sans-serif;box-shadow:0 3px 16px rgba(0,0,0,.28);cursor:pointer;touch-action:manipulation;';
+    boton.addEventListener('click',function(){window.location.reload();});
+    document.body.appendChild(boton);
+  }
+  const observador=new MutationObserver(asegurarRecarga);
+  observador.observe(document.documentElement,{childList:true,subtree:true});
+  asegurarRecarga();
+})();
+</script>
+<script>(function(){function banner(){if(!document.getElementById('aihxo-preview-ribbon')){const x=document.createElement('div');x.id='aihxo-preview-ribbon';x.textContent='VISTA DE PRUEBAS';document.body.appendChild(x)}}new MutationObserver(banner).observe(document.documentElement,{childList:true,subtree:true});banner()})();</script></body>
+</html>
