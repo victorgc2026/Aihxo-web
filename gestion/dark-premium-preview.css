@@ -25,3 +25,35 @@ table{color:#e7eef8!important} th,td{border-bottom-color:#28364b!important}
 a{color:#d7fa63}
 :focus-visible{outline:2px solid #d5fb42;outline-offset:3px}
 @media(max-width:760px){.page{padding:16px!important}.topbar{height:62px!important}.card{border-radius:17px!important}.sidebar{background:#0a111d!important}}
+
+/* Pantallas complejas: pedidos, stock, prendas base y Creative Studio */
+.page :is(.card,.drawer-card,.kanban-column,.kanban-card,.tech-item-chip,.pl-order-option,.pl-order-checks){border-color:#304057!important}
+.page :is(.kanban-column,.tech-item-chip,.pl-order-option,.pl-order-checks){background:#182436!important;color:#edf2f9!important}
+.page :is(.kanban-card,.tech-ready,.tech-blocked){background:#1b293b!important;color:#edf2f9!important}
+.page :is(.kanban-flags .done){background:#153b2f!important;color:#a4efcb!important}
+.page :is(.kanban-flags .wait){background:#44341e!important;color:#ffdb91!important}
+.page :is(.tech-num){background:#d5fb42!important;color:#121a27!important}
+.page .tech-design-row{border-color:#304057!important}
+.page :is(.table-wrap,.kanban-wrap){scrollbar-color:#445776 #101724}
+.page input[type=checkbox],.page input[type=radio]{accent-color:#d5fb42}
+.page :is(button,.primary,.secondary){min-height:38px}
+.page :is(input,textarea,select)::placeholder{color:#8393ab!important}
+.page :is(.green){color:#83e6b3!important}
+.page :is(.red){color:#ff9aa4!important}
+.drawer{background:#03070dbd!important}
+.drawer-card{background:#131e2d!important}
+@media(max-width:760px){
+ .page .grid{gap:12px!important}
+ .page :is(.formgrid,.tech-grid2,.tech-garment-grid){grid-template-columns:minmax(0,1fr)}
+ .page .actions{flex-wrap:wrap}
+ .page .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ .page :is(.primary,.secondary){min-height:44px}
+ .drawer-card{padding:18px!important}
+}
+@media print{
+ :root{color-scheme:light!important;--text:#111!important;--white:#fff!important;--line:#ccc!important}
+ html,body,.page,.aihxo-tech-sheet,.aihxo-tech-sheet .card,.drawer-card{background:#fff!important;color:#111!important}
+ .aihxo-tech-sheet *{color:#111!important}
+ .aihxo-tech-sheet .card,.drawer-card{border-color:#ccc!important;box-shadow:none!important}
+ #aihxo-preview-ribbon,#aihxo-refresh{display:none!important}
+}
