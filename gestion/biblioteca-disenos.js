@@ -3,6 +3,11 @@
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const Z=['pecho','espalda','manga','cuello','hombro','lateral','mockup','otro'];
 let selected=null;
+const ALLOWED=/\.(png|jpe?g|webp|pdf|svg)$/i;
+function inferZone(name,defaultZone){const n=name.toLowerCase();return Z.find(z=>z!=='otro' && (n.includes(z)||({pecho:['front','delantera'],espalda:['back','trasera'],manga:['sleeve'],cuello:['neck'],hombro:['shoulder'],lateral:['side']}[z]||[]).some(t=>n.includes(t))))||defaultZone;}
+async function zipReader(){if(window.JSZip)return window.JSZip;await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';script.onload=resolve;script.onerror=()=>reject(Error('No se pudo cargar el lector ZIP'));document.head.appendChild(script)});return window.JSZip;}
+async function unpackZip(file){if(file.size>150*1024*1024)throw Error('ZIP demasiado grande (máx. 150 MB)');const JSZip=await zipReader();const zip=await JSZip.loadAsync(file);const items=[];let total=0;for(const entry of Object.values(zip.files)){if(entry.dir||entry.name.startsWith('__MACOSX/')||/\/\./.test(entry.name))continue;if(!ALLOWED.test(entry.name))continue;const blob=await entry.async('blob');total+=blob.size;if(blob.size>52428800||total>250*1024*1024||items.length>=300)throw Error('El ZIP supera los límites (50 MB por archivo, 250 MB total, 300 archivos)');items.push({file:new File([blob],entry.name.split('/').pop(),{type:blob.type||'application/octet-stream'}),relativePath:entry.name});}return items;}
+
 async function check(x){if(x.error)throw x.error;return x.data;}
 window.bibliotecaDisenosView=async function(c){
  c.innerHTML='<div class="page"><div class="card">Cargando biblioteca…</div></div>';
@@ -17,17 +22,24 @@ window.bibliotecaDisenosView=async function(c){
 window.abrirBibliotecaDiseno=async function(id){
 selected=id;const row=(window._aihxoLibrary||[]).find(x=>x.id===id);if(!row)return;
 const body=document.querySelector('#drawerBody'),drawer=document.querySelector('#drawer');drawer.classList.remove('hidden');
-body.innerHTML='<h2>📁 '+E(row.title)+'</h2><div class="muted">'+E(row.customer_name||'')+' · '+E(row.garment_model||'')+' '+E(row.garment_size||'')+'</div><div class="card"><h3>Añadir archivos desde iPhone</h3><form id="libUpload"><div class="field"><label>Seleccionar uno o varios archivos</label><input type="file" id="libFiles" multiple required accept=".png,.jpg,.jpeg,.webp,.pdf,.svg,image/*,application/pdf"></div><div class="field"><label>Zona de impresión</label><select name="zone">'+Z.map(z=>'<option>'+z+'</option>').join('')+'</select></div><div class="formgrid"><div class="field"><label>Ancho DTF (cm)</label><input name="width_cm" type="number" min="0.1" step="0.1"></div><div class="field"><label>Alto DTF (cm)</label><input name="height_cm" type="number" min="0.1" step="0.1"></div></div><div class="muted" style="font-size:12px">Las medidas son las de impresión. Si subes archivos de zonas distintas, hazlo por grupos. Máximo 50 MB por archivo.</div><button type="submit" class="primary" style="margin-top:12px">Importar archivos</button></form><div id="libUploadStatus" class="muted"></div></div><div class="card"><h3>Archivos guardados</h3><div id="libItems">Cargando…</div></div>';
+body.innerHTML='<h2>📁 '+E(row.title)+'</h2><div class="muted">'+E(row.customer_name||'')+' · '+E(row.garment_model||'')+' '+E(row.garment_size||'')+'</div><div class="card"><h3>Añadir archivos desde iPhone</h3><form id="libUpload"><div class="field"><label>Seleccionar uno o varios archivos</label><input type="file" id="libFiles" multiple accept=".png,.jpg,.jpeg,.webp,.pdf,.svg,image/*,application/pdf"></div><div class="field"><label>O importar una carpeta completa</label><input type="file" id="libFolder" webkitdirectory directory multiple><div class="muted" style="font-size:12px">Si tu iPhone no permite seleccionar carpetas, comprímela en Archivos y usa la siguiente opción.</div></div><div class="field"><label>O seleccionar un ZIP desde Archivos / iCloud Drive</label><input type="file" id="libZip" accept=".zip,application/zip"></div><label style="display:flex;align-items:center;gap:8px;margin:10px 0"><input type="checkbox" id="libAutoZone" checked> Detectar zona por nombre del archivo (pecho, espalda, manga…)</label><div class="field"><label>Zona de impresión</label><select name="zone">'+Z.map(z=>'<option>'+z+'</option>').join('')+'</select></div><div class="formgrid"><div class="field"><label>Ancho DTF (cm)</label><input name="width_cm" type="number" min="0.1" step="0.1"></div><div class="field"><label>Alto DTF (cm)</label><input name="height_cm" type="number" min="0.1" step="0.1"></div></div><div class="muted" style="font-size:12px">Las medidas son las de impresión. Si subes archivos de zonas distintas, hazlo por grupos. Máximo 50 MB por archivo.</div><button type="submit" class="primary" style="margin-top:12px">Importar archivos</button></form><div id="libUploadStatus" class="muted"></div></div><div class="card"><h3>Archivos guardados</h3><div id="libItems">Cargando…</div></div>';
 body.querySelector('#libUpload').onsubmit=async e=>{
 e.preventDefault();const btn=e.currentTarget.querySelector('button[type=submit]');btn.disabled=true;
-const f=new FormData(e.currentTarget),files=[...body.querySelector('#libFiles').files],status=body.querySelector('#libUploadStatus');
-let done=0;try{const {data:{user}}=await supabaseClient.auth.getUser();for(const file of files){
+const f=new FormData(e.currentTarget),status=body.querySelector('#libUploadStatus');
+const standard=[...body.querySelector('#libFiles').files].map(file=>({file,relativePath:file.name}));
+const folder=[...body.querySelector('#libFolder').files].map(file=>({file,relativePath:file.webkitRelativePath||file.name}));
+const zipFile=body.querySelector('#libZip').files[0];
+let files=[...standard,...folder];
+let done=0;try{if(zipFile){status.textContent='Preparando ZIP…';files.push(...await unpackZip(zipFile));}
+if(!files.length)throw Error('Selecciona archivos, una carpeta o un ZIP');
+if(files.length>300)throw Error('Máximo 300 archivos por importación');
+const {data:{user},error:authError}=await supabaseClient.auth.getUser();if(authError||!user)throw Error('Inicia sesión para importar');for(const item of files){const file=item.file;
 if(file.size>52428800)throw Error(file.name+' supera 50 MB');
-if(!/\.(png|jpe?g|webp|pdf|svg)$/i.test(file.name))throw Error('Formato no admitido: '+file.name);
+if(!ALLOWED.test(file.name))throw Error('Formato no admitido: '+file.name);
 status.textContent='Importando '+(done+1)+' de '+files.length+'…';
 const path=user.id+'/'+id+'/'+crypto.randomUUID()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
 await check(await supabaseClient.storage.from('design-library').upload(path,file,{contentType:file.type||'application/octet-stream'}));
-try{await check(await supabaseClient.from('design_library_files').insert({library_id:id,owner_id:user.id,storage_path:path,file_name:file.name,zone:f.get('zone'),width_cm:f.get('width_cm')||null,height_cm:f.get('height_cm')||null}));}catch(err){await supabaseClient.storage.from('design-library').remove([path]);throw err;}
+try{await check(await supabaseClient.from('design_library_files').insert({library_id:id,owner_id:user.id,storage_path:path,file_name:item.relativePath.slice(0,240),zone:(body.querySelector('#libAutoZone').checked?inferZone(item.relativePath,f.get('zone')):f.get('zone')),width_cm:f.get('width_cm')||null,height_cm:f.get('height_cm')||null}));}catch(err){await supabaseClient.storage.from('design-library').remove([path]);throw err;}
 done++;
 }toast(done+' archivos importados');await loadFiles(id);e.currentTarget.reset();
 }catch(err){console.error(err);status.textContent='Error: '+err.message;}finally{btn.disabled=false;if(done)status.textContent=done+' archivo(s) importado(s).';}
