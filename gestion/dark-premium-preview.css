@@ -1,0 +1,27 @@
+/* AIHXO Gestión · Dark Premium preview. Sólo rama de pruebas. */
+:root{--navy:#080c14;--navy2:#111927;--blue:#d5fb42;--blue2:#e5ff8c;--text:#edf2f9;--muted:#9aa9bf;--line:#263246;--bg:#0b111c;--white:#151e2d;--green:#74dbaa;--red:#ff8d98;--shadow:0 12px 40px rgba(0,0,0,.24);color-scheme:dark}
+html,body{background:var(--bg)!important;color:var(--text)!important}
+.sidebar{background:linear-gradient(180deg,#080d16,#101b2c)!important;border-right:1px solid #263246}
+.brandmark{font-family:Inter,system-ui,sans-serif!important;font-weight:900!important;color:#f3f7ff!important;letter-spacing:.08em!important}
+.brandmark::first-letter{color:#d5fb42}
+#nav button{color:#adbbcd!important;border-radius:13px!important}
+#nav button:hover{background:#1c2a3b!important;color:#fff!important}
+#nav button.active{background:#d5fb42!important;color:#0b1420!important;box-shadow:0 6px 25px #d5fb4230!important}
+.topbar{background:#111927!important;border-bottom:1px solid #263246!important}
+.page{max-width:1600px}
+.card,.drawer-card{background:#151e2d!important;border:1px solid #28364b!important;border-radius:19px!important;box-shadow:0 8px 28px #0002!important;color:#edf2f9!important}
+.kvalue{font-weight:850!important;letter-spacing:-.04em}
+.label,.sub,.muted,th{color:#a6b5c7!important}
+.primary{background:#d5fb42!important;color:#101827!important;box-shadow:0 5px 18px #d5fb4228!important}
+.primary:hover{background:#e7ff94!important}
+.secondary,.x{background:#253348!important;color:#e4ebf5!important}
+input,select,textarea{background:#0c1522!important;color:#eef3fa!important;border:1px solid #33445d!important}
+input:focus,select:focus,textarea:focus{border-color:#d5fb42!important;box-shadow:0 0 0 3px #d5fb4230!important}
+table{color:#e7eef8!important} th,td{border-bottom-color:#28364b!important}
+.thumb{background:linear-gradient(140deg,#192738,#101721)!important}
+.login-shell{background:radial-gradient(circle at 20% 10%,#243147,#060a10 60%)!important}
+#toast{background:#d5fb42!important;color:#101827!important}
+#aihxo-refresh{background:#d5fb42!important;color:#111827!important;border-color:#d5fb42!important}
+a{color:#d7fa63}
+:focus-visible{outline:2px solid #d5fb42;outline-offset:3px}
+@media(max-width:760px){.page{padding:16px!important}.topbar{height:62px!important}.card{border-radius:17px!important}.sidebar{background:#0a111d!important}}
