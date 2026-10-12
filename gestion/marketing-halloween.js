@@ -6,7 +6,7 @@
   const CAPTION='🎃 HALLOWEEN BY AIHXO\nCamiseta + tote bag personalizada por 23,95 € el pack. Para peques y adultos. Elige diseño, talla y color y escríbenos para reservar. Edición limitada hasta el 31 de octubre.\n#AIHXO #Halloween2026 #TrucoOTrato #Oleiros #ACoruña';
   function openWizard(){
     const html=`<h2>🎃 Pack Halloween · 23,95 €</h2>
-      <p class="muted">Se guarda como borrador en Marketing, junto con tres contenidos listos para revisar. No publica en la web ni en redes.</p>
+      <p class="muted">Se guarda como borrador en Marketing, junto con tres contenidos listos para revisar. La página promocional está en <a href="/halloween/" target="_blank" rel="noopener">/halloween/</a>. No publica en las redes.</p>
       <form id="aihxoHalloweenForm" class="form">
       <div class="field"><label>Nombre</label><input value="Pack Halloween · Camiseta + Tote Bag" readonly></div>
       <div class="formgrid"><div class="field"><label>Precio único</label><input value="23,95 €" readonly></div><div class="field"><label>Fin</label><input value="2026-10-31" readonly></div></div>
