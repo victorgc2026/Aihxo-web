@@ -553,18 +553,15 @@ function renderBannerAIHXO(){
   box.id='aihxo-campaign-banner';
   box.setAttribute('aria-label','Campaña destacada AIHXO');
   box.style.cssText='background:linear-gradient(115deg,#0d0e10 0%,#1b1418 100%);color:#fff;padding:clamp(18px,4vw,50px);position:relative;z-index:20;border-bottom:3px solid #dfff00;';
-  const halloween=String(campaign.name||'').toLowerCase().includes('halloween');
-  const source=halloween?'https://zoiesxtchnesrilpuqek.supabase.co/storage/v1/object/public/product-images/campaign-1791837026685-ufqb0fg.png':'';
   const href=campaign.button_href||'';
   const safeHref=/^https:\/\//i.test(href)?href:'#contacto';
-  box.innerHTML=`<div style="max-width:1320px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:clamp(22px,4vw,60px);align-items:center;">
+  box.innerHTML=`<div style="max-width:1120px;margin:auto;text-align:center;">
     <div style="min-width:0">
      <div style="font-size:12px;letter-spacing:.27em;color:#dfff00;font-weight:900;margin-bottom:14px;">AIHXO · EDICIÓN LIMITADA</div>
      <h2 style="font-size:clamp(36px,6vw,76px);line-height:1.03;margin:0 0 18px;color:#fff;font-weight:950;letter-spacing:-.05em;">${escCatalog(campaign.title||'OFERTA ESPECIAL')}</h2>
-     <p style="font-size:clamp(16px,2vw,21px);line-height:1.5;color:#e2e3e4;max-width:580px;">${escCatalog(campaign.body||'Descubre nuestra campaña especial.')}</p>
+     <p style="font-size:clamp(16px,2vw,21px);line-height:1.5;color:#e2e3e4;max-width:760px;margin-left:auto;margin-right:auto;">${escCatalog(campaign.body||'Descubre nuestra campaña especial.')}</p>
      <a href="${escCatalog(safeHref)}" style="display:inline-block;background:#dfff00;color:#101112;text-decoration:none;border-radius:12px;padding:17px 28px;font-size:18px;font-weight:900;margin-top:16px;box-shadow:0 12px 34px #dfff0033;">${escCatalog(campaign.button_label||'Ver oferta')} →</a>
     </div>
-    ${source?`<a href="${escCatalog(safeHref)}" aria-label="Ver oferta Halloween" style="display:block;"><img src="${source}" alt="Oferta Halloween AIHXO, camiseta y tote bag" loading="eager" style="display:block;width:100%;max-height:530px;object-fit:contain;border-radius:18px;"></a>`:''}
   </div>`;
   const hero=document.querySelector('.hero');
   if(hero)hero.insertAdjacentElement('beforebegin',box);
