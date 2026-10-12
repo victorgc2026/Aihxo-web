@@ -51,18 +51,47 @@
   function paint(imgs){
    ctx.fillStyle='#0b0d10';ctx.fillRect(0,0,w,h);
    if(imgs&&imgs.length){
-    const count=Math.min(imgs.length,4);
-    const rects=count===1?[[0,0,w,h]]:count===2?[[0,0,w/2,h],[w/2,0,w/2,h]]:count===3?[[0,0,w*.55,h],[w*.55,0,w*.45,h/2],[w*.55,h/2,w*.45,h/2]]:[[0,0,w/2,h/2],[w/2,0,w/2,h/2],[0,h/2,w/2,h/2],[w/2,h/2,w/2,h/2]];
-    imgs.slice(0,4).forEach((im,i)=>{const [x,y,rw,rh]=rects[i],scale=Math.max(rw/im.width,rh/im.height),dw=im.width*scale,dh=im.height*scale;ctx.save();ctx.beginPath();ctx.rect(x,y,rw,rh);ctx.clip();ctx.drawImage(im,x+(rw-dw)/2,y+(rh-dh)/2,dw,dh);ctx.restore()});
+    // Photos remain fully visible: no crop, generous gaps and rounded cards.
+    const vertical=(kind==='story'||kind==='tiktok');
+    const shown=imgs.slice(0,vertical?2:3),count=shown.length;
+    const outer=vertical?64:(landscape?44:54),gap=vertical?36:24;
+    const top=vertical?190:(landscape?90:175);
+    const bottom=vertical?640:(landscape?260:495);
+    const areaW=w-2*outer,areaH=Math.max(160,h-top-bottom);
+    let rects;
+    if(count===1)rects=[[outer,top,areaW,areaH]];
+    else if(vertical) {
+      const each=(areaH-gap)/2;
+      rects=[[outer,top,areaW,each],[outer,top+each+gap,areaW,each]];
+    }else if(count===2){
+      const each=(areaW-gap)/2;
+      rects=[[outer,top,each,areaH],[outer+each+gap,top,each,areaH]];
+    }else{
+      const main=(areaW-gap)*.55,side=areaW-gap-main,half=(areaH-gap)/2;
+      rects=[[outer,top,main,areaH],[outer+main+gap,top,side,half],[outer+main+gap,top+half+gap,side,half]];
+    }
+    shown.forEach((im,i)=>{
+      const [x,y,rw,rh]=rects[i],radius=24;
+      ctx.save();ctx.beginPath();ctx.roundRect(x,y,rw,rh,radius);ctx.clip();
+      ctx.fillStyle='#1e2229';ctx.fillRect(x,y,rw,rh);
+      const inset=14,scale=Math.min((rw-2*inset)/im.width,(rh-2*inset)/im.height);
+      const dw=im.width*scale,dh=im.height*scale;
+      ctx.drawImage(im,x+(rw-dw)/2,y+(rh-dh)/2,dw,dh);ctx.restore();
+    });
    }
-   const grad=ctx.createLinearGradient(0,h*.2,0,h);grad.addColorStop(0,'rgba(0,0,0,.15)');grad.addColorStop(.65,'rgba(0,0,0,.75)');grad.addColorStop(1,'rgba(0,0,0,.95)');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
-   const pad=Math.round(w*.07);const base=landscape?70:(large?90:78);const anchor=landscape?h*.24:h*.52;
+   // Keep the text on a distinct dark panel instead of obscuring the products.
+   const panelY=kind==='story'||kind==='tiktok'?h-580:(landscape?h-245:h-450);
+   ctx.fillStyle='#0b0d10';ctx.fillRect(0,panelY,w,h-panelY);
+   const grad=ctx.createLinearGradient(0,panelY-24,0,panelY+24);
+   grad.addColorStop(0,'rgba(11,13,16,0)');grad.addColorStop(1,'#0b0d10');
+   ctx.fillStyle=grad;ctx.fillRect(0,panelY-24,w,48);
+   const pad=Math.round(w*.07);const base=landscape?47:(kind==='story'||kind==='tiktok'?61:52);const anchor=landscape?h*.49:(kind==='story'||kind==='tiktok'?h*.79:h*.79);
    ctx.textAlign='left';ctx.fillStyle=state.color;ctx.font='900 '+Math.round(base*.52)+'px system-ui';ctx.fillText(slide==='photo'?'AIHXO  /  PACK ESPECIAL':'AIHXO  /  EDICIÓN ESPECIAL',pad,landscape?65:125);
    const words=state.title.trim().split(/\s+/);const rows=[];let line='';
    ctx.font='900 '+base+'px system-ui';
    for(const word of words){const next=line?line+' '+word:word;if(ctx.measureText(next).width>w-pad*2 && line){rows.push(line);line=word}else line=next}if(line)rows.push(line);
    ctx.fillStyle='#ffffff';if(slide!=='photo')rows.slice(0,3).forEach((row,i)=>ctx.fillText(row,pad,anchor+i*(base*1.13)));
-   const sy=slide==='photo'?h*.72:anchor+Math.min(rows.length,3)*base*1.15+10;
+   const sy=slide==='photo'?h*.82:anchor+Math.min(rows.length,3)*base*1.05+8;
    ctx.fillStyle='#f5f5f5';ctx.font='600 '+Math.round(base*.52)+'px system-ui';ctx.fillText(state.subtitle.slice(0,42),pad,sy);
    ctx.fillStyle=state.color;ctx.font='900 '+Math.round(base*1.25)+'px system-ui';if(slide!=='photo')ctx.fillText(state.price,pad,sy+base*1.35);
    ctx.fillStyle='#fff';ctx.font='600 '+Math.round(base*.38)+'px system-ui';if(slide!=='photo')ctx.fillText('REALIZAR PEDIDO · '+(state.cta==='WhatsApp'?'WHATSAPP':state.cta.toUpperCase()),pad,sy+base*2.05);
