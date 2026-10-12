@@ -73,7 +73,7 @@ function normalizarSKU(value) {
             <label class="dp-label">Descripción<textarea id="dpDescripcion" class="dp-input" rows="4" placeholder="Describe brevemente el diseño..."></textarea></label>
             <label class="dp-label">Tallas disponibles<input id="dpTallas" class="dp-input" type="text" placeholder="Ej. 3/4, 5/6, 7/8, 9/11, 12/13"></label>
             <div style="font-size:12px;color:#667085;margin:-8px 0 18px;">Separa las tallas con comas.</div>
-            <label class="dp-label">Colores disponibles<input id="dpColores" class="dp-input" type="text" placeholder="Ej. Rosa, Blanco, Negro"></label>
+            <div class="dp-label"><div>Colores disponibles para este diseño *</div><div style="font-size:12px;color:#667085;font-weight:500;margin:5px 0 9px">Marca únicamente los colores que quieres vender, no toda la gama de la prenda base.</div><div id="dpColorOptions" style="display:flex;flex-wrap:wrap;gap:8px"><span style="font-weight:400">Selecciona primero una prenda base.</span></div><input id="dpColores" type="hidden"></div>
             <label class="dp-label">Foto principal *<input id="dpFoto" class="dp-input" type="file" accept="image/*" required></label>
             <label class="dp-label">Fotos adicionales<input id="dpGaleria" class="dp-input" type="file" accept="image/*" multiple></label>
             <div id="dpMockupPending" style="display:none;margin:-8px 0 18px;padding:10px 12px;border-radius:12px;background:#ecfdf3;color:#067647;font-weight:800;font-size:13px"></div>
@@ -89,7 +89,19 @@ function normalizarSKU(value) {
     `;
 
     aplicarEstilosDisenoPropio();
-    const { data: prendasBase, error: errorPrendas } = await supabaseClient.from('garments').select('*').eq('active', true).order('manufacturer').order('model');
+    const [{ data: prendasBase, error: errorPrendas }, {data: variantesStock, error: errorStock}] = await Promise.all([supabaseClient.from('garments').select('*').eq('active', true).order('manufacturer').order('model'),supabaseClient.from('base_stock_items').select('garment_id,color')]);
+    if(errorStock)console.warn('No se pudieron consultar colores del stock',errorStock);
+    const stockColors=variantesStock||[];
+    function renderColors(garmentId, fallbackColors=[]){
+      const container=document.getElementById('dpColorOptions'),hidden=document.getElementById('dpColores');
+      const list=[...new Set(stockColors.filter(v=>String(v.garment_id)===String(garmentId)).map(v=>String(v.color||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+      const options=list.length?list:fallbackColors;
+      hidden.value='';
+      if(!garmentId){container.textContent='Selecciona primero una prenda base.';return}
+      if(!options.length){container.textContent='No hay colores registrados para esta prenda base. Revísala en Stock.';return}
+      container.innerHTML=options.map((color,i)=>'<label style="display:inline-flex;align-items:center;gap:6px;border:1px solid #dfe4ec;border-radius:12px;padding:9px 11px;font-size:13px;font-weight:650"><input type="checkbox" data-design-color value="'+escDP(color)+'" style="width:18px;height:18px;accent-color:#087cf4">'+escDP(color)+'</label>').join('');
+      container.querySelectorAll('[data-design-color]').forEach(input=>input.addEventListener('change',()=>{hidden.value=[...container.querySelectorAll('[data-design-color]:checked')].map(el=>el.value).join(', ')}));
+    }
     if (errorPrendas) console.error(errorPrendas);
     else {
       const selectorPrenda = document.getElementById('dpGarment');
@@ -114,7 +126,7 @@ function normalizarSKU(value) {
         else if (publico.includes('unisex')) document.getElementById('dpPublico').value = 'unisex';
         else if (publico.includes('adulto')) document.getElementById('dpPublico').value = 'adulto';
         document.getElementById('dpTallas').value = opcion.dataset.tallas || '';
-        document.getElementById('dpColores').value = opcion.dataset.colores || '';
+        renderColors(this.value,listaDesdeTexto(opcion.dataset.colores||''));
       });
     }
     document.getElementById('formDisenoPropio').addEventListener('submit', guardarDisenoPropio);
@@ -155,6 +167,7 @@ function normalizarSKU(value) {
 
     if (!nombre || !fotoPrincipal) { mostrarMensaje(mensaje,'Completa el nombre y la foto principal.',false); return; }
     if (precio <= 0) { mostrarMensaje(mensaje,'Introduce un precio normal válido.',false); return; }
+    if(!garmentId || !colores.length){mostrarMensaje(mensaje,'Selecciona una prenda base y marca al menos un color permitido para este diseño.',false);return;}
     boton.disabled = true; boton.textContent = 'GUARDANDO DISEÑO...';
 
     try {
@@ -187,9 +200,12 @@ function normalizarSKU(value) {
       boton.textContent='CREANDO PRODUCTO...';
       const categoria=['Diseno propio',tipo,publico,publicar?'publicado':'oculto',novedad?'novedad':''].filter(Boolean).join('|');
       let features=descripcion;if(textoOferta)features+=`${features?'\n':''}Oferta: ${textoOferta}`;
-      const producto={sku,category:categoria,model:nombre,garment_id:garmentId,size:tallas.join(', '),color:colores.join(', '),garment_cost:0,dtf_cost:0,extras_cost:0,sale_price:precio,price_one_print:precioOferta,price_two_print:null,stock:0,features,image_url:urlPrincipal,gallery:galleryUrls};
+      const producto={sku,category:categoria,model:nombre,garment_id:garmentId,allowed_sizes:tallas,allowed_colors:colores,size:tallas.join(', '),color:colores.join(', '),garment_cost:0,dtf_cost:0,extras_cost:0,sale_price:precio,price_one_print:precioOferta,price_two_print:null,stock:0,features,image_url:urlPrincipal,gallery:galleryUrls};
       const {data:nuevoProducto,error:errorProducto}=await supabaseClient.from('products').insert(producto).select('id').single();
       if(errorProducto) throw errorProducto;
+
+      const {error:errorVinculo}=await supabaseClient.from('product_garments').insert({product_id:nuevoProducto.id,garment_id:garmentId,allowed_sizes:tallas,allowed_colors:colores});
+      if(errorVinculo)throw new Error('Diseño creado, pero no se pudieron guardar sus colores. Revisa el producto: '+errorVinculo.message);
 
       const imagenesBD=[{product_id:nuevoProducto.id,storage_path:rutaPrincipal,public_url:urlPrincipal,is_primary:true,sort_order:0}];
       galleryData.forEach((img,index)=>imagenesBD.push({product_id:nuevoProducto.id,storage_path:img.storage_path,public_url:img.public_url,is_primary:false,sort_order:index+1}));
@@ -197,7 +213,7 @@ function normalizarSKU(value) {
       window._aihxoPendingMockupFiles=[];
       mostrarMensaje(mensaje,`Diseño ${escDP(nombre)} guardado correctamente.`,true);boton.textContent='DISEÑO GUARDADO ✓';
       setTimeout(()=>{if(typeof loadAll==='function'&&typeof setView==='function'){loadAll().then(()=>location.reload())}else location.reload()},1400);
-    }catch(error){console.error('Error guardando diseño propio:',error);mostrarMensaje(mensaje,'No se pudo guardar el diseño: '+escDP(error.message||error),false);boton.disabled=false;boton.textContent='GUARDAR Y PUBLICAR'}
+    }catch(error){console.error('Error guardando diseño propio:',error);mostrarMensaje(mensaje,'No se pudo guardar el diseño: '+escDP(error.message||error),false);boton.disabled=false;boton.textContent='GUARDAR DISEÑO'}
   }
 
   function mostrarMensaje(elemento,texto,correcto){elemento.style.display='block';elemento.style.background=correcto?'#eaf8ef':'#fff0f0';elemento.style.color=correcto?'#157347':'#b42318';elemento.innerHTML=texto}
