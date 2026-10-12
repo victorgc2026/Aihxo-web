@@ -4,9 +4,22 @@
   if(!M)return;
   const E=M.E;
   const CAPTION='🎃 HALLOWEEN BY AIHXO\nCamiseta + tote bag personalizada por 23,95 € el pack. Para peques y adultos. Elige diseño, talla y color y escríbenos para reservar. Edición limitada hasta el 31 de octubre.\n#AIHXO #Halloween2026 #TrucoOTrato #Oleiros #ACoruña';
+  async function launchWebsite(){
+    if(!confirm('¿Publicar el banner del Pack Halloween en la web AIHXO? Los contenidos de Instagram y TikTok NO se enviarán automáticamente.'))return;
+    const href='https://wa.me/34634344174?text='+encodeURIComponent('Hola, quiero realizar un pedido del Pack Halloween de AIHXO por 23,95 €. ¿Qué diseños y tallas tenéis disponibles?');
+    const payload={name:'Pack Halloween 2026 · Camiseta + Tote Bag',title:'🎃 Camiseta + Tote Bag · 23,95 €',body:'Un Halloween para llevar. Pack infantil y adulto. Disponible hasta el 31 de octubre.',button_label:'Realizar pedido',button_href:href,start_at:new Date('2026-10-12T00:00:00+02:00').toISOString(),end_at:new Date('2026-11-01T00:00:00+01:00').toISOString(),audience:'all',priority:10,enabled:true,updated_at:new Date().toISOString()};
+    try{
+      const found=await supabaseClient.from('web_campaigns').select('id').eq('name',payload.name).limit(1);
+      if(found.error)throw found.error;
+      const id=found.data?.[0]?.id;
+      const result=id?await supabaseClient.from('web_campaigns').update(payload).eq('id',id):await supabaseClient.from('web_campaigns').insert(payload);
+      if(result.error)throw result.error;
+      toast('Banner publicado en campañas web. Comprueba su aspecto en la portada.');
+    }catch(err){console.error(err);toast('No se pudo publicar: '+(err.message||err));}
+  }
   function openWizard(){
     const html=`<h2>🎃 Pack Halloween · 23,95 €</h2>
-      <p class="muted">Se guarda como borrador en Marketing, junto con tres contenidos listos para revisar. La página promocional está en <a href="/halloween/" target="_blank" rel="noopener">/halloween/</a>. No publica en las redes.</p>
+      <p class="muted">Se guarda como borrador en Marketing, junto con tres contenidos listos para revisar. La página promocional está en <a href="/halloween/" target="_blank" rel="noopener">/halloween/</a>. Publicación en redes: los textos se preparan como borradores; la subida automática requiere conectar Meta y TikTok mediante sus APIs.</p>
       <form id="aihxoHalloweenForm" class="form">
       <div class="field"><label>Nombre</label><input value="Pack Halloween · Camiseta + Tote Bag" readonly></div>
       <div class="formgrid"><div class="field"><label>Precio único</label><input value="23,95 €" readonly></div><div class="field"><label>Fin</label><input value="2026-10-31" readonly></div></div>
@@ -48,13 +61,21 @@
     });
   }
   window.aihxoHalloweenCampaign=openWizard;
+  window.aihxoHalloweenPublishWeb=launchWebsite;
+  window.aihxoHalloweenShare=async function(platform){
+    const text=CAPTION+'\\n\\nReserva tu pack en https://aihxo.es/halloween/';
+    try {await navigator.clipboard.writeText(text);toast('Texto copiado; adjunta el vídeo o imagen en '+platform)}
+    catch(e){window.prompt('Copia el texto para '+platform,text)}
+    const urls={Instagram:'https://www.instagram.com/aihxo.camisetas/',TikTok:'https://www.tiktok.com/@aihxo.camisetas'};
+    window.open(urls[platform]||urls.Instagram,'_blank','noopener');
+  };
   const old=M.tabs.campaigns;
   M.tabs.campaigns=function(root){
     old(root);
     const heading=root.querySelector('.section');
     if(heading&&!root.querySelector('#halloweenCampaignBtn')){
       const b=document.createElement('button');b.type='button';b.className='secondary';b.id='halloweenCampaignBtn';b.textContent='🎃 Preparar pack Halloween 23,95 €';
-      b.onclick=openWizard;heading.appendChild(b);
+      b.onclick=openWizard;heading.appendChild(b);const publish=document.createElement('button');publish.type='button';publish.className='primary';publish.textContent='🚀 Publicar pack Halloween en web';publish.onclick=launchWebsite;heading.appendChild(publish);const social=document.createElement('div');social.style.cssText='display:flex;gap:8px;flex-wrap:wrap;width:100%';social.innerHTML='<button type="button" class="secondary" onclick="aihxoHalloweenShare(\'Instagram\')">📸 Copiar y abrir Instagram</button><button type="button" class="secondary" onclick="aihxoHalloweenShare(\'TikTok\')">🎵 Copiar y abrir TikTok</button>';heading.insertAdjacentElement('afterend',social);
     }
   };
 })();
