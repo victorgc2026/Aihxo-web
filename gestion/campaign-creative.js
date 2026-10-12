@@ -150,7 +150,7 @@
   Object.entries(formats).map(([k,v])=>'<button class="secondary" type="button" data-cc-download="'+k+'">Descargar '+v.label+'</button>').join('')+
   '<button class="primary" type="button" id="ccExportCarousel">⬇ Descargar carrusel Instagram</button><button class="secondary" type="button" id="ccDownloadSlide">Descargar solo esta diapositiva</button><div class="muted" style="font-size:12px">Marca las fotos que quieras incluir en el carrusel. Cada una tendrá su propia diapositiva, y la última mostrará el pack con su precio y el pedido. Descarga para publicar manualmente.</div><button class="secondary" type="button" id="ccText">Descargar texto para redes</button>'+
   '<a class="secondary" id="ccCTA" target="_blank" rel="noopener noreferrer" style="padding:12px;text-align:center;text-decoration:none">Realizar pedido ↗</a>'+
-  '<button class="primary" type="button" id="ccPublishWeb">🌐 Publicar banner en web</button>'+
+  '<button class="primary" type="button" id="ccPublishWeb">🌐 Publicar imagen y oferta en web</button>'+
   '<div class="muted" style="font-size:12px">Instagram y TikTok: los archivos se descargan y los publicáis vosotros. El enlace de TikTok abre el perfil; los mensajes directos dependen de la configuración de privacidad de TikTok.</div></div></div></div></div>';
   root.querySelector('#ccBack').onclick=()=>M.view();
   root.querySelectorAll('[data-campaign-field]').forEach(el=>{el.addEventListener('input',refresh);el.addEventListener('change',refresh)});
@@ -178,9 +178,34 @@
  }
  async function publishWeb(){
   readFields();
-  if(!confirm('¿Publicar este banner en la web? Esto actualiza web_campaigns. Las imágenes locales solo se exportan; NO se suben a la web.'))return;
-  const payload={name:'AIHXO creativo: '+state.title,title:state.title+' · '+state.price,body:state.subtitle+' — '+state.description,button_label:'Realizar pedido',button_href:getLink(),start_at:new Date().toISOString(),end_at:null,audience:'all',priority:20,enabled:true,updated_at:new Date().toISOString()};
-  try{const existing=await supabaseClient.from('web_campaigns').select('id').eq('name',payload.name).limit(1);if(existing.error)throw existing.error;const id=existing.data?.[0]?.id;const result=id?await supabaseClient.from('web_campaigns').update(payload).eq('id',id):await supabaseClient.from('web_campaigns').insert(payload);if(result.error)throw result.error;toast('Banner enviado a campañas web. Revisa la portada.');}catch(e){toast('Error de publicación: '+(e.message||e));console.error(e)}
+  if(!images.length){toast('Añade primero la imagen de la oferta.');return}
+  if(!confirm('¿Subir la imagen seleccionada y publicar la campaña en la web?'))return;
+  const button=document.querySelector('#ccPublishWeb');if(button){button.disabled=true;button.textContent='Subiendo imagen…'}
+  try{
+   const idx=selectedImages.length?selectedImages[0]:0;
+   const file=images[idx],ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+   const path='campaign-'+Date.now()+'-'+Math.random().toString(36).slice(2,9)+'.'+ext;
+   const uploaded=await supabaseClient.storage.from('product-images').upload(path,file,{contentType:file.type,cacheControl:'3600'});
+   if(uploaded.error)throw uploaded.error;
+   const imageUrl=supabaseClient.storage.from('product-images').getPublicUrl(path).data.publicUrl;
+   const landing=new URL('/halloween/',location.origin);
+   landing.searchParams.set('image',imageUrl);
+   landing.searchParams.set('title',state.title);
+   landing.searchParams.set('subtitle',state.subtitle);
+   landing.searchParams.set('price',state.price);
+   landing.searchParams.set('phone',String(state.phone).replace(/\D/g,''));
+   landing.searchParams.set('instagram',normalizeHandle(state.instagram));
+   landing.searchParams.set('tiktok',normalizeHandle(state.tiktok));
+   const payload={name:'AIHXO creativo: '+state.title,title:state.title+' · '+state.price,body:state.subtitle+' — '+state.description,button_label:'Ver oferta y realizar pedido',button_href:landing.toString(),start_at:new Date().toISOString(),end_at:state.title.toLowerCase().includes('halloween')?new Date('2026-11-01T00:00:00+01:00').toISOString():null,audience:'all',priority:20,enabled:true,updated_at:new Date().toISOString()};
+   const existing=await supabaseClient.from('web_campaigns').select('id').eq('name',payload.name).limit(1);
+   if(existing.error)throw existing.error;
+   const id=existing.data?.[0]?.id;
+   const result=id?await supabaseClient.from('web_campaigns').update(payload).eq('id',id):await supabaseClient.from('web_campaigns').insert(payload);
+   if(result.error)throw result.error;
+   toast('Imagen subida y campaña guardada en la web');
+   window.open(landing.toString(),'_blank','noopener');
+  }catch(e){toast('No se pudo publicar: '+(e.message||e));console.error(e)}
+  finally{if(button){button.disabled=false;button.textContent='🌐 Publicar imagen y oferta en web'}}
  }
  load();
  window.aihxoCampaignCreativeView=renderUI;
