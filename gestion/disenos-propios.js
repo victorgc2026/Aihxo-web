@@ -78,11 +78,11 @@ function normalizarSKU(value) {
             <label class="dp-label">Fotos adicionales<input id="dpGaleria" class="dp-input" type="file" accept="image/*" multiple></label>
             <div id="dpMockupPending" style="display:none;margin:-8px 0 18px;padding:10px 12px;border-radius:12px;background:#ecfdf3;color:#067647;font-weight:800;font-size:13px"></div>
             <div style="display:flex;flex-direction:column;gap:14px;margin:22px 0;">
-              <label class="dp-check"><input id="dpPublicar" type="checkbox" checked><span><b>Publicar en la web</b><br><small>Mostrar este diseño en Diseños propios.</small></span></label>
+              <label class="dp-check"><input id="dpPublicar" type="checkbox"><span><b>Publicar en la web</b><br><small>Mostrar este diseño en Diseños propios.</small></span></label>
               <label class="dp-check"><input id="dpNovedad" type="checkbox" checked><span><b>Marcar como novedad</b><br><small>Aparecerá también en el filtro Novedades.</small></span></label>
             </div>
             <div id="dpMensaje" style="display:none;padding:14px;border-radius:12px;margin-bottom:16px;font-weight:700;"></div>
-            <button id="dpGuardar" type="submit" style="width:100%;border:0;border-radius:16px;background:#087cf4;color:white;padding:17px 18px;font-size:16px;font-weight:900;cursor:pointer;">GUARDAR Y PUBLICAR</button>
+            <button id="dpGuardar" type="submit" style="width:100%;border:0;border-radius:16px;background:#087cf4;color:white;padding:17px 18px;font-size:16px;font-weight:900;cursor:pointer;">GUARDAR DISEÑO</button>
           </form>
         </div>
       </div>
