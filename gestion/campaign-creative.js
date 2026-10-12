@@ -10,7 +10,7 @@
  function escapeValue(v){return E(String(v??''))}
  function campaignKey(){return 'aihxo_campaign_'+String(state.title||'').toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,60)}
  function getLink(){
-  if(state.cta==='Instagram')return 'https://www.instagram.com/'+encodeURIComponent(state.instagram.replace(/^@/,''))+'/';
+  if(state.cta==='Instagram')return 'https://ig.me/m/'+encodeURIComponent(state.instagram.trim().replace(/^@/,''));
   if(state.cta==='TikTok')return 'https://www.tiktok.com/@'+encodeURIComponent(state.tiktok.replace(/^@/,''));
   return 'https://wa.me/34'+String(state.phone).replace(/\D/g,'').replace(/^34/,'')+'?text='+encodeURIComponent('Hola, quiero realizar un pedido de '+state.title+' ('+state.price+').');
  }
@@ -18,8 +18,9 @@
  async function assetSave(blob){const db=await dbOpen();return new Promise((resolve,reject)=>{const t=db.transaction('assets','readwrite');t.objectStore('assets').put(blob,campaignKey());t.oncomplete=()=>{db.close();resolve()};t.onerror=()=>{db.close();reject(t.error)}})}
  async function assetLoad(){const db=await dbOpen();return new Promise((resolve,reject)=>{const t=db.transaction('assets','readonly');const r=t.objectStore('assets').get(campaignKey());r.onsuccess=()=>{db.close();resolve(r.result)};r.onerror=()=>{db.close();reject(r.error)}})}
  function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+ function normalizeHandle(s){return String(s||'').trim().replace(/^@+/, '').replace(/^https?:\/\/(?:www\.)?(?:instagram\.com\/|tiktok\.com\/@)/i,'').replace(/\/$/,'')}
  function load(){try{state=Object.assign({},defaults,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){state={...defaults}}}
- function readFields(){document.querySelectorAll('[data-campaign-field]').forEach(n=>{state[n.dataset.campaignField]=n.value});save()}
+ function readFields(){document.querySelectorAll('[data-campaign-field]').forEach(n=>{state[n.dataset.campaignField]=['instagram','tiktok'].includes(n.dataset.campaignField)?normalizeHandle(n.value):n.value});save()}
  function makeCanvas(kind){
   const cfg=formats[kind];const can=document.createElement('canvas');can.width=cfg.w;can.height=cfg.h;
   const ctx=can.getContext('2d');const {w,h}=cfg;ctx.fillStyle='#0b0d10';ctx.fillRect(0,0,w,h);
@@ -62,10 +63,10 @@
   '<div class="grid two"><div class="card"><div class="form">'+
   [['title','Nombre de la oferta'],['subtitle','Productos del pack'],['price','Precio'],['description','Descripción'],['phone','WhatsApp pedidos'],['instagram','Usuario Instagram'],['tiktok','Usuario TikTok']].map(([k,l])=>'<div class="field"><label>'+l+'</label><input data-campaign-field="'+k+'" value="'+escapeValue(state[k])+'"></div>').join('')+
   '<div class="field"><label>Botón de pedido</label><select data-campaign-field="cta">'+['WhatsApp','Instagram','TikTok'].map(v=>'<option '+(state.cta===v?'selected':'')+'>'+v+'</option>').join('')+'</select></div>'+
-  '<div class="field"><label>Color destacado</label><input type="color" data-campaign-field="color" value="'+escapeValue(state.color)+'"></div>'+
+  '<div class="field"><label>Color destacado</label><div style="display:flex;align-items:center;gap:12px"><input type="color" aria-label="Elegir color" data-campaign-field="color" value="'+escapeValue(state.color)+'" style="width:76px;height:52px;padding:4px;cursor:pointer"><span class="muted">Toca el recuadro para cambiar el color.</span></div></div>'+
   '<div class="field"><label>Imagen propia de campaña (PNG / JPG / WebP)</label><input type="file" id="ccImage" accept="image/png,image/jpeg,image/webp"><small>Se conserva en este dispositivo. No se sube al servidor ni se comparte entre móviles.</small></div>'+
-  '<div id="ccImageStatus" class="muted">Puedes crear diseños incluso sin foto.</div>'+
-  '<button class="primary" type="button" id="ccExportAll">⬇ Descargar kit completo</button></div></div>'+
+  '<div id="ccImageStatus" class="muted">Puedes crear diseños incluso sin foto.</div><div class="muted" style="font-size:12px">Para obtener mejores resultados, sube una fotografía vertical del producto en buena resolución. Las fotos no se sincronizan entre dispositivos.</div>'+
+  '<button class="primary" type="button" id="ccExportAll">⬇ Descargar kit completo</button><div class="muted" style="font-size:12px">En iPhone, Safari puede pedir permiso para guardar varios archivos. Si falla, usa los botones de descarga individuales.</div></div></div>'+
   '<div class="card"><h3>Vista previa</h3><canvas id="ccPreview" style="width:100%;height:auto;border-radius:12px" width="540" height="675"></canvas><div style="display:grid;gap:8px;margin-top:12px">'+
   Object.entries(formats).map(([k,v])=>'<button class="secondary" type="button" data-cc-download="'+k+'">Descargar '+v.label+'</button>').join('')+
   '<button class="secondary" type="button" id="ccText">Descargar texto para redes</button>'+
@@ -83,7 +84,7 @@
   refresh();
  }
  async function refresh(){
-  readFields();const link=getLink();const a=document.querySelector('#ccCTA');if(a)a.href=link;
+  readFields();const link=getLink();const a=document.querySelector('#ccCTA');if(a){a.href=link;a.textContent=state.cta==='WhatsApp'?'Realizar pedido por WhatsApp ↗':state.cta==='Instagram'?'Enviar mensaje por Instagram ↗':'Abrir TikTok (mensajes según privacidad) ↗';}
   const preview=document.querySelector('#ccPreview');if(!preview)return;
   const c=await render('instagram');const context=preview.getContext('2d');context.clearRect(0,0,preview.width,preview.height);context.drawImage(c,0,0,preview.width,preview.height);
  }
