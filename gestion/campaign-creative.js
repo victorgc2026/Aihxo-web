@@ -183,9 +183,15 @@
   const button=document.querySelector('#ccPublishWeb');if(button){button.disabled=true;button.textContent='Subiendo imagen…'}
   try{
    const idx=selectedImages.length?selectedImages[0]:0;
-   const file=images[idx],ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+   const file=images[idx];
+   if(!(file instanceof Blob) || !file.size)throw Error('La imagen guardada está vacía. Vuelve a seleccionarla en Archivos.');
+   const mime=['image/png','image/jpeg','image/webp'].includes(file.type)?file.type:'image/png';
+   const ext=mime==='image/png'?'png':mime==='image/webp'?'webp':'jpg';
    const path='campaign-'+Date.now()+'-'+Math.random().toString(36).slice(2,9)+'.'+ext;
-   const uploaded=await supabaseClient.storage.from('product-images').upload(path,file,{contentType:file.type,cacheControl:'3600'});
+   // En Safari/iPadOS se envían bytes reales: evita "No content provided" de Storage.
+   const bytes=new Uint8Array(await file.arrayBuffer());
+   if(!bytes.byteLength)throw Error('La imagen no contiene datos. Selecciónala de nuevo.');
+   const uploaded=await supabaseClient.storage.from('product-images').upload(path,bytes,{contentType:mime,cacheControl:'3600',upsert:false});
    if(uploaded.error)throw uploaded.error;
    const imageUrl=supabaseClient.storage.from('product-images').getPublicUrl(path).data.publicUrl;
    const landing=new URL('/halloween/',location.origin);
