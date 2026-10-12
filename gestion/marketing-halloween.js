@@ -10,7 +10,7 @@
       <form id="aihxoHalloweenForm" class="form">
       <div class="field"><label>Nombre</label><input value="Pack Halloween · Camiseta + Tote Bag" readonly></div>
       <div class="formgrid"><div class="field"><label>Precio único</label><input value="23,95 €" readonly></div><div class="field"><label>Fin</label><input value="2026-10-31" readonly></div></div>
-      <div class="field"><label>WhatsApp de pedidos (confirmar)</label><input name="phone" type="tel" inputmode="tel" pattern="[+0-9 ]{9,17}" placeholder="34XXXXXXXXX" required><small>El número mencionado previamente no coincide con el de la configuración web. Confírmalo antes de generar enlaces.</small></div>
+      <div class="field"><label>WhatsApp de pedidos</label><input name="phone" type="tel" inputmode="tel" pattern="[+0-9 ]{9,17}" value="34634344174" required><small>Número oficial de AIHXO, confirmado a partir de la web.</small></div>
       <div class="field"><label>Texto para redes</label><textarea name="caption" rows="6">${E(CAPTION)}</textarea></div>
       <button class="primary" type="submit" style="width:100%">Crear borrador y 3 publicaciones</button></form>`;
     const box=M.openDrawer(html);if(!box)return;
