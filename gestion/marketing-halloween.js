@@ -62,13 +62,20 @@
   }
   window.aihxoHalloweenCampaign=openWizard;
   window.aihxoHalloweenPublishWeb=launchWebsite;
+  window.aihxoHalloweenShare=async function(platform){
+    const text=CAPTION+'\\n\\nReserva tu pack en https://aihxo.es/halloween/';
+    try {await navigator.clipboard.writeText(text);toast('Texto copiado; adjunta el vídeo o imagen en '+platform)}
+    catch(e){window.prompt('Copia el texto para '+platform,text)}
+    const urls={Instagram:'https://www.instagram.com/aihxo.camisetas/',TikTok:'https://www.tiktok.com/@aihxo.camisetas'};
+    window.open(urls[platform]||urls.Instagram,'_blank','noopener');
+  };
   const old=M.tabs.campaigns;
   M.tabs.campaigns=function(root){
     old(root);
     const heading=root.querySelector('.section');
     if(heading&&!root.querySelector('#halloweenCampaignBtn')){
       const b=document.createElement('button');b.type='button';b.className='secondary';b.id='halloweenCampaignBtn';b.textContent='🎃 Preparar pack Halloween 23,95 €';
-      b.onclick=openWizard;heading.appendChild(b);const publish=document.createElement('button');publish.type='button';publish.className='primary';publish.textContent='🚀 Publicar pack Halloween en web';publish.onclick=launchWebsite;heading.appendChild(publish);
+      b.onclick=openWizard;heading.appendChild(b);const publish=document.createElement('button');publish.type='button';publish.className='primary';publish.textContent='🚀 Publicar pack Halloween en web';publish.onclick=launchWebsite;heading.appendChild(publish);const social=document.createElement('div');social.style.cssText='display:flex;gap:8px;flex-wrap:wrap;width:100%';social.innerHTML='<button type="button" class="secondary" onclick="aihxoHalloweenShare(\'Instagram\')">📸 Copiar y abrir Instagram</button><button type="button" class="secondary" onclick="aihxoHalloweenShare(\'TikTok\')">🎵 Copiar y abrir TikTok</button>';heading.insertAdjacentElement('afterend',social);
     }
   };
 })();
