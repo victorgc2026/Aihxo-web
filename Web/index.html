@@ -71,10 +71,16 @@
 }
 .hero.editorial-hero .hero-visual .hero-poster { display: none !important; }
 @media (max-width: 700px) {
+  .hero.editorial-hero .editorial-hero-inner { display: flex; flex-direction: column; }
   .hero.editorial-hero .hero-visual {
-    min-height: 235px;
+    order: -1;
+    width: 100%;
+    min-height: 0;
+    aspect-ratio: 16 / 9;
     background-position: center;
+    background-size: contain;
   }
+  .hero.editorial-hero .hero-copy { order: 1; }
 }
 </style>
 </head>
