@@ -336,6 +336,7 @@
             </details>
             <div id="stColorInfo" class="studio-note">Usa <b>Tomar color</b> y toca un píxel del diseño. Después puedes sustituir ese color por la equivalencia RGB del Pantone elegido.</div>
 
+            <div id="stDtfBySize" class="card" style="margin-top:18px;padding:12px"></div>
             <h3 style="margin-top:18px">Matriz por tallas</h3>
             <div class="studio-note">Las medidas son editables. El diseño mantiene la proporción y se genera una salida por talla.</div>
             <div id="stMatrix" style="margin-top:8px"></div>
@@ -1238,6 +1239,124 @@
     redraw();toast?.('Capa superpuesta');
   }
 
+
+  /* Exportación DTF por talla y color: aislada de la matriz y del proyecto actual. */
+  const dtfSizes=[{size:'S',w:27,h:32},{size:'M',w:28,h:33},{size:'L',w:29,h:34},{size:'XL',w:30,h:35}];
+  const dtfColors=[{id:'BLANCA',label:'Blanca',hex:'#FFFFFF'},{id:'NEGRA',label:'Negra',hex:'#111111'}];
+  const dtfSelection={sizes:new Set(['S','M','L','XL']),colors:new Set(['BLANCA','NEGRA'])};
+  function dtfSafeName(){
+    return (state.projectName||document.querySelector('#stQueueName')?.value||'diseno')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9_-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,55)||'diseno';
+  }
+  function dtfEstimatedDpi(size){
+    let lowest=Infinity;
+    state.objects.filter(o=>o.visible!==false&&o.type==='image'&&o.img).forEach(o=>{
+      const wCm=(Math.abs(o.w)/CM_TO_PX)*size.w/state.widthCm;
+      const hCm=(Math.abs(o.h)/CM_TO_PX)*size.h/state.heightCm;
+      if(wCm>0&&hCm>0)lowest=Math.min(lowest,imgW(o.img)*2.54/wCm,imgH(o.img)*2.54/hCm);
+    });
+    return Number.isFinite(lowest)?Math.round(lowest):null;
+  }
+  function dtfSelectionRows(){
+    const sizes=dtfSizes.filter(x=>dtfSelection.sizes.has(x.size)),colors=dtfColors.filter(x=>dtfSelection.colors.has(x.id));
+    return sizes.flatMap(size=>colors.map(color=>({size,color})));
+  }
+  function renderDtfBySize(){
+    const pane=document.querySelector('#stDtfBySize');if(!pane)return;
+    pane.innerHTML='<h3 style="margin:0 0 7px">Exportar por tallas DTF</h3>'
+      +'<div class="studio-note">PNG transparente a 300 píxeles/pulgada de salida, sin deformar el diseño. El color de camiseta sirve para identificar y previsualizar el destino: <b>no recolorea ni añade un fondo</b>. Si la ilustración tiene zonas negras que se pierden sobre negro, ajústalas antes de exportar.</div>'
+      +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0"><b>Tallas</b>'
+      +dtfSizes.map(z=>'<label><input type="checkbox" data-dtf-size="'+z.size+'" '+(dtfSelection.sizes.has(z.size)?'checked':'')+'> '+z.size+' ('+z.w+'×'+z.h+')</label>').join('')
+      +'</div><div style="display:flex;gap:15px;flex-wrap:wrap;margin:10px 0"><b>Camiseta</b>'
+      +dtfColors.map(z=>'<label><input type="checkbox" data-dtf-color="'+z.id+'" '+(dtfSelection.colors.has(z.id)?'checked':'')+'> '+z.label+'</label>').join('')
+      +'</div><div id="stDtfSizeResults" class="studio-note"></div>';
+    pane.querySelectorAll('[data-dtf-size]').forEach(el=>el.onchange=()=>{el.checked?dtfSelection.sizes.add(el.dataset.dtfSize):dtfSelection.sizes.delete(el.dataset.dtfSize);renderDtfBySize();});
+    pane.querySelectorAll('[data-dtf-color]').forEach(el=>el.onchange=()=>{el.checked?dtfSelection.colors.add(el.dataset.dtfColor):dtfSelection.colors.delete(el.dataset.dtfColor);renderDtfBySize();});
+    const rows=dtfSelectionRows(),results=pane.querySelector('#stDtfSizeResults');
+    if(!rows.length){results.textContent='Selecciona al menos una talla y un color.';return;}
+    results.innerHTML='<div style="margin-bottom:7px">'+rows.length+' PNG para generar · <b>Fondo transparente</b> · sin modificar el proyecto</div>'
+      +rows.map((x,i)=>'<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;padding:5px 0;border-bottom:1px solid #8883"><span>'
+        +x.size.size+' · '+x.size.w+'×'+x.size.h+' cm · '+x.color.label+' · '
+        +(dtfEstimatedDpi(x.size)===null?'imagen/vector':dtfEstimatedDpi(x.size)+' ppp efectivos estimados')
+        +'</span><button type="button" class="secondary" data-dtf-index="'+i+'">PNG ↓</button></div>').join('')
+      +'<button type="button" class="primary" id="stDtfZip" style="width:100%;margin-top:10px">Descargar ZIP ('+rows.length+' PNG)</button>'
+      +'<div id="stDtfExportStatus" style="margin-top:6px" aria-live="polite"></div>';
+    results.querySelectorAll('[data-dtf-index]').forEach(btn=>btn.onclick=()=>dtfExportOne(rows[Number(btn.dataset.dtfIndex)]));
+    results.querySelector('#stDtfZip').onclick=()=>dtfExportZip(rows);
+  }
+  function dtfCanvas(size){
+    const src=outputCanvas();
+    const out=document.createElement('canvas');
+    out.width=Math.round(cm2px(size.w));out.height=Math.round(cm2px(size.h));
+    const g=out.getContext('2d');
+    // Contener proporcionalmente: no distorsionar al cambiar de talla.
+    const scale=Math.min(out.width/src.width,out.height/src.height);
+    g.drawImage(src,(out.width-src.width*scale)/2,(out.height-src.height*scale)/2,src.width*scale,src.height*scale);
+    return out;
+  }
+  function dtfFileName(row){
+    return 'AIHXO_'+dtfSafeName()+'_'+row.size.size+'_'+row.color.id+'_'+row.size.w+'x'+row.size.h+'cm_300ppp.png';
+  }
+  function dtfPngCrc(bytes){
+    let crc=0xffffffff;
+    for(const byte of bytes){crc^=byte;for(let n=0;n<8;n++)crc=(crc>>>1)^(crc&1?0xedb88320:0);}
+    return (crc^0xffffffff)>>>0;
+  }
+  async function dtfSetPhysicalDpi(blob){
+    const src=new Uint8Array(await blob.arrayBuffer());
+    if(src.length<33||String.fromCharCode(...src.slice(1,4))!=='PNG')throw new Error('El navegador no devolvió un PNG válido.');
+    // pHYs especifica píxeles por metro: 11811 equivale aproximadamente a 300 ppp.
+    const chunk=new Uint8Array(21),dv=new DataView(chunk.buffer);
+    dv.setUint32(0,9);chunk.set([112,72,89,115],4);
+    dv.setUint32(8,11811);dv.setUint32(12,11811);chunk[16]=1;
+    dv.setUint32(17,dtfPngCrc(chunk.slice(4,17)));
+    const out=new Uint8Array(src.length+chunk.length);
+    out.set(src.slice(0,33));out.set(chunk,33);out.set(src.slice(33),54);
+    return new Blob([out],{type:'image/png'});
+  }
+  async function dtfBlob(canvas){
+    const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('No se pudo generar el PNG.')),'image/png'));
+    return dtfSetPhysicalDpi(blob);
+  }
+  async function dtfExportOne(row){
+    const status=document.querySelector('#stDtfExportStatus');
+    try{
+      const dpi=dtfEstimatedDpi(row.size);
+      if(dpi!==null&&dpi<300&&!confirm('Atención: resolución efectiva estimada '+dpi+' ppp, inferior a 300. Ampliar no mejora el detalle. ¿Exportar de todas formas?'))return;
+      if(status)status.textContent='Generando '+row.size.size+' · '+row.color.label+'...';
+      const blob=await dtfBlob(dtfCanvas(row.size));dl(blob,dtfFileName(row));
+      if(status)status.textContent='PNG generado: '+dtfFileName(row);
+    }catch(e){if(status)status.textContent='Error: '+e.message;alert('Error al exportar: '+e.message);}
+  }
+  async function dtfLoadZip(){
+    if(window.JSZip)return window.JSZip;
+    await new Promise((resolve,reject)=>{
+      const tag=document.createElement('script');tag.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+      tag.onload=resolve;tag.onerror=()=>reject(new Error('No se pudo cargar el empaquetador ZIP. Usa los botones PNG individuales.'));document.head.appendChild(tag);
+    });
+    if(!window.JSZip)throw new Error('No está disponible la exportación ZIP.');
+    return window.JSZip;
+  }
+  async function dtfExportZip(rows){
+    const status=document.querySelector('#stDtfExportStatus'),button=document.querySelector('#stDtfZip');
+    const low=rows.filter(x=>{const d=dtfEstimatedDpi(x.size);return d!==null&&d<300;});
+    if(low.length&&!confirm('Hay '+low.length+' variantes con resolución efectiva inferior a 300 ppp. El ZIP no aumenta la nitidez. ¿Continuar?'))return;
+    if(button)button.disabled=true;
+    try{
+      const JSZip=await dtfLoadZip(),zip=new JSZip();
+      for(let i=0;i<rows.length;i++){
+        if(status)status.textContent='Preparando '+(i+1)+' de '+rows.length+' archivos...';
+        const blob=await dtfBlob(dtfCanvas(rows[i].size));
+        zip.file(dtfFileName(rows[i]),blob);
+      }
+      if(status)status.textContent='Comprimiendo archivos...';
+      const archive=await zip.generateAsync({type:'blob',compression:'STORE'});
+      dl(archive,'AIHXO_'+dtfSafeName()+'_DTF_S_XL_blanca_negra.zip');
+      if(status)status.textContent='ZIP generado con '+rows.length+' PNG. Revisa la vista previa antes de producción.';
+    }catch(e){if(status)status.textContent='Error: '+e.message;alert(e.message);}
+    finally{if(button)button.disabled=false;}
+  }
+
   function renderMatrix(){
     const box=document.querySelector('#stMatrix');if(!box)return;
     box.innerHTML=state.matrix.map((m,i)=>'<div style="display:grid;grid-template-columns:auto 58px 1fr 1fr 58px;gap:5px;align-items:center;margin-bottom:5px"><input class="stmEn" data-i="'+i+'" type="checkbox" '+(m.enabled!==false?'checked':'')+' style="width:auto"><b>'+esc(m.size)+'</b><input class="stmW" data-i="'+i+'" type="number" step=".1" value="'+m.w+'" title="Ancho cm"><input class="stmH" data-i="'+i+'" type="number" step=".1" value="'+m.h+'" title="Alto cm"><input class="stmQ" data-i="'+i+'" type="number" min="1" value="'+(m.qty||1)+'" title="Cantidad"></div>').join('');
@@ -1476,6 +1595,7 @@
     document.querySelector('#stPreflight').onclick=runPreflight;
     refreshProjectList();refreshSharedProjects();
     renderMatrix();
+    renderDtfBySize();
     renderQueue();
     updateHistoryButtons();
     document.querySelector('#stPalette').onchange=e=>{const p=state.palette[Number(e.target.value)];if(!p)return;document.querySelector('#stPantoneName').value=p.name;document.querySelector('#stPantoneHex').value=p.hex;};
