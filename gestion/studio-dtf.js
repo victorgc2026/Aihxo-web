@@ -1297,8 +1297,26 @@
   function dtfFileName(row){
     return 'AIHXO_'+dtfSafeName()+'_'+row.size.size+'_'+row.color.id+'_'+row.size.w+'x'+row.size.h+'cm_300ppp.png';
   }
-  function dtfBlob(canvas){
-    return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('No se pudo generar el PNG.')),'image/png'));
+  function dtfPngCrc(bytes){
+    let crc=0xffffffff;
+    for(const byte of bytes){crc^=byte;for(let n=0;n<8;n++)crc=(crc>>>1)^(crc&1?0xedb88320:0);}
+    return (crc^0xffffffff)>>>0;
+  }
+  async function dtfSetPhysicalDpi(blob){
+    const src=new Uint8Array(await blob.arrayBuffer());
+    if(src.length<33||String.fromCharCode(...src.slice(1,4))!=='PNG')throw new Error('El navegador no devolvió un PNG válido.');
+    // pHYs especifica píxeles por metro: 11811 equivale aproximadamente a 300 ppp.
+    const chunk=new Uint8Array(21),dv=new DataView(chunk.buffer);
+    dv.setUint32(0,9);chunk.set([112,72,89,115],4);
+    dv.setUint32(8,11811);dv.setUint32(12,11811);chunk[16]=1;
+    dv.setUint32(17,dtfPngCrc(chunk.slice(4,17)));
+    const out=new Uint8Array(src.length+chunk.length);
+    out.set(src.slice(0,33));out.set(chunk,33);out.set(src.slice(33),54);
+    return new Blob([out],{type:'image/png'});
+  }
+  async function dtfBlob(canvas){
+    const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('No se pudo generar el PNG.')),'image/png'));
+    return dtfSetPhysicalDpi(blob);
   }
   async function dtfExportOne(row){
     const status=document.querySelector('#stDtfExportStatus');
