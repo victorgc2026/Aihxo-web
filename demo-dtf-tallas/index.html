@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>AIHXO Studio · Prueba exportación DTF</title>
+<style>
+:root{--line:#32415a;--shadow:0 3px 16px #0002}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Arial;background:#101827;color:#e9eef8}
+header{background:#15233a;padding:12px 18px;border-bottom:1px solid #465675;position:sticky;top:0;z-index:3}header b{font-size:17px}header small{display:block;color:#a6b8cd}
+#nav{padding:10px 16px;display:flex;gap:8px}#nav button,button{cursor:pointer;border-radius:8px;padding:9px 11px}
+#view{padding:6px 14px 28px}#view .page{max-width:1450px;margin:auto}#view .studio-panel{color:#182338}#view .muted{color:#64748b}
+#demoToast{padding:0 18px 8px;color:#a8ccec;font-size:13px}
+.primary{background:#234775;color:#fff;border:0}.secondary{background:#e6edf7;color:#182338;border:1px solid #b6c7db}
+input,select,textarea{max-width:100%} .section{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+@media(max-width:740px){#view{padding:4px 8px}header{padding:10px 12px}}
+</style></head><body>
+<header><b>AIHXO STUDIO · LABORATORIO DTF</b><small>Versión de pruebas independiente · No modifica Gestión · No uses aquí datos sensibles</small></header>
+<nav id="nav"></nav><div id="demoToast"></div><h1 id="title" style="display:none"></h1><main id="view"></main>
+<script src="studio-dtf.js?v=20261013-a"></script>
+<script>function start(){if(window.aihxoStudioDTFView)window.aihxoStudioDTFView();else document.querySelector('#view').textContent='No se pudo iniciar Studio';}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();</script>
+</body></html>
