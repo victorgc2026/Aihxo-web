@@ -15,4 +15,4 @@ $('#login').onsubmit=async e=>{e.preventDefault();msg('Comprobando acceso…');c
 $('#logout').onclick=async()=>{await supabaseClient.auth.signOut();msg('Sesión cerrada.');await refresh();};
 $('#launch').onclick=()=>{if(typeof window.abrirAIHXOModelosEscenarios==='function')window.abrirAIHXOModelosEscenarios();else msg('El módulo no se ha cargado correctamente.')};
 refresh();
-</script><script src="modelos-escenarios.js?v=20261014-preview1"></script></body></html>
+</script><script src="modelos-escenarios-preview.js?v=20261014-preview2"></script></body></html>
