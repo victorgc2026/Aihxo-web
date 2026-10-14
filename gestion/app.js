@@ -55,6 +55,7 @@ function showLogin(message=''){
  };
 }
 function showApp(session){document.body.innerHTML=`<div id="app"><aside class="sidebar"><div class="brand"><div class="brandmark">AIHXO</div><small>GESTIÓN ONLINE</small></div><nav id="nav">
+  <button type="button" id="aihxoModelSceneNav" onclick="if(typeof window.abrirAIHXOModelosEscenarios==='function'){window.abrirAIHXOModelosEscenarios()}else{alert('El módulo de modelos no se ha cargado; recarga Gestión.')}">🎲 <span>Modelos y escenarios</span></button>
 
   <button data-view="dashboard">
     🏠 <span>Hoy</span>
