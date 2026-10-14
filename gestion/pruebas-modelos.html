@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><title>AIHXO · Pruebas de modelos</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#17233b;background:#eef2f7}*{box-sizing:border-box}body{margin:0;padding:16px}main{max-width:760px;margin:24px auto;background:white;border-radius:20px;padding:24px;box-shadow:0 12px 40px #15233720}.muted{color:#64748b}input{display:block;width:100%;margin:7px 0 16px;padding:13px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px}button{cursor:pointer;padding:12px 16px;border-radius:10px;border:1px solid #cbd5e1;font-weight:600}.primary{background:#087cf4;color:white;border-color:#087cf4}.secondary{background:#f1f5f9;color:#10213b}#nav{display:flex;gap:10px;flex-wrap:wrap}#message{min-height:24px}a{color:#075cc5}#nav button{display:none}#nav #aihxoModelSceneNav{display:block}
+</style></head><body><main><div style="font-size:12px;letter-spacing:1px;color:#087cf4;font-weight:800">AIHXO · ENTORNO DE PRUEBAS</div><h1>Modelos y escenarios</h1><p class="muted">Prueba separada de Gestión. No modifica productos, pedidos ni existencias.</p>
+<section id="signin"><p>Entra con el mismo usuario administrador de AIHXO Gestión.</p><form id="login"><label>Correo electrónico<input id="email" type="email" autocomplete="username" required></label><label>Contraseña<input id="password" type="password" autocomplete="current-password" required></label><button class="primary" type="submit">Entrar para probar</button></form></section>
+<section id="ready" hidden><div id="nav"></div><p>Abre el selector, elige una prenda base y utiliza «Modelo aleatorio».</p><button id="launch" class="primary">🎲 Abrir modelos y escenarios</button><button id="logout" class="secondary">Cerrar sesión</button></section>
+<p id="message" role="status" class="muted"></p><p><a href="/gestion/">← Volver a Gestión</a></p></main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const url='https://zoiesxtchnesrilpuqek.supabase.co',key='sb_publishable_-DyRFQxtVvvwiPlvkZyUtA_upKb2W7T';
+window.supabaseClient=supabase.createClient(url,key);
+const $=x=>document.querySelector(x),msg=t=>$('#message').textContent=t;
+async function refresh(){const {data:{session},error}=await supabaseClient.auth.getSession();if(error)msg('No se pudo comprobar la sesión.');const allowed=session?.user?.email?.toLowerCase()==='aihxo.camisetas@gmail.com';$('#signin').hidden=!!allowed;$('#ready').hidden=!allowed;if(session&&!allowed)msg('Esta cuenta no tiene acceso de administrador.');}
+$('#login').onsubmit=async e=>{e.preventDefault();msg('Comprobando acceso…');const {error}=await supabaseClient.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#password').value});if(error){msg('No se pudo iniciar sesión: '+error.message);return;}msg('Acceso correcto.');await refresh();};
+$('#logout').onclick=async()=>{await supabaseClient.auth.signOut();msg('Sesión cerrada.');await refresh();};
+$('#launch').onclick=()=>{if(typeof window.abrirAIHXOModelosEscenarios==='function')window.abrirAIHXOModelosEscenarios();else msg('El módulo no se ha cargado correctamente.')};
+refresh();
+</script><script src="modelos-escenarios.js?v=20261014-preview1"></script></body></html>
