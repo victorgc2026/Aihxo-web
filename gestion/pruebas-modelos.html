@@ -124,4 +124,32 @@ refresh();
  observer.observe(document.documentElement,{childList:true,subtree:true});attach();
 })();
 
+</script>
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+let design=null,generated=null;
+const box=document.createElement('section');
+box.id='newMockupMode';
+box.innerHTML='<hr><h2>✨ Crear mockup desde cero (beta)</h2><p class="muted">Genera una fotografía conceptual con IA y superpone tu PNG. Comprueba colocación, prenda y diseño antes de publicarla.</p><label>Prenda base<select id="nmGarment"></select></label><label>Color de prenda<input id="nmColor" type="text" value="negro" placeholder="Color de fabricante"></label><label>Modelo<select id="nmGender"><option value="hombre">Hombre adulto</option><option value="mujer">Mujer adulta</option></select></label><label>Escenario<select id="nmScene"><option value="studio">Estudio</option><option value="urbano">Urbano</option><option value="playa">Costa / playa</option><option value="minimal">Estudio premium</option></select></label><label>Vista<select id="nmSide"><option value="front">Delantera</option><option value="back">Trasera</option></select></label><label>Diseño PNG transparente<input id="nmDesign" type="file" accept="image/png"></label><button id="nmGenerate" class="primary" type="button">✨ Generar modelo y escenario</button><p id="nmStatus" role="status" class="muted"></p><canvas id="nmCanvas" width="768" height="1024" style="width:100%;max-width:500px;display:none;border-radius:12px"></canvas><div id="nmAdjust" hidden><label>Tamaño del diseño<input id="nmSize" type="range" min="5" max="65" value="24"></label><label>Horizontal<input id="nmX" type="range" min="15" max="85" value="50"></label><label>Vertical<input id="nmY" type="range" min="15" max="85" value="43"></label><button id="nmDownload" class="primary" type="button">Descargar mockup PNG</button></div>';
+$('#ready').appendChild(box);
+const status=s=>$('#nmStatus').textContent=s;
+async function loadGarments(){const {data,error}=await supabaseClient.from('garments').select('id,manufacturer,model,colors').eq('active',true).order('manufacturer');if(error){status('No se pudieron cargar prendas: '+error.message);return;}$('#nmGarment').innerHTML=(data||[]).map(g=>'<option value="'+g.id+'">'+String(g.manufacturer||'')+' · '+String(g.model||'')+'</option>').join('');}
+function redraw(){if(!generated)return;const c=$('#nmCanvas'),x=c.getContext('2d');x.clearRect(0,0,768,1024);x.drawImage(generated,0,0,768,1024);if(design){const w=768*Number($('#nmSize').value)/100,h=w*design.height/design.width,px=768*Number($('#nmX').value)/100,py=1024*Number($('#nmY').value)/100;x.drawImage(design,px-w/2,py-h/2,w,h)}}
+$('#nmDesign').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;if(f.type!=='image/png'||f.size>12e6){status('Sube PNG de menos de 12 MB.');return;}const u=URL.createObjectURL(f);const img=new Image();img.onload=()=>{design=img;URL.revokeObjectURL(u);redraw();status('Diseño listo para superponer.')};img.onerror=()=>{URL.revokeObjectURL(u);status('No se pudo leer el PNG.')};img.src=u;};
+['nmSize','nmX','nmY'].forEach(id=>$('#'+id).oninput=redraw);
+$('#nmGenerate').onclick=async()=>{
+const btn=$('#nmGenerate');btn.disabled=true;status('Solicitando fotografía al generador de IA…');
+try{
+const g=$('#nmGarment').selectedOptions[0]?.textContent||'camiseta lisa';
+const scene=$('#nmScene').value,side=$('#nmSide').value;
+const idea='Fotografía comercial hiperrealista y natural de un modelo '+$('#nmGender').selectedOptions[0].textContent+', diferente y no famoso, vistiendo '+g+' de color '+$('#nmColor').value+'. Mostrar '+(side==='front'?'el frente':'la espalda')+' de la prenda lisa y SIN logos, SIN ilustraciones, SIN texto; camiseta bien visible, centrada, sin pliegues excesivos, iluminación profesional. Escenario '+scene+'. Fotografía de ropa para ecommerce.';
+const {data,error}=await supabaseClient.functions.invoke('creative-image',{body:{mode:'mockup',idea,scene}});
+if(error)throw error;if(!data?.image)throw Error(data?.error||'El proveedor no devolvió fotografía.');
+const img=new Image();img.crossOrigin='anonymous';await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=data.image});generated=img;$('#nmCanvas').style.display='block';$('#nmAdjust').hidden=false;redraw();status('Imagen conceptual generada. Ajusta el PNG sobre la prenda. La superposición es aproximada: revisa antes de publicar.');
+}catch(e){status('No se pudo generar la imagen: '+(e?.message||'error del proveedor')+'. El servicio de IA puede requerir configuración o créditos.');}finally{btn.disabled=false;}
+};
+$('#nmDownload').onclick=()=>{if(!generated)return;try{$('#nmCanvas').toBlob(b=>{if(!b){status('No se pudo exportar.');return;}const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='aihxo-mockup-conceptual.png';a.click();setTimeout(()=>URL.revokeObjectURL(u),4000)},'image/png')}catch(e){status('No se pudo exportar la imagen.')}};
+supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session)loadGarments()});supabaseClient.auth.getSession().then(({data})=>{if(data?.session)loadGarments()});
+})();
 </script></body></html>
