@@ -152,4 +152,39 @@ const img=new Image();img.crossOrigin='anonymous';await new Promise((res,rej)=>{
 $('#nmDownload').onclick=()=>{if(!generated)return;try{$('#nmCanvas').toBlob(b=>{if(!b){status('No se pudo exportar.');return;}const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='aihxo-mockup-conceptual.png';a.click();setTimeout(()=>URL.revokeObjectURL(u),4000)},'image/png')}catch(e){status('No se pudo exportar la imagen.')}};
 supabaseClient.auth.onAuthStateChange((_event,session)=>{if(session)loadGarments()});supabaseClient.auth.getSession().then(({data})=>{if(data?.session)loadGarments()});
 })();
+</script>
+<script>
+(function(){
+const $=q=>document.querySelector(q);
+let base=null,art=null,items=[];
+const area=document.createElement('section');area.id='freeMockups';
+area.innerHTML='<hr><h2>🆓 Mockup sin créditos ni pagos</h2><p class="muted">Elige una fotografía que ya tengas autorizada o una del Banco AIHXO. Coloca tu diseño PNG sobre ella y descarga la composición. Todo se procesa en tu navegador, sin IA.</p><label>Plantilla del banco<select id="freeBank"><option value="">Seleccionar fotografía guardada...</option></select></label><button type="button" id="freeLoad" class="secondary">Cargar banco AIHXO</button><label>O subir fotografía con permiso comercial<input id="freePhoto" type="file" accept="image/png,image/jpeg,image/webp"></label><label>Diseño PNG transparente<input id="freeArt" type="file" accept="image/png"></label><label>Ancho diseño (%)<input type="range" id="freeSize" min="5" max="75" value="30"></label><label>Horizontal (%)<input type="range" id="freeX" min="5" max="95" value="50"></label><label>Vertical (%)<input type="range" id="freeY" min="5" max="95" value="45"></label><canvas id="freeCanvas" width="900" height="1100" style="display:block;width:100%;max-width:500px;border-radius:12px;background:#e9edf3"></canvas><p id="freeStatus" class="muted" role="status">Sube una imagen o elige una del banco.</p><button type="button" id="freeSave" class="primary">Descargar PNG sin coste</button><p class="muted" style="font-size:12px">Resultado conceptual 2D. No recolorea la prenda, no ajusta automáticamente pliegues ni sustituye a una plantilla PSD con máscara. Para publicitar AIHXO, utiliza solo fotografías con licencia y permisos de imagen apropiados.</p>';
+$('#ready').append(area);
+const status=t=>$('#freeStatus').textContent=t;
+function render(){
+ const c=$('#freeCanvas'),ctx=c.getContext('2d');ctx.fillStyle='#e9edf3';ctx.fillRect(0,0,c.width,c.height);
+ if(!base){ctx.fillStyle='#65758a';ctx.font='22px system-ui';ctx.textAlign='center';ctx.fillText('Selecciona una fotografía',450,550);return;}
+ const ratio=Math.max(c.width/base.width,c.height/base.height),dw=base.width*ratio,dh=base.height*ratio;
+ ctx.drawImage(base,(c.width-dw)/2,(c.height-dh)/2,dw,dh);
+ if(art){const w=c.width*Number($('#freeSize').value)/100,h=w*art.height/art.width,x=c.width*Number($('#freeX').value)/100,y=c.height*Number($('#freeY').value)/100;ctx.drawImage(art,x-w/2,y-h/2,w,h);}
+}
+function readFile(file,cb){if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>15e6){status('Formato no válido o más de 15 MB.');return;}const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{URL.revokeObjectURL(u);cb(im);render()};im.onerror=()=>{URL.revokeObjectURL(u);status('No se pudo abrir la imagen.')};im.src=u;}
+$('#freePhoto').onchange=e=>readFile(e.target.files[0],im=>{base=im;status('Fotografía cargada. Ahora ajusta el diseño PNG.');});
+$('#freeArt').onchange=e=>{const f=e.target.files[0];if(f&&f.type!=='image/png'){status('El diseño debe ser PNG.');return;}readFile(f,im=>{art=im;status('Diseño cargado. Puedes ajustar tamaño y posición.');});};
+['freeSize','freeX','freeY'].forEach(k=>$('#'+k).oninput=render);
+$('#freeLoad').onclick=async()=>{
+ status('Cargando fotografías autorizadas del banco...');
+ const {data,error}=await supabaseClient.from('mockup_templates').select('id,name,image_url,gender,side').eq('active',true).order('name');
+ if(error){status('No se pudo leer el banco: '+error.message);return;}
+ items=(data||[]).filter(x=>x.image_url);const sel=$('#freeBank');sel.innerHTML='<option value="">Seleccionar fotografía guardada...</option>';
+ items.forEach((p,i)=>{const op=document.createElement('option');op.value=String(i);op.textContent=p.name+' · '+(p.gender||'')+' · '+(p.side==='back'?'Trasera':'Delantera');sel.append(op)});
+ status(items.length+' fotografía(s) disponibles. Utiliza solo las que tengan derechos de uso confirmados.');
+};
+$('#freeBank').onchange=()=>{
+ const p=items[Number($('#freeBank').value)];if(!p)return;
+ const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{base=im;render();status('Modelo cargado del banco. Añade tu diseño.');};im.onerror=()=>status('La fotografía no permite composición directa. Descárgala y súbela desde tu dispositivo.');im.src=p.image_url;
+};
+$('#freeSave').onclick=()=>{if(!base){status('Primero selecciona una foto.');return;}try{$('#freeCanvas').toBlob(blob=>{if(!blob){status('No se pudo crear PNG.');return;}const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='AIHXO-mockup-gratis.png';a.click();setTimeout(()=>URL.revokeObjectURL(u),4000)},'image/png')}catch(e){status('No se puede exportar esta foto desde el navegador. Prueba subiéndola desde Archivos.')}};
+render();
+})();
 </script></body></html>
