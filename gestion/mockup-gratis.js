@@ -26,8 +26,8 @@ async function loadPdf(file){
  }catch(e){status('No se pudo abrir este PDF: '+e.message+'. Prueba con la versión PNG del diseño.')}
 }
 $('#mfDesign').onchange=async e=>{const f=e.target.files[0];if(!f)return;
- if(f.type==='application/pdf'||/\\.pdf$/i.test(f.name)){await loadPdf(f);return;}
- if(!['image/png','image/jpeg','image/webp'].includes(f.type)&& !/\\.(png|jpg|jpeg|webp)$/i.test(f.name)){status('El archivo no es imagen ni PDF.');return;}
+ if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){await loadPdf(f);return;}
+ if(!['image/png','image/jpeg','image/webp'].includes(f.type)&& !/\.(png|jpg|jpeg|webp)$/i.test(f.name)){status('El archivo no es imagen ni PDF.');return;}
  openFile(f,img=>{design=img;status('Diseño cargado. Ajusta la posición.')});
 };
 ['#mfSize','#mfX','#mfY'].forEach(k=>$(k).oninput=paint);
