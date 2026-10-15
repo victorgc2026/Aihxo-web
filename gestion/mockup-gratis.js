@@ -9,9 +9,9 @@ document.body.appendChild(wrap);
 const $=q=>wrap.querySelector(q);let photo=null,design=null,templates=[],libraryFiles=[];
 $('#mfClose').onclick=()=>wrap.remove();const status=t=>$('#mfStatus').textContent=t;
 const canvas=$('#mfCanvas'),ctx=canvas.getContext('2d');
-function paint(){ctx.clearRect(0,0,900,1100);ctx.fillStyle='#e7edf4';ctx.fillRect(0,0,900,1100);if(!photo){ctx.fillStyle='#54657b';ctx.font='23px system-ui';ctx.textAlign='center';ctx.fillText('Selecciona una fotografía',450,550);return;}const s=Math.max(900/photo.width,1100/photo.height),w=photo.width*s,h=photo.height*s;ctx.drawImage(photo,(900-w)/2,(1100-h)/2,w,h);if(design){const dw=900*(+$('#mfSize').value)/100,dh=dw*design.height/design.width,x=9*(+$('#mfX').value),y=11*(+$('#mfY').value);ctx.drawImage(design,x-dw/2,y-dh/2,dw,dh)}}
+function paint(){ctx.clearRect(0,0,900,1100);ctx.fillStyle='#e7edf4';ctx.fillRect(0,0,900,1100);if(!photo){ctx.fillStyle='#54657b';ctx.font='23px system-ui';ctx.textAlign='center';ctx.fillText('Selecciona una fotografía',450,550);return;}const usableH=photo.height*0.91;const s=Math.min(900/photo.width,1100/usableH),w=photo.width*s,h=usableH*s;ctx.drawImage(photo,0,0,photo.width,usableH,(900-w)/2,(1100-h)/2,w,h);if(design){const dw=900*(+$('#mfSize').value)/100,dh=dw*design.height/design.width,x=9*(+$('#mfX').value),y=11*(+$('#mfY').value);ctx.drawImage(design,x-dw/2,y-dh/2,dw,dh)}}
 function openFile(file,cb){if(!file||!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>15*1024*1024){status('Selecciona PNG/JPG/WebP de hasta 15 MB.');return;}const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{cb(img);paint();URL.revokeObjectURL(url)};img.onerror=()=>{URL.revokeObjectURL(url);status('No se pudo abrir la imagen.')};img.src=url}
-$('#mfPhoto').onchange=e=>openFile(e.target.files[0],img=>{photo=img;status('Fotografía cargada.')});
+$('#mfPhoto').onchange=e=>openFile(e.target.files[0],img=>{photo=img;status('Fotografía cargada: '+img.naturalWidth+' × '+img.naturalHeight+' px.')});
 async function loadPdf(file){
  if(file.size>25*1024*1024){status('El PDF supera 25 MB.');return;}
  status('Abriendo PDF…');
@@ -52,7 +52,7 @@ $('#mfLib').onchange=async()=>{const f=libraryFiles[Number($('#mfLib').value)];i
  openFile(file,img=>{design=img;status('Diseño '+f.file_name+' cargado. Ajusta escala y posición.')});
 }catch(e){status('Error al abrir diseño: '+e.message)}};
 $('#mfLoad').onclick=async()=>{status('Cargando banco…');try{const {data,error}=await window.supabaseClient.from('mockup_templates').select('id,name,image_url').eq('active',true).order('name');if(error)throw error;templates=(data||[]).filter(x=>x.image_url);const sel=$('#mfBank');sel.replaceChildren(new Option('Selecciona fotografía',''));templates.forEach((t,i)=>sel.add(new Option(t.name,String(i))));status(templates.length+' fotografías disponibles.')}catch(e){status('Error al cargar banco: '+e.message)}};
-$('#mfBank').onchange=()=>{const t=templates[Number($('#mfBank').value)];if(!t)return;const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{photo=img;paint();status('Plantilla cargada.')};img.onerror=()=>status('No se pudo cargar esa fotografía. Descárgala y vuelve a subirla desde Archivos.');img.src=t.image_url};
+$('#mfBank').onchange=()=>{const t=templates[Number($('#mfBank').value)];if(!t)return;const img=new Image();img.crossOrigin='anonymous';img.onload=()=>{photo=img;paint();status('Plantilla cargada. Calidad original: '+img.naturalWidth+' × '+img.naturalHeight+' px. Si es pequeña, el resultado no será profesional.')};img.onerror=()=>status('No se pudo cargar esa fotografía. Descárgala y vuelve a subirla desde Archivos.');img.src=t.image_url};
 $('#mfDownload').onclick=()=>{if(!photo){status('Selecciona primero una fotografía.');return;}try{canvas.toBlob(b=>{if(!b){status('No se pudo generar el PNG.');return;}const url=URL.createObjectURL(b),a=document.createElement('a');a.href=url;a.download='AIHXO-mockup.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000)},'image/png')}catch(e){status('No se puede exportar esa fotografía. Súbela desde Archivos.')}};
 paint();
 };
