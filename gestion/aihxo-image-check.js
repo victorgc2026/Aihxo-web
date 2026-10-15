@@ -72,7 +72,7 @@
       if(!wcm||!hcm){out.innerHTML='<div class="card">Indica el tamaño final de impresión.</div>';return;}
       out.innerHTML='<div class="card">Analizando…</div>';
       try{
-        if(file.type==='application/pdf'||/\\.pdf$/i.test(file.name)){
+        if(file.type==='application/pdf'||/\.pdf$/i.test(file.name)){
           const p=await inspectPdf(file);
           out.innerHTML='<div class="card"><h3>📄 PDF reconocido</h3><p><b>Archivo:</b> '+esc(file.name)+'</p><p><b>Páginas:</b> '+p.pages+'</p><p><b>Tamaño de página:</b> '+p.widthCm.toFixed(1)+' × '+p.heightCm.toFixed(1)+' cm</p><p><b>Medida de impresión solicitada:</b> '+wcm+' × '+hcm+' cm</p><p>⚠️ <b>Calidad DTF pendiente de verificar.</b> Un PDF puede contener imágenes rasterizadas, vectores y transparencias. El tamaño de página no acredita 300 ppp ni fondo transparente. Este control no modifica el original.</p></div>';
           return;
