@@ -40,13 +40,28 @@
     }finally{URL.revokeObjectURL(url);}
   }
 
+  async function inspectPdf(file){
+    if(file.size>30*1024*1024)throw Error('PDF demasiado grande (máximo 30 MB).');
+    if(!window.pdfjsLib){
+      await new Promise((resolve,reject)=>{
+        const script=document.createElement('script');
+        script.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        script.onload=resolve;
+        script.onerror=()=>reject(Error('No se pudo cargar el lector PDF'));
+        document.head.appendChild(script);
+      });
+    }
+    const pdf=await window.pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer()),disableWorker:true}).promise;
+    const page=await pdf.getPage(1),size=page.getViewport({scale:1});
+    return {pages:pdf.numPages,widthCm:size.width*2.54/72,heightCm:size.height*2.54/72};
+  }
   function view(){
     document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('active'));
     document.querySelector('#aihxoImageCheckNav')?.classList.add('active');
     const title=document.querySelector('#title');if(title)title.textContent='Control DTF';
     const root=document.querySelector('#view');if(!root)return;
     root.innerHTML=`<div class="page"><div class="section"><div><h2 style="margin:0">🖼 Control técnico DTF</h2><div class="muted">Comprueba resolución, tamaño de impresión y transparencia sin modificar el archivo.</div></div></div>
-      <div class="card"><label>Archivo</label><input id="dtfFile" type="file" accept="image/png,image/jpeg,image/webp">
+      <div class="card"><label>Archivo</label><input id="dtfFile" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf">
       <div class="grid two" style="margin-top:12px"><div><label>Ancho de impresión (cm)</label><input id="dtfW" type="number" min="1" step="0.5" value="28"></div><div><label>Alto de impresión (cm)</label><input id="dtfH" type="number" min="1" step="0.5" value="30"></div></div>
       <div style="margin-top:12px"><button id="dtfCheck" class="primary">Analizar archivo</button></div></div>
       <div id="dtfResult" style="margin-top:14px"></div></div>`;
@@ -57,6 +72,11 @@
       if(!wcm||!hcm){out.innerHTML='<div class="card">Indica el tamaño final de impresión.</div>';return;}
       out.innerHTML='<div class="card">Analizando…</div>';
       try{
+        if(file.type==='application/pdf'||/\\.pdf$/i.test(file.name)){
+          const p=await inspectPdf(file);
+          out.innerHTML='<div class="card"><h3>📄 PDF reconocido</h3><p><b>Archivo:</b> '+esc(file.name)+'</p><p><b>Páginas:</b> '+p.pages+'</p><p><b>Tamaño de página:</b> '+p.widthCm.toFixed(1)+' × '+p.heightCm.toFixed(1)+' cm</p><p><b>Medida de impresión solicitada:</b> '+wcm+' × '+hcm+' cm</p><p>⚠️ <b>Calidad DTF pendiente de verificar.</b> Un PDF puede contener imágenes rasterizadas, vectores y transparencias. El tamaño de página no acredita 300 ppp ni fondo transparente. Este control no modifica el original.</p></div>';
+          return;
+        }
         const r=await analyse(file,wcm,hcm),q=quality(r.dpi),isJpeg=r.type==='image/jpeg';
         const transp=isJpeg?'❌ JPEG no admite transparencia real':(r.transparent?`✅ Tiene transparencia (${r.alphaPct}% de píxeles con alfa)`:'⚠️ No se ha detectado transparencia');
         const needsW=Math.ceil((wcm/2.54)*300),needsH=Math.ceil((hcm/2.54)*300);
@@ -66,7 +86,7 @@
           <div><b>Resolución efectiva:</b> ~${r.dpi} ppp</div><div><b>Transparencia:</b> ${transp}</div>
           <div><b>Referencia para 300 ppp:</b> mínimo aprox. ${needsW} × ${needsH} px</div></div>
           <hr style="margin:16px 0;border:0;border-top:1px solid #e4e7ec"><p class="muted"><b>Importante:</b> este control no modifica ni regenera archivos finales del cliente. Solo comprueba si técnicamente parecen adecuados para DTF.</p></div>`;
-      }catch(e){out.innerHTML='<div class="card">⚠️ No se pudo analizar esta imagen.</div>';}
+      }catch(e){out.innerHTML='<div class="card">⚠️ No se pudo analizar este archivo: '+esc(e.message)+'</div>';}
     };
   }
 
