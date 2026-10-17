@@ -172,6 +172,15 @@
           alert('Las cantidades de la factura deben ser números enteros positivos. Revisa las líneas.');
           return;
         }
+        const invoiceItems=new Set();
+        if(drafts.some(x=>{
+          const id=String(x.item_id);
+          if(invoiceItems.has(id))return true;
+          invoiceItems.add(id);return false;
+        })){
+          alert('La factura contiene varias líneas de la misma prenda. Revisa y agrupa las cantidades antes de crear las líneas de compra.');
+          return;
+        }
 
 
         btn.disabled=true;btn.textContent='Creando líneas…';
