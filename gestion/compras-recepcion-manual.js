@@ -158,7 +158,7 @@
         const btn=modal.querySelector('#irrSave');
         const drafts=[...modal.querySelectorAll('.invoiceRecoveredRow')].map(row=>({
           item_id:row.querySelector('.irrItem').value,
-          ordered_quantity:Number(row.querySelector('.irrQty').value),
+          ordered_quantity:row.querySelector('.irrQty').value.trim()===''?NaN:Number(row.querySelector('.irrQty').value),
           received_quantity:0,
           unit_cost:row.querySelector('.irrCost').value.trim()===''?NaN:Number(row.querySelector('.irrCost').value)
         }));
