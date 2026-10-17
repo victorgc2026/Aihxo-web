@@ -190,8 +190,10 @@
     document.getElementById('confirmBatch')?.addEventListener('click',confirmBatch);
   }
 
+  let receiptSubmitting=false;
   async function confirmBatch(){
-    if(!batch.length)return;
+    if(receiptSubmitting||!batch.length)return;
+    receiptSubmitting=true;
     stopScanner();
     const btn=document.getElementById('confirmBatch'); btn.disabled=true; btn.textContent='Guardando…';
     try{
@@ -207,6 +209,8 @@
       console.error(e);
       alert(e.code==='23505'?'Ese código ya está asociado a otra variante.':(e.message||'No se pudo guardar el recuento.'));
       btn.disabled=false; renderBatch(); startScanner(true);
+    }finally{
+      receiptSubmitting=false;
     }
   }
 
