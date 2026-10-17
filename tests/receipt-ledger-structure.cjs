@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const sql=fs.readFileSync(path.join(__dirname,'../database/proposals/20261017-receipt-request-ledger.sql'),'utf8');
+assert.match(sql,/request_id uuid primary key/i);
+assert.match(sql,/actor_id uuid not null/i);
+assert.match(sql,/payload_hash text not null/i);
+assert.match(sql,/alter table public\.stock_receipt_requests enable row level security/i);
+assert.match(sql,/revoke all on public\.stock_receipt_requests from public, anon, authenticated/i);
+assert.match(sql,/grant select on public\.stock_receipt_requests to authenticated/i);
+assert.match(sql,/actor_id=auth\.uid\(\)/i);
+assert.doesNotMatch(sql,/\b(?:update|insert into|delete from)\s+public\.(?:base_stock_items|orders|base_stock_movements|purchase_lines)\b/i);
+console.log('PASS: idempotency ledger proposal has unique request key, RLS and no stock writes');
