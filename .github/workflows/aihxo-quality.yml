@@ -108,6 +108,7 @@ jobs:
           psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-purchase-test.sql
           psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-purchase-atomicity.sql
           psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-purchase-multisku.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-purchase-retry-after-failure.sql
           bash tests/receipt-purchase-concurrency.sh
           psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-rollback-test.sql
           bash tests/receipt-concurrency.sh
