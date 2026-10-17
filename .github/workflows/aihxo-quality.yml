@@ -33,6 +33,8 @@ jobs:
         run: node tests/order-status-checklist.cjs
       - name: Test cancellation and stock guard
         run: node tests/order-cancellation-guard.cjs
+      - name: Test closed orders in Kanban
+        run: node tests/kanban-closed-orders.cjs
       - name: Install Playwright test runtime
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
