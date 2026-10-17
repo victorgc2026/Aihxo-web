@@ -20,7 +20,7 @@
     }
   };
 
-  function modelKey(t){return String(t.name||'Modelo').replace(/\s*·\s*(Delantera|Trasera)\s*$/i,'').replace(/\s*-\s*(Delantera|Trasera)\s*$/i,'').trim()}
+  function modelKey(t){return String(t.name||'Modelo').replace(/\s*[·-]\s*(Delantera|Trasera)(?=\s*[·-]|\s*$)/gi,'').replace(/\s*[·-]\s*$/,'').trim()}
   function hexForColor(g,name){return (g?.color_map||{})[name]||'#ffffff'}
   function selectedGarment(){return garments.find(g=>String(g.id)===String(state.garmentId))||null}
   function garmentFamily(){const g=selectedGarment(),m=String(g?.model||'').toLowerCase(),a=String(g?.audience||'').toLowerCase();if(m.includes('kids')||a.includes('infantil')||a.includes('niñ'))return 'kids';if(m.includes('woman')||a.includes('mujer'))return 'woman';return 'unisex'}
