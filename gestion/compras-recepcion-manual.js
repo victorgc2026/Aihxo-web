@@ -158,7 +158,7 @@
         const btn=modal.querySelector('#irrSave');
         const drafts=[...modal.querySelectorAll('.invoiceRecoveredRow')].map(row=>({
           item_id:row.querySelector('.irrItem').value,
-          ordered_quantity:Math.max(1,Math.round(N(row.querySelector('.irrQty').value)||1)),
+          ordered_quantity:Number(row.querySelector('.irrQty').value),
           received_quantity:0,
           unit_cost:Math.max(0,N(row.querySelector('.irrCost').value))
         }));
@@ -167,6 +167,12 @@
           toast?.('Revisa las líneas sin prenda asociada');
           return;
         }
+        if(drafts.some(x=>!Number.isSafeInteger(x.ordered_quantity)||
+          x.ordered_quantity<1||x.ordered_quantity>2147483647)){
+          alert('Las cantidades de la factura deben ser números enteros positivos. Revisa las líneas.');
+          return;
+        }
+
 
         btn.disabled=true;btn.textContent='Creando líneas…';
 
