@@ -8,7 +8,7 @@ async function save(status,production){
  const old={id:'o1',status:'Pendiente',base_stock_allocated:false,base_stock_item_id:'s1',order_lines:[]};
  const fields={pdStatus:status,pdProduction:production,pdProdNotes:'',pdGarmentCost:'0',pdDtfCost:'0',pdPackCost:'0',pdShipCost:'0',pdOutboundShipCost:'0',pdExtraCost:'0',pdInternal:''};
  let writes=0;const messages=[];
- const context={window:{},orders:[old],Date,console,document:{getElementById:()=>null},$:id=>fields[id]?{value:fields[id]}:{value:''},supabaseClient:{from:()=>({update:()=>({eq:async()=>{writes++;return {error:null}}})})},toast:x=>messages.push(x),drawOrders:()=>{},esc:x=>x,money:x=>String(x)};
+ const context={window:{},orders:[old],Date,console,document:{getElementById:()=>null},$:id=>Object.prototype.hasOwnProperty.call(fields,String(id).replace(/^#/,''))?{value:fields[String(id).replace(/^#/,'')]}:{value:''},supabaseClient:{from:()=>({update:()=>({eq:async()=>{writes++;return {error:null}}})})},toast:x=>messages.push(x),drawOrders:()=>{},esc:x=>x,money:x=>String(x)};
  vm.runInNewContext(source,context,{filename:'pedido-detalle-v2.js'});
  await context.window.guardarFichaPedido('o1');
  return {writes,messages};
