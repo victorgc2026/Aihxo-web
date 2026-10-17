@@ -3,7 +3,21 @@
 -- existing team identities used by the current order and stock policies.
 -- Review authorised accounts and backup before applying.
 begin;
-do $$
+-- Preflight: refuse to proceed if the current policy set differs from the audited one.
+DO $
+DECLARE public_count integer; storage_count integer;
+BEGIN
+ SELECT count(*) INTO public_count FROM pg_policies
+ WHERE schemaname='public' AND tablename IN ('memories','memory_files')
+ AND policyname LIKE '%_authenticated_%';
+ SELECT count(*) INTO storage_count FROM pg_policies
+ WHERE schemaname='storage' AND tablename='objects'
+ AND policyname LIKE 'memory_storage_authenticated_%';
+ IF public_count <> 8 OR storage_count <> 4 THEN
+   RAISE EXCEPTION 'AIHXO Memories policy preflight failed: public %, storage % (expected 8,4)', public_count, storage_count;
+ END IF;
+END $;
+do $
 declare
   p record;
 begin
