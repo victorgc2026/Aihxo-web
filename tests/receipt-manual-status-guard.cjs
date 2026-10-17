@@ -19,4 +19,7 @@ assert.match(src,/Number\.isSafeInteger\(x\.ordered_quantity\)/,'La recuperació
 assert.match(fn,/receivingPurchases\.add/,'Debe bloquear envío concurrente');
 assert.match(fn,/receivingPurchases\.delete/,'Debe liberar bloqueo en finally');
 assert.match(fn,/PODRÍA haberse registrado/,'Debe avisar de resultado ambiguo');
+assert.match(src,/invoiceItems\.has\(id\)/,'La recuperación de factura debe rechazar prendas duplicadas');
+assert.match(src,/Number\.isSafeInteger\(x\.ordered_quantity\)/,'La recuperación debe rechazar cantidades fraccionarias');
+assert.match(src,/ordered_quantity:Number\(row\.querySelector/,'La recuperación no debe redondear cantidades');
 console.log('PASS: purchase receipt has single atomic RPC status owner and client guards');
