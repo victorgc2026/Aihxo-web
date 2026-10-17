@@ -8,4 +8,6 @@ assert.match(manual,/receivingPurchases\.has\(String\(purchaseId\)\)/);
 assert.match(manual,/receivingPurchases\.add\(String\(purchaseId\)\)/);
 assert.match(manual,/finally\s*\{\s*receivingPurchases\.delete\(String\(purchaseId\)\)/);
 assert.match(scanner,/receiptSubmitting\|\|!batch\.length/);
+assert.match(manual,/la compra PODRÍA haberse registrado/);
+assert.match(scanner,/la mercancía PODRÍA haberse registrado/);
 console.log('PASS: manual and scanner receipt paths reject overlapping submissions');
