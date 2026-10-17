@@ -31,6 +31,8 @@ jobs:
         run: node tests/dtf-math.cjs
       - name: Test final order status precedence
         run: node tests/order-status-checklist.cjs
+      - name: Test cancellation and stock guard
+        run: node tests/order-cancellation-guard.cjs
       - name: Install Playwright test runtime
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
