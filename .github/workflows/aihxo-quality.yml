@@ -87,6 +87,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Create Supabase API roles in disposable database
+        run: |
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;'
       - name: Run receipt canonicalization against isolated PostgreSQL
         run: |
           set -eu
