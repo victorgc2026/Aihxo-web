@@ -104,6 +104,8 @@ jobs:
           psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-orders-test.sql
           psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-multiline-fixture.sql
           psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-multiline-test.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-purchase-fixture.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-purchase-test.sql
           psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-rollback-test.sql
           bash tests/receipt-concurrency.sh
           bash tests/receipt-concurrent-conflict.sh
