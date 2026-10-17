@@ -195,8 +195,10 @@
     });
   }
 
+  const receivingPurchases=new Set();
   async function recepcionarCompraCompleta(purchaseId, btn){
-    if(!purchaseId) return;
+    if(!purchaseId||receivingPurchases.has(String(purchaseId))) return;
+    receivingPurchases.add(String(purchaseId));
 
     const oldText=btn?.textContent;
     if(btn){btn.disabled=true;btn.textContent='Comprobando…';}
@@ -282,6 +284,7 @@
       console.error('Recepción manual compra:',e);
       alert(e?.message||'No se pudo recepcionar la compra. No se ha confirmado manualmente.');
     }finally{
+      receivingPurchases.delete(String(purchaseId));
       if(btn && document.body.contains(btn)){
         btn.disabled=false;
         btn.textContent=oldText||'✅ Recibir completo';
