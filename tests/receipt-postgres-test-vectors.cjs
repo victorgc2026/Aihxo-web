@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const sql=fs.readFileSync(path.join(__dirname,'../database/tests/20261017-receipt-canonical-test.sql'),'utf8');
+assert.match(sql,/public\.canonical_stock_receipt\(/);
+assert.match(sql,/if x<>y then raise exception/);
+assert.match(sql,/Aceptó recepción vacía/);
+assert.match(sql,/Aceptó cantidad de texto/);
+assert.match(sql,/Aceptó referencia duplicada/);
+assert.match(sql,/Aceptó código de barras numérico/);
+assert.doesNotMatch(sql,/\b(?:update|insert into|delete from)\s+public\.(?:base_stock_items|orders|base_stock_movements|purchase_lines)\b/i);
+console.log('PASS: isolated SQL test vectors cover normalization and invalid inputs');
