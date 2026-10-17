@@ -27,6 +27,8 @@ jobs:
         run: node tests/module-registry.cjs
       - name: Check DTF structural safeguards
         run: node tests/dtf-structure.cjs
+      - name: Test DTF sizing mathematics
+        run: node tests/dtf-math.cjs
       - name: Verify required application files
         run: |
           test -s gestion/index.html
