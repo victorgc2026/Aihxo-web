@@ -28,4 +28,6 @@ assert.match(src,/unit_cost:Number\(row\.querySelector\('\.irrCost'\)\.value\)/,
 assert.match(src,/!Number\.isFinite\(x\.unit_cost\)\|\|x\.unit_cost<0/,'Debe rechazar costes inválidos o negativos');
 assert.match(src,/const \{data:existingLines,error:existingError\}/,'Debe consultar líneas existentes antes de recuperar factura');
 assert.match(src,/if\(existingLines\?\.length\)/,'Debe bloquear recuperación cuando ya hay líneas');
+assert.match(src,/if\(!purchase\?\.id\)/,'La recuperación debe exigir identificador de compra');
+assert.match(src,/if\(!resolved\.length\)/,'La recuperación debe rechazar inserciones vacías');
 console.log('PASS: purchase receipt has single atomic RPC status owner and client guards');
