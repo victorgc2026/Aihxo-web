@@ -23,6 +23,8 @@ jobs:
             node --check "$file"
           done
           node --check tests/ui-smoke.cjs
+      - name: Validate Gestion module registry
+        run: node tests/module-registry.cjs
       - name: Verify required application files
         run: |
           test -s gestion/index.html
