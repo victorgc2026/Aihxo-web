@@ -25,6 +25,8 @@ jobs:
           node --check tests/ui-smoke.cjs
       - name: Validate Gestion module registry
         run: node tests/module-registry.cjs
+      - name: Check DTF structural safeguards
+        run: node tests/dtf-structure.cjs
       - name: Verify required application files
         run: |
           test -s gestion/index.html
