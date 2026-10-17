@@ -243,10 +243,20 @@
         if(!rows.length) throw new Error('No se crearon las líneas de la compra.');
       }
 
+      // Validar los valores originales antes de convertirlos a cantidades para el RPC.
+      for(const line of rows){
+        const ordered=Number(line.ordered_quantity);
+        const received=Number(line.received_quantity??0);
+        if(!Number.isSafeInteger(ordered)||ordered<1||ordered>2147483647||
+           !Number.isSafeInteger(received)||received<0||received>ordered){
+          alert('La compra contiene cantidades inválidas. Revisa sus líneas antes de registrar la recepción.');
+          return;
+        }
+      }
       const pending=rows
         .map(l=>({
           item_id:l.item_id,
-          qty:Math.max(0,N(l.ordered_quantity)-N(l.received_quantity)),
+          qty:Number(l.ordered_quantity)-Number(l.received_quantity??0),
           barcode:null
         }))
         .filter(x=>x.item_id&&x.qty>0);
