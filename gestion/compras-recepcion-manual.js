@@ -294,11 +294,8 @@
       });
       if(error) throw error;
 
-      const {error:statusError}=await supabaseClient
-        .from('purchases')
-        .update({status:'Recibido'})
-        .eq('id',purchaseId);
-      if(statusError) console.warn('Stock recibido, pero no se pudo actualizar el estado:',statusError);
+      // receive_stock_batch actualiza compra y existencias dentro de una sola transacción.
+      // Evitar una segunda escritura de estado desde el navegador, fuera de esa transacción.
 
       toast?.(`Compra recibida: +${total} ud. al stock`);
       await window.cargarStockCamisetas?.();
