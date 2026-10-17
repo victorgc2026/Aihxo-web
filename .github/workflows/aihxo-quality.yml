@@ -45,6 +45,8 @@ jobs:
         run: node tests/receipt-claim-prototype.cjs
       - name: Check receipt payload canonicalization
         run: node tests/receipt-canonical.cjs
+      - name: Check PostgreSQL receipt canonicalization proposal
+        run: node tests/receipt-canonical-postgres-structure.cjs
       - name: Install Playwright test runtime
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
