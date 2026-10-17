@@ -160,7 +160,7 @@
           item_id:row.querySelector('.irrItem').value,
           ordered_quantity:Number(row.querySelector('.irrQty').value),
           received_quantity:0,
-          unit_cost:Math.max(0,N(row.querySelector('.irrCost').value))
+          unit_cost:Number(row.querySelector('.irrCost').value)
         }));
 
         if(drafts.some(x=>!x.item_id)){
@@ -170,6 +170,10 @@
         if(drafts.some(x=>!Number.isSafeInteger(x.ordered_quantity)||
           x.ordered_quantity<1||x.ordered_quantity>2147483647)){
           alert('Las cantidades de la factura deben ser números enteros positivos. Revisa las líneas.');
+          return;
+        }
+        if(drafts.some(x=>!Number.isFinite(x.unit_cost)||x.unit_cost<0)){
+          alert('Los costes unitarios de la factura deben ser números válidos y no negativos.');
           return;
         }
         const invoiceItems=new Set();
