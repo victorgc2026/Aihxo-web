@@ -21,7 +21,7 @@ declare
  item uuid;
  qty bigint;
  pending bigint;
- result jsonb;
+ v_result jsonb;
  lines_count int:=0;
  total_count int;
  complete_count int;
@@ -35,7 +35,7 @@ begin
  insert into receipt_test.requests(request_id,payload,result)
  values(p_request_id,canonical,'{}'::jsonb)
  on conflict(request_id) do nothing;
- select payload,result into old_request from receipt_test.requests
+ select r.payload,r.result into old_request from receipt_test.requests r
  where request_id=p_request_id for update;
  if old_request.payload is distinct from canonical then
   raise exception 'Conflicto de recepción: mismo UUID, distinto contenido';
@@ -71,9 +71,9 @@ begin
                    where purchase_id=p_purchase_id and received_quantity>0) then 'Parcial'
        else status end
  where id=p_purchase_id;
- result:=jsonb_build_object('lines',lines_count,
+ v_result:=jsonb_build_object('lines',lines_count,
   'purchase_status',(select status from receipt_test.purchases where id=p_purchase_id));
- update receipt_test.requests set result=result where request_id=p_request_id;
- return jsonb_build_object('replayed',false,'result',result);
+ update receipt_test.requests set result=v_result where request_id=p_request_id;
+ return jsonb_build_object('replayed',false,'result',v_result);
 end;
 $$;
