@@ -13,7 +13,7 @@ as $$
 declare
  canonical jsonb;
  prior record;
- result jsonb;
+ v_result jsonb;
 begin
  if p_request_id is null then
   raise exception 'Falta identificador único de recepción';
@@ -45,12 +45,12 @@ begin
    set quantity=receipt_test.stock.quantity+excluded.quantity
   returning item_id
  )
- select jsonb_build_object('lines',count(*)) into result from added;
+ select jsonb_build_object('lines',count(*)) into v_result from added;
  insert into receipt_test.movements(request_id,item_id,delta,reason)
  select p_request_id,(x->>'item_id')::uuid,(x->>'qty')::bigint,'entrada v2'
  from jsonb_array_elements(canonical->'items') x;
- update receipt_test.requests set result=result where request_id=p_request_id;
- return jsonb_build_object('replayed',false,'result',result);
+ update receipt_test.requests set result=v_result where request_id=p_request_id;
+ return jsonb_build_object('replayed',false,'result',v_result);
 end;
 $$;
 revoke all on function receipt_test.receive_stock_batch_v2(uuid,jsonb,uuid)
