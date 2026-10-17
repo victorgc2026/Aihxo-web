@@ -127,7 +127,14 @@
           ${raw.map((line,idx)=>{
             const guessed=guessInvoiceItem(line,items);
             const qty=line.quantity==null?'':String(line.quantity);
-            const unit=N(line.unit_price??line.price??(qty?N(line.subtotal??line.total)/qty:0));
+            const rawUnit=line.unit_price??line.price;
+            const rawTotal=line.subtotal??line.total;
+            const numericQty=Number(qty);
+            const unit=rawUnit!=null
+              ? Number(rawUnit)
+              : rawTotal!=null&&Number.isFinite(numericQty)&&numericQty>0
+                ? Number(rawTotal)/numericQty
+                : NaN;
             return `<div class="invoiceRecoveredRow" style="border:1px solid #e4e7ec;border-radius:14px;padding:12px">
               <div style="font-weight:800;margin-bottom:8px">${E(line.description||('Línea '+(idx+1)))}</div>
               <div style="display:grid;grid-template-columns:minmax(0,1fr) 82px 95px;gap:7px;align-items:start">
@@ -137,7 +144,7 @@
                   <div class="irrResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:60;max-height:260px;overflow:auto;border:1px solid #d0d5dd;border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(0,0,0,.14)"></div>
                 </div>
                 <input class="irrQty" type="number" min="1" step="1" value="${E(qty)}" title="Cantidad">
-                <input class="irrCost" type="number" min="0" step=".01" value="${unit.toFixed(2)}" title="Coste €/ud">
+                <input class="irrCost" type="number" min="0" step=".01" value="${Number.isFinite(unit)?unit.toFixed(2):''}" title="Coste €/ud">
               </div>
               ${guessed?'':'<div class="irrWarn" style="margin-top:7px;color:#b54708;font-size:12px">⚠️ Revisa esta línea: no he encontrado una coincidencia segura.</div>'}
             </div>`;
