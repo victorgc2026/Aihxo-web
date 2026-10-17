@@ -21,7 +21,7 @@ assert.match(fn,/receivingPurchases\.delete/,'Debe liberar bloqueo en finally');
 assert.match(fn,/PODRÍA haberse registrado/,'Debe avisar de resultado ambiguo');
 assert.match(src,/invoiceItems\.has\(id\)/,'La recuperación de factura debe rechazar prendas duplicadas');
 assert.match(src,/Number\.isSafeInteger\(x\.ordered_quantity\)/,'La recuperación debe rechazar cantidades fraccionarias');
-assert.match(src,/ordered_quantity:Number\(row\.querySelector/,'La recuperación no debe redondear cantidades');
+assert.match(src,/ordered_quantity:row\.querySelector\('\.irrQty'\)\.value\.trim\(\)===''\?NaN:Number\(row\.querySelector/,'La recuperación debe rechazar cantidades vacías');
 assert.match(src,/const qty=line\.quantity==null\?'':String\(line\.quantity\)/,'Las cantidades originales de factura no deben redondearse');
 assert.match(src,/new Set\(resolvedIds\)\.size!==resolvedIds\.length/,'Las asociaciones resueltas deben comprobar duplicados');
 assert.match(src,/unit_cost:row\.querySelector\('\.irrCost'\)\.value\.trim\(\)===''\?NaN:Number\(row\.querySelector/,'No debe interpretar costes vacíos como cero');
