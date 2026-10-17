@@ -107,3 +107,4 @@ jobs:
           psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-ledger-permissions.sql
           psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-ledger-rls-fixture.sql
           psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-ledger-rls-roles.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-ledger-denied-operations.sql
