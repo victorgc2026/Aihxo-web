@@ -1,0 +1,32 @@
+name: AIHXO Quality Checks
+on:
+  push:
+    branches:
+      - 'audit/**'
+      - 'feature/**'
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  javascript-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          set -eu
+          find gestion Web -type f \( -name '*.js' -o -name '*.cjs' \) -print0 | while IFS= read -r -d '' file; do
+            node --check "$file"
+          done
+          node --check tests/ui-smoke.cjs
+      - name: Verify required application files
+        run: |
+          test -s gestion/index.html
+          test -s gestion/app.js
+          test -s gestion/studio-dtf.js
+          test -s gestion/exportador-dtf.js
+          test -s Web/index.html
