@@ -14,5 +14,7 @@ assert.throws(()=>normalize([{item_id:a,qty:'2'}]),/Cantidad/);
 assert.throws(()=>normalize([{item_id:a,qty:null}]),/Cantidad/);
 assert.throws(()=>normalize([{item_id:a,qty:2147483648}]),/Cantidad/);
 assert.throws(()=>normalize([]),/vacía/);
+assert.throws(()=>normalize([{item_id:a,qty:1,barcode:123}]),/Código de barras/);
+assert.throws(()=>normalize([{item_id:a,qty:1,barcode:false}]),/Código de barras/);
 assert.notEqual(serialize(first,p),serialize(first,null));
 console.log('PASS: receipt payload canonicalization stable across scan order and strict on invalid entries');
