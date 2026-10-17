@@ -101,3 +101,7 @@ jobs:
           psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-rollback-test.sql
           bash tests/receipt-concurrency.sh
           bash tests/receipt-concurrent-conflict.sh
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -c 'CREATE ROLE service_role NOLOGIN;'
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-ledger-fixture.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/proposals/20261017-receipt-request-ledger.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-ledger-permissions.sql
