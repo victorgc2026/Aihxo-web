@@ -282,7 +282,7 @@
       await window.comprasView?.(document.getElementById('view'));
     }catch(e){
       console.error('Recepción manual compra:',e);
-      alert(e?.message||'No se pudo recepcionar la compra. No se ha confirmado manualmente.');
+      alert('No se pudo confirmar la recepción. Si hubo un corte de conexión, la compra PODRÍA haberse registrado. Revisa las cantidades recibidas y los movimientos antes de volver a intentarlo.\n\nDetalle: '+(e?.message||'Error desconocido'));
     }finally{
       receivingPurchases.delete(String(purchaseId));
       if(btn && document.body.contains(btn)){
