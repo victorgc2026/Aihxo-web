@@ -205,6 +205,16 @@
             throw new Error('Las prendas resueltas contienen asociaciones vacías o duplicadas. Revisa las líneas antes de guardar.');
           }
 
+          const {data:existingLines,error:existingError}=await supabaseClient
+            .from('purchase_lines')
+            .select('id')
+            .eq('purchase_id',purchase.id)
+            .limit(1);
+          if(existingError) throw existingError;
+          if(existingLines?.length){
+            throw new Error('Esta compra ya tiene líneas registradas. Actualiza la vista y revisa las prendas antes de volver a recuperar la factura.');
+          }
+
           const {error}=await supabaseClient.from('purchase_lines').insert(resolved);
           if(error) throw error;
 
