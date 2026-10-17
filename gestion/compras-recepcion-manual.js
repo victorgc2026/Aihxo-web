@@ -262,8 +262,9 @@
         .filter(x=>x.item_id&&x.qty>0);
 
       if(!pending.length){
-        await supabaseClient.from('purchases').update({status:'Recibido'}).eq('id',purchaseId);
-        toast?.('La compra ya estaba completamente recibida');
+        // Sin unidades pendientes no corresponde registrar movimientos ni forzar el estado.
+        // Si el estado está desactualizado, debe corregirse en el servidor.
+        toast?.('No hay unidades pendientes. Revisa el estado de la compra si aún figura abierta.');
         await window.comprasView?.(document.getElementById('view'));
         return;
       }
