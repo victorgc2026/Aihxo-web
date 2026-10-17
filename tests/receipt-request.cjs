@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createReceiptRequest}=require('../lib/receipt-request.cjs');
+const id='11111111-1111-4111-8111-111111111111';
+const items=[{item_id:'22222222-2222-4222-8222-222222222222',qty:2}];
+const first=createReceiptRequest({requestId:id,items});
+const retry=createReceiptRequest({requestId:id,items});
+assert.deepEqual(first,retry);
+assert.equal(first.p_request_id,id);
+assert.equal(first.p_purchase_id,null);
+assert.throws(()=>createReceiptRequest({requestId:'',items}),/UUID/);
+assert.throws(()=>createReceiptRequest({requestId:id,items:[]}),/línea/);
+console.log('PASS: stable receipt payload across retries');
