@@ -126,7 +126,7 @@
         <div id="invoiceRecoveredRows" style="display:grid;gap:12px">
           ${raw.map((line,idx)=>{
             const guessed=guessInvoiceItem(line,items);
-            const qty=Math.max(1,Math.round(N(line.quantity)||1));
+            const qty=line.quantity==null?'':String(line.quantity);
             const unit=N(line.unit_price??line.price??(qty?N(line.subtotal??line.total)/qty:0));
             return `<div class="invoiceRecoveredRow" style="border:1px solid #e4e7ec;border-radius:14px;padding:12px">
               <div style="font-weight:800;margin-bottom:8px">${E(line.description||('Línea '+(idx+1)))}</div>
@@ -194,6 +194,11 @@
               ? await window.aihxoResolvePurchaseItemId(row.item_id,row.unit_cost,supplierName)
               : row.item_id;
             resolved.push({...row,item_id:itemId,purchase_id:purchase.id});
+          }
+
+          const resolvedIds=resolved.map(row=>String(row.item_id||''));
+          if(resolvedIds.some(id=>!id)||new Set(resolvedIds).size!==resolvedIds.length){
+            throw new Error('Las prendas resueltas contienen asociaciones vacías o duplicadas. Revisa las líneas antes de guardar.');
           }
 
           const {error}=await supabaseClient.from('purchase_lines').insert(resolved);
