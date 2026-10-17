@@ -1,0 +1,17 @@
+'use strict';
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const src=fs.readFileSync('gestion/compras-recepcion-manual.js','utf8');
+const start=src.indexOf('  async function recepcionarCompraCompleta(');
+const end=src.indexOf('\n  function injectButtons()',start);
+assert(start>=0&&end>start,'No se encontró recepción manual');
+const fn=src.slice(start,end);
+assert.match(fn,/supabaseClient\.rpc\('receive_stock_batch'/,'La recepción debe pasar por RPC');
+assert.doesNotMatch(fn,/\.from\('purchases'\)\s*\.update\(/,'La recepción no debe sobrescribir estado desde el cliente');
+assert.match(fn,/if\(!pending\.length\)/,'Debe contemplar compra sin pendientes');
+assert.match(fn,/Number\.isSafeInteger\(ordered\)/,'Debe validar cantidades pedidas');
+assert.match(fn,/Number\.isSafeInteger\(received\)/,'Debe validar cantidades recibidas');
+assert.match(fn,/repeatedItems\.length/,'Debe bloquear líneas ambiguas');
+assert.match(fn,/receivingPurchases\.add/,'Debe bloquear envío concurrente');
+assert.match(fn,/receivingPurchases\.delete/,'Debe liberar bloqueo en finally');
+assert.match(fn,/PODRÍA haberse registrado/,'Debe avisar de resultado ambiguo');
+console.log('PASS: purchase receipt has single atomic RPC status owner and client guards');
