@@ -10,7 +10,7 @@
    ]);
    if(gErr||tErr){console.error(gErr||tErr);c.innerHTML='<div class="page"><div class="card">No se pudo cargar el banco de mockups.</div></div>';return}
    window._aihxoMockupGarments=garments||[]; window._aihxoMockupTemplates=templates||[];
-   c.innerHTML=`<div class="page"><div class="section"><div><h2>👤 Banco de mockups</h2><div class="muted">Modelos AIHXO por prenda y vista · toca una imagen para verla grande</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="secondary" href="/gestion/candidatos-modelos.html" target="_blank" rel="noopener" style="padding:10px;border-radius:10px;text-decoration:none">🔎 Buscar mockups editables</a><button class="primary" onclick="aihxoNuevoMockup()">＋ Añadir modelo</button></div></div>
+   c.innerHTML=`<div class="page"><div class="section"><div><h2>👤 Banco de mockups</h2><div class="muted">Modelos AIHXO por prenda y vista · toca una imagen para verla grande</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="secondary" href="/gestion/candidatos-modelos.html" target="_blank" rel="noopener" style="padding:10px;border-radius:10px;text-decoration:none">🔎 Buscar mockups editables</a><button class="primary" onclick="aihxoNuevoMockup()">＋ Añadir modelo</button><button class="secondary" onclick="aihxoImportarLoteMockups()">📦 Importar lote</button></div></div>
    <div class="grid kpis">${kpi('Plantillas',(templates||[]).length,'guardadas')}${kpi('Prendas',(garments||[]).length,'activas')}${kpi('Frontales',(templates||[]).filter(x=>x.side==='front').length,'disponibles')}${kpi('Traseras',(templates||[]).filter(x=>x.side==='back').length,'disponibles')}</div>
    <div class="card"><div style="display:grid;gap:12px">${(templates||[]).length?(templates||[]).map(t=>{const g=(garments||[]).find(x=>x.id===t.garment_id);return `<div style="display:grid;grid-template-columns:92px 1fr auto;gap:12px;align-items:center;border-bottom:1px solid #edf0f4;padding-bottom:12px"><button type="button" onclick="aihxoPreviewMockup('${t.id}')" aria-label="Ver ${esc(t.name)}" style="border:0;background:transparent;padding:0;cursor:pointer"><img src="${esc(t.image_url)}" alt="${esc(t.name)}" style="width:92px;height:110px;object-fit:cover;border-radius:12px;background:#eef2f6;display:block"></button><div onclick="aihxoPreviewMockup('${t.id}')" style="cursor:pointer"><b>${esc(t.name)}</b><div class="muted">${esc(g?`${g.manufacturer} · ${g.model}`:'Sin prenda')} · ${t.side==='back'?'Trasera':'Delantera'}${t.gender?' · '+esc(t.gender):''}</div><div class="muted" style="font-size:12px;margin-top:4px">Toca para ampliar</div></div><button class="secondary small" onclick="aihxoDeleteMockup('${t.id}','${esc(t.storage_path||'')}')">Eliminar</button></div>`}).join(''):'<div class="empty">Todavía no hay plantillas guardadas.</div>'}</div></div></div>`;
  }
@@ -32,6 +32,107 @@
    m.querySelector('#mpDelete').onclick=async()=>{close();await window.aihxoDeleteMockup(t.id,t.storage_path||'')};
    m.querySelector('#mpUse').onclick=()=>{close();if(typeof window.abrirGeneradorMockupConPlantilla==='function')window.abrirGeneradorMockupConPlantilla(t);else {window._aihxoPendingMockupTemplate=t;toast('Plantilla seleccionada. Abre un diseño propio y pulsa CREAR MOCKUP.')}};
  }
+
+ window.aihxoImportarLoteMockups=function(){
+   document.getElementById('aihxoBatchMockup')?.remove();
+   const gs=window._aihxoMockupGarments||[];
+   const modal=document.createElement('div');modal.id='aihxoBatchMockup';
+   modal.style.cssText='position:fixed;inset:0;z-index:100200;background:#07152fca;overflow:auto;padding:14px;box-sizing:border-box';
+   modal.innerHTML='<div style="max-width:800px;margin:auto;background:#fff;color:#1b2738;border-radius:16px;padding:18px;box-sizing:border-box"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">📦 Importar mockups por lote</h2><button type="button" id="batchClose">✕</button></div><p>Selecciona los ocho PNG de AIHXO o un ZIP. Revisa cada clasificación antes de guardar; las plantillas existentes no se modifican.</p><label style="display:block">Archivos PNG/JPG/WebP o ZIP<input id="batchFiles" type="file" multiple accept=".png,.jpg,.jpeg,.webp,.zip,image/png,image/jpeg,image/webp,application/zip" style="display:block;width:100%;margin:10px 0"></label><div id="batchInfo" role="status" style="margin:12px 0"></div><div id="batchRows" style="display:grid;gap:12px"></div><button class="primary" type="button" id="batchSave" style="width:100%;margin-top:14px" disabled>Guardar lote</button></div>';
+   document.body.appendChild(modal);
+   const q=x=>modal.querySelector(x);
+   q('#batchClose').onclick=()=>modal.remove();
+   let entries=[];
+   const max=15*1048576;
+   function classify(name){
+     const stem=name.replace(/\.(png|jpe?g|webp)$/i,'');
+     const low=stem.toLowerCase();
+     const gender=/ni[ñn]a/.test(low)?'niña':/ni[ñn]o/.test(low)?'niño':/mujer/.test(low)?'mujer':/hombre/.test(low)?'hombre':'unisex';
+     const side=/trasera|back/.test(low)?'back':'front';
+     const label={hombre:'Hombre',mujer:'Mujer','niño':'Niño','niña':'Niña',unisex:'Unisex'}[gender];
+     const view=side==='back'?'Trasera':'Delantera';
+     return {gender,side,name:label+' · Negra · '+view+' · Studio 01'};
+   }
+   function options(gender){
+     const hint=(gender==='niña'||gender==='niño')?'kid':'adult';
+     const sorted=[...gs].sort((a,b)=>{
+       const score=g=>{const t=(g.audience+' '+g.model).toLowerCase();return hint==='kid'?(/niñ|kid|infant|child/.test(t)?0:1):(/adult|woman|unisex|hombre|mujer/.test(t)?0:1)};
+       return score(a)-score(b);
+     });
+     return '<option value="">Seleccionar prenda real</option>'+sorted.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.manufacturer)+' · '+esc(g.model)+' · '+esc(g.audience||'')+'</option>').join('');
+   }
+   function render(){
+     q('#batchRows').innerHTML='';
+     entries.forEach((e,i)=>{
+       const wrap=document.createElement('div');wrap.style.cssText='padding:12px;border:1px solid #dce4ee;border-radius:12px;display:grid;gap:7px';
+       const p=classify(e.file.name);
+       wrap.innerHTML='<div style="display:flex;gap:12px;align-items:center"><img alt="Vista previa" style="width:70px;height:90px;object-fit:cover;border-radius:8px"><div style="min-width:0"><b>'+esc(e.file.name)+'</b><p style="margin:4px 0;font-size:12px">'+(e.file.size/1048576).toFixed(1)+' MB</p></div></div><label>Nombre<input data-field="name" style="width:100%;box-sizing:border-box" value="'+esc(p.name)+'"></label><label>Prenda<select data-field="garment" style="width:100%">'+options(p.gender)+'</select></label><label>Tipo<select data-field="gender"><option value="hombre">Hombre</option><option value="mujer">Mujer</option><option value="niño">Niño</option><option value="niña">Niña</option><option value="unisex">Unisex</option></select></label><label>Vista<select data-field="side"><option value="front">Delantera</option><option value="back">Trasera</option></select></label><button type="button" data-remove>Quitar</button><span data-progress style="font-size:12px"></span>';
+       wrap.querySelector('[data-field="gender"]').value=p.gender;wrap.querySelector('[data-field="side"]').value=p.side;
+       wrap.querySelector('img').src=e.preview;
+       wrap.querySelector('[data-remove]').onclick=()=>{URL.revokeObjectURL(e.preview);entries.splice(i,1);render()};
+       q('#batchRows').appendChild(wrap);
+     });
+     q('#batchInfo').textContent=entries.length+' archivo(s) preparado(s). Selecciona la prenda correcta para cada uno.';
+     q('#batchSave').disabled=!entries.length;
+   }
+   q('#batchFiles').onchange=async event=>{
+     q('#batchSave').disabled=true;
+     q('#batchInfo').textContent='Leyendo archivos…';
+     for(const e of entries)URL.revokeObjectURL(e.preview);
+     entries=[];
+     try{
+       const files=Array.from(event.target.files||[]);
+       const expanded=[];
+       for(const file of files){
+         if(/\.zip$/i.test(file.name)){
+           if(!window.JSZip){
+             await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';script.onload=resolve;script.onerror=()=>reject(new Error('No se pudo cargar el lector ZIP'));document.head.appendChild(script)});
+           }
+           const zip=await window.JSZip.loadAsync(file);
+           const members=Object.values(zip.files).filter(x=>!x.dir&&/\.(png|jpe?g|webp)$/i.test(x.name)&&!x.name.includes('__MACOSX')).slice(0,40);
+           for(const m of members){const blob=await m.async('blob');expanded.push(new File([blob],m.name.split('/').pop(),{type: /\.png$/i.test(m.name)?'image/png':/\.webp$/i.test(m.name)?'image/webp':'image/jpeg'}))}
+         }else expanded.push(file);
+       }
+       const existing=new Set();
+       for(const file of expanded){
+         if(!/\.(png|jpe?g|webp)$/i.test(file.name)||!file.size||file.size>max)continue;
+         const key=file.name.toLowerCase();if(existing.has(key))continue;existing.add(key);
+         const preview=URL.createObjectURL(file);
+         try{await new Promise((resolve,reject)=>{const img=new Image();img.onload=resolve;img.onerror=reject;img.src=preview})}catch{URL.revokeObjectURL(preview);continue}
+         entries.push({file,preview});
+       }
+       if(!entries.length){q('#batchInfo').textContent='No hay imágenes válidas. Elige PNG/JPG/WebP de hasta 15 MB o un ZIP con esas imágenes.';return}
+       render();
+     }catch(err){q('#batchInfo').textContent='No se pudo leer el lote: '+err.message}
+   };
+   q('#batchSave').onclick=async()=>{
+     const cards=[...q('#batchRows').children];
+     if(cards.some(c=>!c.querySelector('[data-field="garment"]').value||!c.querySelector('[data-field="name"]').value.trim())){alert('Indica una prenda real y un nombre para cada fotografía.');return}
+     q('#batchSave').disabled=true;q('#batchClose').disabled=true;
+     let ok=0;
+     for(let i=0;i<entries.length;i++){
+       const e=entries[i],c=cards[i],progress=c.querySelector('[data-progress]');
+       try{
+         const id=c.querySelector('[data-field="garment"]').value;
+         const ext=e.file.name.split('.').pop().toLowerCase();
+         const mime=ext==='png'?'image/png':ext==='webp'?'image/webp':'image/jpeg';
+         const path=id+'/'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2,8)+'.'+ext;
+         progress.textContent='Subiendo…';
+         const {error:up}=await supabaseClient.storage.from('mockup-templates').upload(path,e.file,{upsert:false,contentType:mime});
+         if(up)throw up;
+         const {data:url}=supabaseClient.storage.from('mockup-templates').getPublicUrl(path);
+         const payload={name:c.querySelector('[data-field="name"]').value.trim(),garment_id:id,model_type:'persona',gender:c.querySelector('[data-field="gender"]').value,side:c.querySelector('[data-field="side"]').value,image_url:url.publicUrl,storage_path:path,active:true};
+         const {error:db}=await supabaseClient.from('mockup_templates').insert(payload);
+         if(db){await supabaseClient.storage.from('mockup-templates').remove([path]);throw db}
+         ok++;progress.textContent='✅ Guardado';
+       }catch(err){progress.textContent='❌ '+(err.message||'Error de subida')}
+     }
+     q('#batchInfo').textContent='Guardados '+ok+' de '+entries.length+'. Si hubo fallos, revisa el mensaje junto a cada archivo. No repitas la subida de los que ya aparecen guardados.';
+     q('#batchClose').disabled=false;
+     if(ok)await load();
+   };
+ };
+
  window.aihxoNuevoMockup=function(){
    document.getElementById('mockupBankModal')?.remove();
    const gs=window._aihxoMockupGarments||[]; const m=document.createElement('div');m.id='mockupBankModal';m.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.48);display:flex;align-items:flex-end;justify-content:center';
