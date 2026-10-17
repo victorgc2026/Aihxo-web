@@ -36,9 +36,8 @@ jobs:
       - name: Run mobile order smoke test
         env:
           CODEX_PRIMARY_RUNTIME_NODE_MODULES: ${{ github.workspace }}/node_modules
-          AIHXO_TEST_CHROMIUM: /usr/bin/chromium
         run: |
-          AIHXO_TEST_CHROMIUM="$(find "$HOME/.cache/ms-playwright" -type f -path '*/chrome-linux64/chrome' | head -n 1)"
+          AIHXO_TEST_CHROMIUM="$(find "$HOME/.cache/ms-playwright" -type f \( -path '*/chrome-linux64/chrome' -o -path '*/chrome-linux/chrome' -o -path '*/chrome-linux/headless_shell' -o -path '*/chrome-linux64/headless_shell' \) -print -quit)"
           test -n "$AIHXO_TEST_CHROMIUM"
           export AIHXO_TEST_CHROMIUM
           node tests/ui-smoke.cjs
