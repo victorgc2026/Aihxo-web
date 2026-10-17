@@ -6,6 +6,7 @@ async function check(status,expectedWrites){
  let writes=0;
  const context={window:{},orders:[order],Date,console,setTimeout:()=>{},document:{getElementById:()=>null},supabaseClient:{from:()=>({update:()=>({eq:async()=>{writes++;return {error:null}}})})},toast:s=>messages.push(s)};
  vm.runInNewContext(source,context);
+ context.window.produccionView=async()=>{};
  await context.window.aihxoKanbanMove('o1','pending');
  assert.equal(writes,expectedWrites,'Unexpected write for '+status);
  if(!expectedWrites)assert.match(messages.join(' '),/cerrado/);
