@@ -253,13 +253,19 @@
           return;
         }
       }
+      const unassigned=rows.filter(l=>
+        !l.item_id && Number(l.ordered_quantity)>Number(l.received_quantity??0));
+      if(unassigned.length){
+        alert('Hay líneas pendientes sin una prenda base asociada. Asócialas desde “Ver / editar prendas” antes de confirmar la recepción.');
+        return;
+      }
       const pending=rows
         .map(l=>({
           item_id:l.item_id,
           qty:Number(l.ordered_quantity)-Number(l.received_quantity??0),
           barcode:null
         }))
-        .filter(x=>x.item_id&&x.qty>0);
+        .filter(x=>x.qty>0);
 
       if(!pending.length){
         // Sin unidades pendientes no corresponde registrar movimientos ni forzar el estado.
