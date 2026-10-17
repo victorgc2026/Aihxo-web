@@ -1,0 +1,30 @@
+-- AIHXO · Borrador de RPC de recepción idempotente.
+-- NO DESPLEGAR. Requiere pruebas de integración y revisión de permisos.
+-- IMPORTANTE: no llama a receive_stock_batch desde SECURITY DEFINER,
+-- ya que eso alteraría su contexto de RLS.
+--
+-- Contrato propuesto:
+-- receive_stock_batch_idempotent(
+--   p_request_id uuid, p_items jsonb, p_purchase_id uuid DEFAULT NULL
+-- ) RETURNS jsonb
+--
+-- Precondiciones:
+--   auth.uid() IS NOT NULL y usuario autorizado AIHXO.
+--   canonical_stock_receipt(p_items,p_purchase_id) válido.
+--   p_request_id UUID generado UNA VEZ en el cliente por operación.
+--
+-- En una única transacción de la RPC:
+--   1. Canonicalizar lote y calcular hash de identidad+compra+contenido.
+--   2. Insertar request_id en ledger (ON CONFLICT DO NOTHING).
+--   3. SELECT ... FOR UPDATE sobre esa fila.
+--   4. Si existe resultado y coinciden actor, compra y hash:
+--      devolver resultado original con replayed=true sin tocar existencias.
+--   5. Si no coinciden: RAISE EXCEPTION 'Conflicto de recepción'.
+--   6. Ejecutar cuerpo íntegro de receive_stock_batch (sin duplicarlo en
+--      dos rutas de producción): movimientos, asignaciones, compra, inventario.
+--   7. Guardar resultado en ledger y devolver replayed=false.
+--   8. Cualquier excepción revierte tanto el ledger como el stock.
+--
+-- NO ES UNA RPC EJECUTABLE TODAVÍA: este archivo fija la interfaz y
+-- condiciones de seguridad, no contiene CREATE FUNCTION para evitar
+-- una falsa sensación de disponibilidad en producción.
