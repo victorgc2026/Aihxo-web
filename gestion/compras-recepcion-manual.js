@@ -160,7 +160,7 @@
           item_id:row.querySelector('.irrItem').value,
           ordered_quantity:Number(row.querySelector('.irrQty').value),
           received_quantity:0,
-          unit_cost:Number(row.querySelector('.irrCost').value)
+          unit_cost:row.querySelector('.irrCost').value.trim()===''?NaN:Number(row.querySelector('.irrCost').value)
         }));
 
         if(drafts.some(x=>!x.item_id)){
