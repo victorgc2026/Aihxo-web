@@ -39,6 +39,8 @@ jobs:
         run: node tests/receipt-scanner-structure.cjs
       - name: Check receipt concurrency guards
         run: node tests/receipt-concurrency-guards.cjs
+      - name: Check receipt ledger proposal
+        run: node tests/receipt-ledger-structure.cjs
       - name: Install Playwright test runtime
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
