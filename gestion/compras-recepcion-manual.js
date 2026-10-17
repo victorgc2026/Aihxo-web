@@ -136,7 +136,7 @@
                   <input class="irrItem" type="hidden" value="${E(guessed)}">
                   <div class="irrResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:60;max-height:260px;overflow:auto;border:1px solid #d0d5dd;border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(0,0,0,.14)"></div>
                 </div>
-                <input class="irrQty" type="number" min="1" step="1" value="${qty}" title="Cantidad">
+                <input class="irrQty" type="number" min="1" step="1" value="${E(qty)}" title="Cantidad">
                 <input class="irrCost" type="number" min="0" step=".01" value="${unit.toFixed(2)}" title="Coste €/ud">
               </div>
               ${guessed?'':'<div class="irrWarn" style="margin-top:7px;color:#b54708;font-size:12px">⚠️ Revisa esta línea: no he encontrado una coincidencia segura.</div>'}
