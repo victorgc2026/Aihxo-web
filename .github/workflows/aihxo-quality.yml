@@ -39,6 +39,8 @@ jobs:
         run: node tests/receipt-scanner-structure.cjs
       - name: Test scanner quantity validation
         run: node tests/receipt-scanner-quantity.cjs
+      - name: Check manual purchase receipt status ownership
+        run: node tests/receipt-manual-status-guard.cjs
       - name: Check receipt concurrency guards
         run: node tests/receipt-concurrency-guards.cjs
       - name: Check receipt ledger proposal
