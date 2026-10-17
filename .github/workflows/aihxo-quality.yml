@@ -45,6 +45,8 @@ jobs:
         run: node tests/receipt-claim-prototype.cjs
       - name: Check receipt payload canonicalization
         run: node tests/receipt-canonical.cjs
+      - name: Test stable receipt request payload
+        run: node tests/receipt-request.cjs
       - name: Check PostgreSQL receipt canonicalization proposal
         run: node tests/receipt-canonical-postgres-structure.cjs
       - name: Check isolated PostgreSQL test vectors
