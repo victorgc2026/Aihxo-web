@@ -1,8 +1,10 @@
--- AIHXO inventory RPC permissions: proposal, not applied.
--- Keep service_role and the two team users, restrict public/anon access.
+-- AIHXO: prevent anonymous execution of inventory-cycle RPCs.
+-- PROPOSAL ONLY: do not apply before reviewing client compatibility.
+-- Both functions currently execute with invoker privileges and their tables
+-- already have RLS restricted to the two AIHXO team email identities.
 begin;
 revoke execute on function public.begin_inventory_reset(text) from public, anon;
 revoke execute on function public.finish_inventory_cycle(uuid) from public, anon;
--- Authenticated calls remain subject to table RLS. Further user-specific
--- checks should be added before granting this RPC to any wider audience.
+-- Existing authenticated and service_role grants are preserved.
+-- This change does not start a cycle or modify inventory quantities.
 commit;
