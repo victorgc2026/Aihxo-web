@@ -11,6 +11,9 @@ assert.match(fn,/if\(!pending\.length\)/,'Debe contemplar compra sin pendientes'
 assert.match(fn,/Number\.isSafeInteger\(ordered\)/,'Debe validar cantidades pedidas');
 assert.match(fn,/Number\.isSafeInteger\(received\)/,'Debe validar cantidades recibidas');
 assert.match(fn,/repeatedItems\.length/,'Debe bloquear líneas ambiguas');
+assert.match(fn,/unassigned\.length/,'Debe bloquear líneas sin prenda asociada');
+assert.doesNotMatch(src,/ordered_quantity:Math\.max\(1,Math\.round\(/,'No se deben redondear silenciosamente cantidades de factura');
+assert.match(src,/Number\.isSafeInteger\(x\.ordered_quantity\)/,'La recuperación debe validar cantidades enteras');
 assert.match(fn,/receivingPurchases\.add/,'Debe bloquear envío concurrente');
 assert.match(fn,/receivingPurchases\.delete/,'Debe liberar bloqueo en finally');
 assert.match(fn,/PODRÍA haberse registrado/,'Debe avisar de resultado ambiguo');
