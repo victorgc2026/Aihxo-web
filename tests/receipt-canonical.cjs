@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');
+const {normalize,serialize}=require('../lib/receipt-canonical.cjs');
+const a='11111111-1111-4111-8111-111111111111';
+const b='22222222-2222-4222-8222-222222222222';
+const p='33333333-3333-4333-8333-333333333333';
+const first=[{item_id:b,qty:3,barcode:' B '},{item_id:a,qty:2,barcode:null}];
+const reversed=[{item_id:a.toUpperCase(),qty:2,barcode:''},{item_id:b,qty:3,barcode:'B'}];
+assert.equal(serialize(first,p),serialize(reversed,p.toUpperCase()));
+assert.equal(normalize(first,p).items[0].item_id,a);
+assert.throws(()=>normalize([{item_id:a,qty:1},{item_id:a,qty:2}]),/duplicadas/);
+assert.throws(()=>normalize([{item_id:a,qty:0}]),/Cantidad/);
+assert.throws(()=>normalize([{item_id:a,qty:1.5}]),/Cantidad/);
+assert.throws(()=>normalize([{item_id:a,qty:2147483648}]),/Cantidad/);
+assert.throws(()=>normalize([]),/vacía/);
+assert.notEqual(serialize(first,p),serialize(first,null));
+console.log('PASS: receipt payload canonicalization stable across scan order and strict on invalid entries');
