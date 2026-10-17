@@ -205,6 +205,8 @@
             throw new Error('Las prendas resueltas contienen asociaciones vacías o duplicadas. Revisa las líneas antes de guardar.');
           }
 
+          if(!purchase?.id) throw new Error('No se ha identificado la compra de la factura.');
+          if(!resolved.length) throw new Error('No hay líneas válidas para recuperar.');
           const {data:existingLines,error:existingError}=await supabaseClient
             .from('purchase_lines')
             .select('id')
