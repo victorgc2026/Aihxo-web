@@ -258,6 +258,19 @@
         return;
       }
 
+      // El RPC actual identifica prendas por item_id, no por línea de compra.
+      // No sumar automáticamente líneas duplicadas sin verificar su trazabilidad.
+      const seenItems=new Set();
+      const repeatedItems=pending.filter(x=>{
+        const key=String(x.item_id);
+        if(seenItems.has(key))return true;
+        seenItems.add(key);return false;
+      });
+      if(repeatedItems.length){
+        alert('Esta compra contiene varias líneas pendientes de la misma referencia. Para evitar una recepción incorrecta, revisa y unifica las líneas desde “Ver / editar prendas” antes de recibirla completa.');
+        return;
+      }
+
       const total=pending.reduce((a,x)=>a+x.qty,0);
       const ref=purchase?.purchase_number||purchase?.description||'esta compra';
       const ok=confirm(`Vas a confirmar que ${ref} ha llegado COMPLETO.\n\nSe añadirán ${total} unidades pendientes al stock.\n\n¿Confirmar recepción manual?`);
