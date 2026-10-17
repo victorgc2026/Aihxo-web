@@ -207,7 +207,7 @@
       renderBatch(); await window.cargarStockCamisetas?.();
     }catch(e){
       console.error(e);
-      alert(e.code==='23505'?'Ese código ya está asociado a otra variante.':(e.message||'No se pudo guardar el recuento.'));
+      alert(e?.code==='23505'?'Ese código ya está asociado a otra variante.':('No se pudo confirmar la respuesta de recepción. Si se perdió la conexión, la mercancía PODRÍA haberse registrado. Comprueba primero los movimientos y existencias antes de volver a guardar.\n\nDetalle: '+(e?.message||'Error desconocido')));
       btn.disabled=false; renderBatch(); startScanner(true);
     }finally{
       receiptSubmitting=false;
