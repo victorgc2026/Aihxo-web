@@ -156,8 +156,15 @@
 
   function add(id,code){
     const qty=Math.max(1,Number(document.getElementById('recvQty')?.value||1));
-    const e=batch.find(x=>String(x.item_id)===String(id)&&String(x.barcode||'')===String(code||''));
-    if(e)e.qty+=qty; else batch.push({item_id:id,qty,barcode:code||null});
+    const e=batch.find(x=>String(x.item_id)===String(id));
+    if(e){
+      if(e.barcode&&code&&String(e.barcode)!==String(code)){
+        alert('Esta variante ya tiene otro código en el recuento. Revisa el código antes de continuar.');
+        return;
+      }
+      e.qty+=qty;
+      if(!e.barcode&&code)e.barcode=code;
+    }else batch.push({item_id:id,qty,barcode:code||null});
     renderBatch();
     const r=document.getElementById('scanResult'); if(r)r.innerHTML='';
     resume();
