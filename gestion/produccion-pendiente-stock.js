@@ -6,6 +6,8 @@
  const daysOld=o=>{const d=new Date(o.order_date||o.created_at||0);return isNaN(d)?0:Math.max(0,Math.floor((Date.now()-d.getTime())/86400000))};
  const done=o=>['terminado','enviado','entregado'].includes(n(o.production_status))||['terminado','enviado','entregado'].includes(n(o.status));
  const stageFor=o=>{
+   if(n(o.status)==='cancelado')return 'Cancelado';
+   if(n(o.status)==='entregado')return 'Entregado';
    if(n(o.production_status)==='pendiente llegada')return 'Pendiente llegada';
    if(n(o.production_status)==='terminado')return 'Terminado';
    if(['en producción','en produccion'].includes(n(o.production_status)))return 'En producción';
@@ -17,7 +19,7 @@
  const stages=[['Pendiente llegada','🚚'],['Pendiente','🕒'],['Diseño','🎨'],['DTF','🖨️'],['Lista para planchar','🔥'],['En producción','🏭'],['Terminado','✅']];
 
  window.produccionView=async function(c){
-   const work=(orders||[]).filter(o=>n(o.status)!=='cancelado'&&n(o.status)!=='entregado');
+   const work=(orders||[]).filter(o=>!['cancelado','entregado'].includes(n(o.status)));
    const ids=[...new Set(work.map(o=>o.base_stock_item_id).filter(Boolean))];
    let stock=[];if(ids.length){const r=await supabaseClient.from('base_stock_items').select('id,supplier,supplier_model,size,color,quantity').in('id',ids);stock=r.data||[]}
    const sm=Object.fromEntries(stock.map(x=>[x.id,x]));
