@@ -10,6 +10,8 @@ assert.equal(normalize(first,p).items[0].item_id,a);
 assert.throws(()=>normalize([{item_id:a,qty:1},{item_id:a,qty:2}]),/duplicadas/);
 assert.throws(()=>normalize([{item_id:a,qty:0}]),/Cantidad/);
 assert.throws(()=>normalize([{item_id:a,qty:1.5}]),/Cantidad/);
+assert.throws(()=>normalize([{item_id:a,qty:'2'}]),/Cantidad/);
+assert.throws(()=>normalize([{item_id:a,qty:null}]),/Cantidad/);
 assert.throws(()=>normalize([{item_id:a,qty:2147483648}]),/Cantidad/);
 assert.throws(()=>normalize([]),/vacía/);
 assert.notEqual(serialize(first,p),serialize(first,null));
