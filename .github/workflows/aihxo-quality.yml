@@ -29,6 +29,19 @@ jobs:
         run: node tests/dtf-structure.cjs
       - name: Test DTF sizing mathematics
         run: node tests/dtf-math.cjs
+      - name: Install Playwright test runtime
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run mobile order smoke test
+        env:
+          CODEX_PRIMARY_RUNTIME_NODE_MODULES: ${{ github.workspace }}/node_modules
+          AIHXO_TEST_CHROMIUM: /usr/bin/chromium
+        run: |
+          AIHXO_TEST_CHROMIUM="$(find "$HOME/.cache/ms-playwright" -type f -path '*/chrome-linux64/chrome' | head -n 1)"
+          test -n "$AIHXO_TEST_CHROMIUM"
+          export AIHXO_TEST_CHROMIUM
+          node tests/ui-smoke.cjs
       - name: Verify required application files
         run: |
           test -s gestion/index.html
