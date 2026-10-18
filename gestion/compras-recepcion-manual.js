@@ -126,8 +126,15 @@
         <div id="invoiceRecoveredRows" style="display:grid;gap:12px">
           ${raw.map((line,idx)=>{
             const guessed=guessInvoiceItem(line,items);
-            const qty=Math.max(1,Math.round(N(line.quantity)||1));
-            const unit=N(line.unit_price??line.price??(qty?N(line.subtotal??line.total)/qty:0));
+            const qty=line.quantity==null?'':String(line.quantity);
+            const rawUnit=line.unit_price??line.price;
+            const rawTotal=line.subtotal??line.total;
+            const numericQty=Number(qty);
+            const unit=rawUnit!=null
+              ? Number(rawUnit)
+              : rawTotal!=null&&Number.isFinite(numericQty)&&numericQty>0
+                ? Number(rawTotal)/numericQty
+                : NaN;
             return `<div class="invoiceRecoveredRow" style="border:1px solid #e4e7ec;border-radius:14px;padding:12px">
               <div style="font-weight:800;margin-bottom:8px">${E(line.description||('Línea '+(idx+1)))}</div>
               <div style="display:grid;grid-template-columns:minmax(0,1fr) 82px 95px;gap:7px;align-items:start">
@@ -136,8 +143,8 @@
                   <input class="irrItem" type="hidden" value="${E(guessed)}">
                   <div class="irrResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:60;max-height:260px;overflow:auto;border:1px solid #d0d5dd;border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(0,0,0,.14)"></div>
                 </div>
-                <input class="irrQty" type="number" min="1" step="1" value="${qty}" title="Cantidad">
-                <input class="irrCost" type="number" min="0" step=".01" value="${unit.toFixed(2)}" title="Coste €/ud">
+                <input class="irrQty" type="number" min="1" step="1" value="${E(qty)}" title="Cantidad">
+                <input class="irrCost" type="number" min="0" step=".01" value="${Number.isFinite(unit)?unit.toFixed(2):''}" title="Coste €/ud">
               </div>
               ${guessed?'':'<div class="irrWarn" style="margin-top:7px;color:#b54708;font-size:12px">⚠️ Revisa esta línea: no he encontrado una coincidencia segura.</div>'}
             </div>`;
@@ -158,15 +165,34 @@
         const btn=modal.querySelector('#irrSave');
         const drafts=[...modal.querySelectorAll('.invoiceRecoveredRow')].map(row=>({
           item_id:row.querySelector('.irrItem').value,
-          ordered_quantity:Math.max(1,Math.round(N(row.querySelector('.irrQty').value)||1)),
+          ordered_quantity:row.querySelector('.irrQty').value.trim()===''?NaN:Number(row.querySelector('.irrQty').value),
           received_quantity:0,
-          unit_cost:Math.max(0,N(row.querySelector('.irrCost').value))
+          unit_cost:row.querySelector('.irrCost').value.trim()===''?NaN:Number(row.querySelector('.irrCost').value)
         }));
 
         if(drafts.some(x=>!x.item_id)){
           toast?.('Revisa las líneas sin prenda asociada');
           return;
         }
+        if(drafts.some(x=>!Number.isSafeInteger(x.ordered_quantity)||
+          x.ordered_quantity<1||x.ordered_quantity>2147483647)){
+          alert('Las cantidades de la factura deben ser números enteros positivos. Revisa las líneas.');
+          return;
+        }
+        if(drafts.some(x=>!Number.isFinite(x.unit_cost)||x.unit_cost<0)){
+          alert('Los costes unitarios de la factura deben ser números válidos y no negativos.');
+          return;
+        }
+        const invoiceItems=new Set();
+        if(drafts.some(x=>{
+          const id=String(x.item_id);
+          if(invoiceItems.has(id))return true;
+          invoiceItems.add(id);return false;
+        })){
+          alert('La factura contiene varias líneas de la misma prenda. Revisa y agrupa las cantidades antes de crear las líneas de compra.');
+          return;
+        }
+
 
         btn.disabled=true;btn.textContent='Creando líneas…';
 
@@ -179,6 +205,23 @@
               ? await window.aihxoResolvePurchaseItemId(row.item_id,row.unit_cost,supplierName)
               : row.item_id;
             resolved.push({...row,item_id:itemId,purchase_id:purchase.id});
+          }
+
+          const resolvedIds=resolved.map(row=>String(row.item_id||''));
+          if(resolvedIds.some(id=>!id)||new Set(resolvedIds).size!==resolvedIds.length){
+            throw new Error('Las prendas resueltas contienen asociaciones vacías o duplicadas. Revisa las líneas antes de guardar.');
+          }
+
+          if(!purchase?.id) throw new Error('No se ha identificado la compra de la factura.');
+          if(!resolved.length) throw new Error('No hay líneas válidas para recuperar.');
+          const {data:existingLines,error:existingError}=await supabaseClient
+            .from('purchase_lines')
+            .select('id')
+            .eq('purchase_id',purchase.id)
+            .limit(1);
+          if(existingError) throw existingError;
+          if(existingLines?.length){
+            throw new Error('Esta compra ya tiene líneas registradas. Actualiza la vista y revisa las prendas antes de volver a recuperar la factura.');
           }
 
           const {error}=await supabaseClient.from('purchase_lines').insert(resolved);
@@ -195,8 +238,10 @@
     });
   }
 
+  const receivingPurchases=new Set();
   async function recepcionarCompraCompleta(purchaseId, btn){
-    if(!purchaseId) return;
+    if(!purchaseId||receivingPurchases.has(String(purchaseId))) return;
+    receivingPurchases.add(String(purchaseId));
 
     const oldText=btn?.textContent;
     if(btn){btn.disabled=true;btn.textContent='Comprobando…';}
@@ -241,18 +286,48 @@
         if(!rows.length) throw new Error('No se crearon las líneas de la compra.');
       }
 
+      // Validar los valores originales antes de convertirlos a cantidades para el RPC.
+      for(const line of rows){
+        const ordered=Number(line.ordered_quantity);
+        const received=Number(line.received_quantity??0);
+        if(!Number.isSafeInteger(ordered)||ordered<1||ordered>2147483647||
+           !Number.isSafeInteger(received)||received<0||received>ordered){
+          alert('La compra contiene cantidades inválidas. Revisa sus líneas antes de registrar la recepción.');
+          return;
+        }
+      }
+      const unassigned=rows.filter(l=>
+        !l.item_id && Number(l.ordered_quantity)>Number(l.received_quantity??0));
+      if(unassigned.length){
+        alert('Hay líneas pendientes sin una prenda base asociada. Asócialas desde “Ver / editar prendas” antes de confirmar la recepción.');
+        return;
+      }
       const pending=rows
         .map(l=>({
           item_id:l.item_id,
-          qty:Math.max(0,N(l.ordered_quantity)-N(l.received_quantity)),
+          qty:Number(l.ordered_quantity)-Number(l.received_quantity??0),
           barcode:null
         }))
-        .filter(x=>x.item_id&&x.qty>0);
+        .filter(x=>x.qty>0);
 
       if(!pending.length){
-        await supabaseClient.from('purchases').update({status:'Recibido'}).eq('id',purchaseId);
-        toast?.('La compra ya estaba completamente recibida');
+        // Sin unidades pendientes no corresponde registrar movimientos ni forzar el estado.
+        // Si el estado está desactualizado, debe corregirse en el servidor.
+        toast?.('No hay unidades pendientes. Revisa el estado de la compra si aún figura abierta.');
         await window.comprasView?.(document.getElementById('view'));
+        return;
+      }
+
+      // El RPC actual identifica prendas por item_id, no por línea de compra.
+      // No sumar automáticamente líneas duplicadas sin verificar su trazabilidad.
+      const seenItems=new Set();
+      const repeatedItems=pending.filter(x=>{
+        const key=String(x.item_id);
+        if(seenItems.has(key))return true;
+        seenItems.add(key);return false;
+      });
+      if(repeatedItems.length){
+        alert('Esta compra contiene varias líneas pendientes de la misma referencia. Para evitar una recepción incorrecta, revisa y unifica las líneas desde “Ver / editar prendas” antes de recibirla completa.');
         return;
       }
 
@@ -269,19 +344,17 @@
       });
       if(error) throw error;
 
-      const {error:statusError}=await supabaseClient
-        .from('purchases')
-        .update({status:'Recibido'})
-        .eq('id',purchaseId);
-      if(statusError) console.warn('Stock recibido, pero no se pudo actualizar el estado:',statusError);
+      // receive_stock_batch actualiza compra y existencias dentro de una sola transacción.
+      // Evitar una segunda escritura de estado desde el navegador, fuera de esa transacción.
 
       toast?.(`Compra recibida: +${total} ud. al stock`);
       await window.cargarStockCamisetas?.();
       await window.comprasView?.(document.getElementById('view'));
     }catch(e){
       console.error('Recepción manual compra:',e);
-      alert(e?.message||'No se pudo recepcionar la compra. No se ha confirmado manualmente.');
+      alert('No se pudo confirmar la recepción. Si hubo un corte de conexión, la compra PODRÍA haberse registrado. Revisa las cantidades recibidas y los movimientos antes de volver a intentarlo.\n\nDetalle: '+(e?.message||'Error desconocido'));
     }finally{
+      receivingPurchases.delete(String(purchaseId));
       if(btn && document.body.contains(btn)){
         btn.disabled=false;
         btn.textContent=oldText||'✅ Recibir completo';

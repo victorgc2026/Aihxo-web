@@ -12,6 +12,7 @@
    if(error){console.error(error);c.innerHTML='<div class="page"><div class="card">Error cargando stock.</div></div>';return}
    const all=items||[];
    const ordersNow=(activeOrders||[]).filter(o=>!['entregado','cancelado'].includes(statusNorm(o.status)));
+   // The main order status is authoritative: old production flags never reopen closed orders.
    const activeCycle=cycles?.[0]||null;
 
    /* IMPORTANTE: el stock físico ya se descuenta cuando se crea el pedido.
