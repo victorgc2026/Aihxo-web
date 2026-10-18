@@ -27,3 +27,5 @@ jobs:
           for test in tests/order-status-checklist.cjs tests/order-cancellation-guard.cjs tests/kanban-closed-orders.cjs tests/receipt-scanner-structure.cjs tests/receipt-scanner-quantity.cjs tests/receipt-manual-status-guard.cjs tests/receipt-concurrency-guards.cjs; do
             node "$test"
           done
+      - name: Exercise manual receipt runtime with mocked data
+        run: node tests/receipt-manual-runtime.cjs
