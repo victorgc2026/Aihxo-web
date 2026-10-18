@@ -24,3 +24,5 @@ jobs:
         run: node tests/guardian-static.cjs
       - name: Check inventory RPC privilege proposal and frontend compatibility (static)
         run: node tests/guardian-rpc-grants.cjs
+      - name: Check SKU permission proposal (static)
+        run: node tests/guardian-sku-grants.cjs
