@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const manual=fs.readFileSync(path.join(__dirname,'../gestion/compras-recepcion-manual.js'),'utf8');
+const scanner=fs.readFileSync(path.join(__dirname,'../gestion/recepcion-etiquetas-v2.js'),'utf8');
+assert.match(manual,/const receivingPurchases=new Set\(\)/);
+assert.match(manual,/receivingPurchases\.has\(String\(purchaseId\)\)/);
+assert.match(manual,/receivingPurchases\.add\(String\(purchaseId\)\)/);
+assert.match(manual,/finally\s*\{\s*receivingPurchases\.delete\(String\(purchaseId\)\)/);
+assert.match(scanner,/receiptSubmitting\|\|!batch\.length/);
+assert.match(manual,/la compra PODRÍA haberse registrado/);
+assert.match(scanner,/la mercancía PODRÍA haberse registrado/);
+console.log('PASS: manual and scanner receipt paths reject overlapping submissions');
