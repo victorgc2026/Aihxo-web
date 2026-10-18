@@ -26,3 +26,8 @@ Read-only metadata inspection; **no files opened, uploaded, changed or deleted**
 Storage bucket public flags, policies and object counts were read from catalog tables. No real anonymous HTTP requests or private URL access attempts were made. No backup or restore has been validated.
 
 **Status: storage inventory complete; effective access tests pending.**
+
+## Public bucket filename/metadata triage (read-only)
+- Across **74 public-bucket objects** (65 product images and 9 mockup templates), **0** filenames matched the heuristic terms `invoice/factura/receipt/recibo/dni/passport/documento/contrato/client/cliente/pedido/orden` and **0** filenames ended in PDF, DOC/DOCX or XLS/XLSX.
+- MIME metadata: `product-images`: 40 PNG, 25 JPEG; `mockup-templates`: 8 PNG, 1 JPEG.
+- **This does not prove the images are safe to publish**: filenames and MIME types cannot detect confidential content inside a photo. A human content review is still required before closing the finding.
