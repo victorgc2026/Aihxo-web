@@ -22,3 +22,5 @@ jobs:
           done < <(find gestion Web -type f \( -name '*.js' -o -name '*.cjs' \) -print0)
       - name: Verify critical files and module references
         run: node tests/guardian-static.cjs
+      - name: Validate proposed inventory RPC privileges in disposable PostgreSQL
+        run: node tests/guardian-rpc-grants.cjs
