@@ -5,7 +5,7 @@ const assert=require('node:assert/strict');
 const source=fs.readFileSync('gestion/compras-recepcion-manual.js','utf8');
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
 
-async function scenario({status='Pendiente',lines,confirmAnswer=true,delay=false}){
+async function scenario({status='Pendiente',lines,confirmAnswer=true,delay=false,rpcError=null}){
   const calls=[],messages=[],alerts=[];
   let finishRpc;
   const wait=delay?new Promise(resolve=>{finishRpc=resolve}):null;
@@ -16,7 +16,7 @@ async function scenario({status='Pendiente',lines,confirmAnswer=true,delay=false
       if(table==='purchase_lines')return {select:()=>({eq:async()=>({data:lines,error:null})})};
       throw Error('Unexpected table '+table);
     },
-    async rpc(name,args){calls.push({name,args});if(wait)await wait;return {data:{ok:true},error:null}}
+    async rpc(name,args){calls.push({name,args});if(wait)await wait;return {data:rpcError?null:{ok:true},error:rpcError}}
   };
   const view={};
   const btn={textContent:'Recibir completo',disabled:false};
@@ -68,5 +68,19 @@ async function scenario({status='Pendiente',lines,confirmAnswer=true,delay=false
 
   r=await scenario({lines:[line('item-a',2)],delay:true});
   assert.equal(r.calls.length,1,'Concurrent double click must only call RPC once');
+  r=await scenario({lines:[line('item-a',3)],rpcError:new Error('network timeout')});
+  assert.equal(r.calls.length,1,'Ambiguous network error must not trigger an automatic retry');
+  assert.match(r.alerts.join(' '),/PODRÍA haberse registrado/,'Network error must warn about possible committed receipt');
+  assert.equal(r.btn.disabled,false,'Button must unlock after RPC failure');
+
+  r=await scenario({lines:[line('item-a',2147483648)]});
+  assert.equal(r.calls.length,0,'Quantity over PostgreSQL integer limit must be rejected');
+
+  r=await scenario({lines:[line('item-a',2,3)]});
+  assert.equal(r.calls.length,0,'Already received units cannot exceed ordered units');
+
+  r=await scenario({lines:[{id:'line-missing',item_id:null,ordered_quantity:2,received_quantity:0}]});
+  assert.equal(r.calls.length,0,'Unassigned purchase lines must be rejected');
+
   console.log('PASS: manual receipt runtime flows with isolated fake Supabase');
 })().catch(e=>{console.error(e);process.exitCode=1});
