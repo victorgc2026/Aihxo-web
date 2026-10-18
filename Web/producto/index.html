@@ -39,7 +39,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
  const color=qs.get('color')||'';
  const root=document.getElementById('product');
  if(!sku){root.innerHTML='<div>Producto no encontrado.</div>';return;}
- const {data:p,error}=await sb.from('products').select('*').eq('sku',sku).maybeSingle();
+ const {data:p,error}=await sb.from('products').select('sku,model,gallery,homepage_image_url,image_url,price_one_print,sale_price,stock,sales_disabled,orderable_when_out_of_stock,features').eq('sku',sku).eq('web_published',true).maybeSingle();
  if(error||!p){root.innerHTML='<div>Producto no encontrado.</div>';return;}
  const name=p.model||p.sku||'Diseño AIHXO';
  const gallery=Array.isArray(p.gallery)?p.gallery.filter(Boolean):[];
