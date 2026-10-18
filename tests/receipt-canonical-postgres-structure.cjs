@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const sql=fs.readFileSync(path.join(__dirname,'../database/proposals/20261017-receipt-canonical-postgres.sql'),'utf8');
+assert.match(sql,/create or replace function public\.canonical_stock_receipt/i);
+assert.match(sql,/jsonb_typeof\(v_item->'qty'\) is distinct from 'number'/i);
+assert.match(sql,/v_id=any\(v_seen\)/i);
+assert.match(sql,/jsonb_agg\(value order by value->>'item_id'\)/i);
+assert.match(sql,/revoke all on function public\.canonical_stock_receipt\(jsonb,uuid\) from public, anon, authenticated/i);
+assert.doesNotMatch(sql,/\b(?:update|insert into|delete from)\s+public\.(?:base_stock_items|orders|base_stock_movements|purchase_lines)\b/i);
+console.log('PASS: PostgreSQL receipt canonicalization proposal has strict validation and no stock writes');

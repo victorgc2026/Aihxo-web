@@ -1,7 +1,7 @@
 const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES+'/playwright');
 const fs=require('node:fs');const assert=require('node:assert/strict');const path=require('node:path');
 (async()=>{
- const browser=await chromium.launch({headless:true,executablePath:process.env.AIHXO_TEST_CHROMIUM,args:['--no-sandbox']});const page=await browser.newPage({viewport:{width:390,height:844}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const browser=await chromium.launch({headless:true,...(process.env.AIHXO_TEST_CHROMIUM ? {executablePath:process.env.AIHXO_TEST_CHROMIUM} : {}),args:['--no-sandbox']});const page=await browser.newPage({viewport:{width:390,height:844}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('https://test.local/**',r=>r.fulfill({contentType:'text/html',body:'<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="nav"></div><div id="title"></div><div id="view"></div><div id="drawer"><div class="drawer-card"><div id="drawerBody"></div></div></div><div id="toast"></div></body></html>'}));
  await page.goto('https://test.local');await page.addStyleTag({content:fs.readFileSync(path.join(__dirname,'../gestion/styles.css'),'utf8')});
  await page.addScriptTag({content:`

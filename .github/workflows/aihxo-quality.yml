@@ -1,0 +1,130 @@
+name: AIHXO Quality Checks
+on:
+  push:
+    branches:
+      - 'audit/**'
+      - 'feature/**'
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  javascript-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          set -eu
+          find gestion Web -type f \( -name '*.js' -o -name '*.cjs' \) -print0 | while IFS= read -r -d '' file; do
+            node --check "$file"
+          done
+          node --check tests/ui-smoke.cjs
+      - name: Validate Gestion module registry
+        run: node tests/module-registry.cjs
+      - name: Check DTF structural safeguards
+        run: node tests/dtf-structure.cjs
+      - name: Test DTF sizing mathematics
+        run: node tests/dtf-math.cjs
+      - name: Test final order status precedence
+        run: node tests/order-status-checklist.cjs
+      - name: Test cancellation and stock guard
+        run: node tests/order-cancellation-guard.cjs
+      - name: Test closed orders in Kanban
+        run: node tests/kanban-closed-orders.cjs
+      - name: Check receipt scanner duplicate protection
+        run: node tests/receipt-scanner-structure.cjs
+      - name: Test scanner quantity validation
+        run: node tests/receipt-scanner-quantity.cjs
+      - name: Check manual purchase receipt status ownership
+        run: node tests/receipt-manual-status-guard.cjs
+      - name: Check receipt concurrency guards
+        run: node tests/receipt-concurrency-guards.cjs
+      - name: Check receipt ledger proposal
+        run: node tests/receipt-ledger-structure.cjs
+      - name: Check receipt claim prototype
+        run: node tests/receipt-claim-prototype.cjs
+      - name: Check receipt payload canonicalization
+        run: node tests/receipt-canonical.cjs
+      - name: Test stable receipt request payload
+        run: node tests/receipt-request.cjs
+      - name: Check PostgreSQL receipt canonicalization proposal
+        run: node tests/receipt-canonical-postgres-structure.cjs
+      - name: Check isolated PostgreSQL test vectors
+        run: node tests/receipt-postgres-test-vectors.cjs
+      - name: Install Playwright test runtime
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run mobile order smoke test
+        env:
+          CODEX_PRIMARY_RUNTIME_NODE_MODULES: ${{ github.workspace }}/node_modules
+        run: node tests/ui-smoke.cjs
+      - name: Verify required application files
+        run: |
+          test -s gestion/index.html
+          test -s gestion/app.js
+          test -s gestion/studio-dtf.js
+          test -s gestion/exportador-dtf.js
+          test -s Web/index.html
+
+  postgres-receipt-isolated:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_only_password
+          POSTGRES_DB: aihxo_receipt_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d aihxo_receipt_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: test_only_password
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Create Supabase API roles in disposable database
+        run: |
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;'
+      - name: Run receipt canonicalization against isolated PostgreSQL
+        run: |
+          set -eu
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/proposals/20261017-receipt-canonical-postgres.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-canonical-test.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-boundaries-and-permissions.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-idempotency-fixture.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-idempotency-test.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-orders-fixture.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-orders-test.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-multiline-fixture.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-multiline-test.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-purchase-fixture.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-purchase-test.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-purchase-atomicity.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-purchase-multisku.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-purchase-retry-after-failure.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-purchase-conflicting-replay.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-v2-fixture.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-v2-test.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-v2-purchase-test.sql
+          bash tests/receipt-purchase-concurrency.sh
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-rollback-test.sql
+          bash tests/receipt-concurrency.sh
+          bash tests/receipt-concurrent-conflict.sh
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -c 'CREATE ROLE service_role NOLOGIN;'
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-ledger-fixture.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/proposals/20261017-receipt-request-ledger.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-ledger-permissions.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-ledger-rls-fixture.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-ledger-rls-roles.sql
+          psql -h localhost -U postgres -d aihxo_receipt_test -v ON_ERROR_STOP=1 -f database/tests/20261017-receipt-ledger-denied-operations.sql

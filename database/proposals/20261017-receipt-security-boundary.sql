@@ -1,0 +1,22 @@
+-- AIHXO · Diseño de acceso protegido al registro de recepciones.
+-- NO DESPLEGAR: prototipo para pruebas en PostgreSQL aislado.
+-- Esta función no mueve stock. El registro debe quedar unido a la RPC final.
+-- Mantener el ledger sin INSERT/UPDATE para authenticated.
+--
+-- La RPC final puede ser SECURITY DEFINER SOLO tras revisar su propietario,
+-- search_path, comprobación auth.uid() + email y cada acceso a tablas de
+-- pedidos, compras, movimientos y stock. Un SECURITY DEFINER que invoque
+-- sin más a receive_stock_batch alteraría el contexto RLS de esa función.
+-- NO adoptar ese patrón sin auditoría.
+--
+-- Alternativa de integración: separar la lógica de recepción en una función
+-- interna con controles explícitos de equipo y de pertenencia de registros,
+-- e invocarla desde la misma transacción que el ledger; revocar EXECUTE a
+-- public/anon/authenticated en las funciones internas.
+--
+-- Precondiciones de aprobación:
+-- (1) RLS verificada con usuario equipo, usuario externo y anon.
+-- (2) Repetición concurrente y conflictiva.
+-- (3) Reversión ante error tras movimientos y tras asignación de pedidos.
+-- (4) Ningún permiso directo de escritura al ledger desde la API.
+-- (5) Compatibilidad de la función receive_stock_batch original.

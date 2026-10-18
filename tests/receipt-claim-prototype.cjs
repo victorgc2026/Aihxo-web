@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const sql=fs.readFileSync(path.join(__dirname,'../database/proposals/20261017-receipt-claim-prototype.sql'),'utf8');
+assert.match(sql,/on conflict \(request_id\) do nothing/i);
+assert.match(sql,/where request_id=p_request_id for update/i);
+assert.match(sql,/v_existing\.payload_hash<>p_payload_hash/i);
+assert.match(sql,/v_existing\.purchase_id is distinct from p_purchase_id/i);
+assert.match(sql,/v_existing\.completed_at is not null/i);
+assert.match(sql,/replayed',true/i);
+assert.match(sql,/revoke all on function public\.claim_stock_receipt_request\(uuid,text,uuid\) from public, anon, authenticated/i);
+assert.doesNotMatch(sql,/\b(?:update|insert into|delete from)\s+public\.(?:base_stock_items|orders|base_stock_movements|purchase_lines)\b/i);
+console.log('PASS: isolated receipt claim prototype locks and validates replay without writing stock');

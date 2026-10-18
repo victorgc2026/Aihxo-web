@@ -1,0 +1,4 @@
+-- Comprobación de solicitudes concurrentes en dos sesiones de PostgreSQL.
+-- Requiere fixture receipt_test.receive_once; solo base temporal.
+-- Una sesión debe bloquear la fila mientras la otra espera.
+-- Ejecutar mediante tests/receipt-concurrency.cjs con dos conexiones psql.

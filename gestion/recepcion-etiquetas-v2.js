@@ -155,9 +155,21 @@
   }
 
   function add(id,code){
-    const qty=Math.max(1,Number(document.getElementById('recvQty')?.value||1));
-    const e=batch.find(x=>String(x.item_id)===String(id)&&String(x.barcode||'')===String(code||''));
-    if(e)e.qty+=qty; else batch.push({item_id:id,qty,barcode:code||null});
+    const qty=Number(document.getElementById('recvQty')?.value);
+    if(!Number.isSafeInteger(qty)||qty<1||qty>2147483647){
+      alert('Introduce un número entero de unidades entre 1 y 2.147.483.647.');
+      return;
+    }
+    const e=batch.find(x=>String(x.item_id)===String(id));
+    if(e){
+      if(e.barcode&&code&&String(e.barcode)!==String(code)){
+        alert('Esta variante ya tiene otro código en el recuento. Revisa el código antes de continuar.');
+        return;
+      }
+      if(e.qty+qty>2147483647){alert('La cantidad total de esta prenda supera el máximo permitido.');return;}
+      e.qty+=qty;
+      if(!e.barcode&&code)e.barcode=code;
+    }else batch.push({item_id:id,qty,barcode:code||null});
     renderBatch();
     const r=document.getElementById('scanResult'); if(r)r.innerHTML='';
     resume();
@@ -177,14 +189,16 @@
       ${batch.length?`<button id="confirmBatch" type="button" style="width:100%;margin-top:14px;padding:15px;border:0;border-radius:12px;background:#0a7f32;color:white;font-weight:900">✅ Guardar recuento (${total} ud.)</button><button id="clearBatch" type="button" style="width:100%;margin-top:8px;padding:12px;border:1px solid #ccc;border-radius:12px;background:#fff;font-weight:700">Vaciar recuento</button>`:''}`;
 
     box.querySelectorAll('[data-minus]').forEach(b=>b.onclick=()=>{const i=+b.dataset.minus;batch[i].qty=Math.max(1,batch[i].qty-1);renderBatch()});
-    box.querySelectorAll('[data-plus]').forEach(b=>b.onclick=()=>{batch[+b.dataset.plus].qty++;renderBatch()});
+    box.querySelectorAll('[data-plus]').forEach(b=>b.onclick=()=>{const line=batch[+b.dataset.plus];if(line.qty>=2147483647){alert('Cantidad máxima alcanzada.');return;}line.qty++;renderBatch()});
     box.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{batch.splice(+b.dataset.del,1);renderBatch()});
     document.getElementById('clearBatch')?.addEventListener('click',()=>{if(confirm('¿Vaciar el recuento?')){batch=[];sessionCodes.clear();renderBatch()}});
     document.getElementById('confirmBatch')?.addEventListener('click',confirmBatch);
   }
 
+  let receiptSubmitting=false;
   async function confirmBatch(){
-    if(!batch.length)return;
+    if(receiptSubmitting||!batch.length)return;
+    receiptSubmitting=true;
     stopScanner();
     const btn=document.getElementById('confirmBatch'); btn.disabled=true; btn.textContent='Guardando…';
     try{
@@ -198,8 +212,10 @@
       renderBatch(); await window.cargarStockCamisetas?.();
     }catch(e){
       console.error(e);
-      alert(e.code==='23505'?'Ese código ya está asociado a otra variante.':(e.message||'No se pudo guardar el recuento.'));
+      alert(e?.code==='23505'?'Ese código ya está asociado a otra variante.':('No se pudo confirmar la respuesta de recepción. Si se perdió la conexión, la mercancía PODRÍA haberse registrado. Comprueba primero los movimientos y existencias antes de volver a guardar.\n\nDetalle: '+(e?.message||'Error desconocido')));
       btn.disabled=false; renderBatch(); startScanner(true);
+    }finally{
+      receiptSubmitting=false;
     }
   }
 
