@@ -1,0 +1,24 @@
+name: AIHXO Guardian - Pull Request Safety
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  guardian-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate application JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find gestion Web -type f \( -name '*.js' -o -name '*.cjs' \) -print0)
+      - name: Verify critical files and module references
+        run: node tests/guardian-static.cjs
