@@ -16,6 +16,7 @@
 
   function stageFor(o){
     if(low(o.status)==='entregado') return 'delivered';
+    if(low(o.status)==='cancelado') return 'cancelled';
     if(o.packed_at) return 'pack';
     if(o.ironed_at) return 'pack';
 
@@ -65,6 +66,7 @@
   window.aihxoKanbanMove=async function(id,target){
     const o=orders.find(x=>String(x.id)===String(id));if(!o)return;
     const now=new Date().toISOString();
+    if(['cancelado','entregado'].includes(low(o.status))){toast('El pedido está cerrado. Reábrelo expresamente desde su ficha antes de moverlo.');return false;}
 
     if(target==='pending') return patchOrder(id,{status:'Pendiente',production_status:'Pendiente'},'Pedido movido a Pendiente');
 
