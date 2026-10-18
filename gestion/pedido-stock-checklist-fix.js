@@ -6,7 +6,8 @@
    await oldOpen(id);
    const o=(orders||[]).find(x=>String(x.id)===String(id));
    if(!o)return;
-   const waiting=String(o.production_status||'').trim().toLowerCase()==='pendiente llegada'&&o.base_stock_allocated!==true;
+   const status=String(o.status||'').trim().toLowerCase();
+   const waiting=!['cancelado','entregado'].includes(status)&&String(o.production_status||'').trim().toLowerCase()==='pendiente llegada'&&o.base_stock_allocated!==true;
    const sel=document.getElementById('pdProduction');
    if(sel&&waiting){
      if(!Array.from(sel.options).some(x=>x.value==='Pendiente llegada')){const op=document.createElement('option');op.value='Pendiente llegada';op.textContent='🚚 Pendiente llegada';sel.insertBefore(op,sel.firstChild)}
