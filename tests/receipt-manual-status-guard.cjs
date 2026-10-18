@@ -30,4 +30,8 @@ assert.match(src,/const \{data:existingLines,error:existingError\}/,'Debe consul
 assert.match(src,/if\(existingLines\?\.length\)/,'Debe bloquear recuperación cuando ya hay líneas');
 assert.match(src,/if\(!purchase\?\.id\)/,'La recuperación debe exigir identificador de compra');
 assert.match(src,/if\(!resolved\.length\)/,'La recuperación debe rechazar inserciones vacías');
+assert.match(src,/value="\\$\\{E\\(qty\\)\\}" title="Cantidad"/,'La cantidad extraída de la factura debe escaparse antes de insertarla en HTML');
+assert.doesNotMatch(src,/value="\\$\\{qty\\}" title="Cantidad"/,'No debe insertarse cantidad cruda en atributos HTML');
+assert.match(src,/const unit=rawUnit!=null/,'El coste unitario debe conservar la ausencia de dato');
+assert.match(src,/Number\\.isFinite\\(unit\\)\\?unit\\.toFixed\\(2\\):''/,'No debe rellenar costes desconocidos con cero');
 console.log('PASS: purchase receipt has single atomic RPC status owner and client guards');
