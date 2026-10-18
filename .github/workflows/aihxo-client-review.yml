@@ -1,0 +1,29 @@
+name: AIHXO Client Review Checks
+on:
+  push:
+    branches:
+      - 'review/**'
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  client-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check of modified client modules
+        run: |
+          set -eu
+          for file in gestion/compras-recepcion-manual.js gestion/pedido-detalle-v2.js gestion/pedido-stock-checklist-fix.js gestion/produccion-pendiente-stock.js gestion/recepcion-etiquetas-v2.js gestion/stock-inteligente.js gestion/tpv-production.js; do
+            node --check "$file"
+          done
+      - name: Run isolated client regression tests
+        run: |
+          set -eu
+          for test in tests/order-status-checklist.cjs tests/order-cancellation-guard.cjs tests/kanban-closed-orders.cjs tests/receipt-scanner-structure.cjs tests/receipt-scanner-quantity.cjs tests/receipt-manual-status-guard.cjs tests/receipt-concurrency-guards.cjs; do
+            node "$test"
+          done
