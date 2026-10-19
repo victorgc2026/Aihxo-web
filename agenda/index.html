@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c1324">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mi Día">
+<meta name="description" content="Agenda privada compartida para organizar tareas, envíos y pendientes.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Mi Día · Agenda compartida</title>
+<style>
+:root{color-scheme:dark;--bg:#0a101e;--panel:#172138;--panel2:#202e49;--line:#2b3b58;--text:#f5f8ff;--mute:#a4b3cb;--blue:#a0beff;--mint:#86e0bb;--warn:#ffcf92}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;min-height:100dvh;background:radial-gradient(ellipse 85% 35% at 75% 0,#203759 0,transparent 95%),var(--bg);color:var(--text);font:15px -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;padding:env(safe-area-inset-top) 0 calc(92px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.48;cursor:default}input,select,textarea{color:var(--text);color-scheme:dark}
+[hidden]{display:none!important}.wrap{max-width:720px;margin:auto;padding:25px 17px 34px}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.eyebrow{font-size:11px;letter-spacing:.15em;text-transform:uppercase;font-weight:850;color:var(--blue)}h1{font-size:42px;letter-spacing:-2px;margin:9px 0 7px;line-height:1}h1 em{color:var(--blue);font-style:normal}.sub{font-size:13px;color:var(--mute);line-height:1.5;margin:0}
+button.icon{width:44px;height:44px;flex-shrink:0;display:grid;place-items:center;border:1px solid var(--line);background:#1b2b43;color:#e9f2ff;border-radius:15px;font-size:22px}
+.panel{padding:21px 19px;border:1px solid var(--line);background:linear-gradient(145deg,#19253e,#131d30);border-radius:21px;margin:16px 0}.panel h2{font-size:20px;margin:0 0 10px;letter-spacing:-.5px}.panel p{font-size:13px;color:var(--mute);line-height:1.6;margin:0 0 14px}
+.field{margin:0 0 15px}.field label{display:block;font-weight:750;color:#c1d1eb;font-size:12px;margin-bottom:7px}.field input,.field select,.field textarea{width:100%;border:1px solid #3b4c6a;min-height:46px;border-radius:12px;background:#0d1728;padding:11px 12px;font-size:16px;outline:none}.field textarea{min-height:75px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:#98b9ff}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{border:1px solid #3c4e70;color:#e3edff;background:#243650;border-radius:13px;font-size:13px;font-weight:800;padding:12px 14px}.btn.primary{background:#a6c4ff;border-color:#a6c4ff;color:#0e1b33}.btn.full{width:100%;font-size:15px;padding:15px}
+.auth-tabs,.tabs{background:#17243a;border:1px solid var(--line);display:flex;gap:3px;border-radius:16px;padding:5px;margin:19px 0}.auth-tabs button,.tabs button{flex:1;border:0;background:transparent;color:var(--mute);border-radius:12px;padding:11px 5px;font-weight:800;font-size:13px}.auth-tabs button.active,.tabs button.active{color:#f8fbff;background:#38547e}
+.mini{font-size:12px;color:var(--mute);line-height:1.65}.mini strong{color:#d5e4ff}.status{background:#13263b;border:1px solid #33526b;color:#d1e8ff;border-radius:13px;padding:12px 13px;font-size:12px;line-height:1.55;margin-top:14px}.status.error{background:#39212e;border-color:#724352;color:#ffbfbe}
+.pill{display:inline-block;border:1px solid #3e5777;background:#223752;border-radius:999px;color:#d5e6ff;font-size:11px;font-weight:750;padding:6px 10px}
+.team{display:flex;gap:8px;align-items:center;margin-top:13px;overflow:auto}.team .pill{white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:22px 0 15px}.stat{background:linear-gradient(155deg,#1b2a43,#141f31);border:1px solid var(--line);border-radius:18px;padding:15px 10px}.stat b{display:block;font-size:27px;letter-spacing:-1px}.stat small{display:block;font-size:11px;color:var(--mute);margin-top:7px}.stat:nth-child(2) b{color:var(--mint)}.stat:nth-child(3) b{color:var(--warn)}
+.datebar{display:flex;align-items:center;gap:12px;margin:19px 0}.datebar strong{display:block;text-align:center;font-size:17px;flex:1}.datebar button.link{display:block;background:none;border:0;color:var(--blue);font-size:11px;margin:3px auto}
+.filters{display:flex;gap:8px;overflow-x:auto;margin:0 -17px 17px;padding:0 17px 4px;scrollbar-width:none}.filters button{border:1px solid #354963;background:#1d2d45;color:#ceddf4;border-radius:999px;padding:8px 11px;white-space:nowrap;font-weight:750;font-size:11px}.filters button.active{background:#d6e5ff;color:#15243c;border-color:#d6e5ff}
+.heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:21px 0 10px;font-size:14px;font-weight:800}.heading small{font-size:11px;color:var(--mute);font-weight:500}
+.task{display:flex;gap:10px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:15px 12px;margin:8px 0}.task.overdue{border-color:#654d48;background:#251e29}.task.done{opacity:.73}.tick{flex:0 0 26px;width:26px;height:26px;border:2px solid #6d83a1;border-radius:9px;background:transparent;color:#0c1b28;font-size:17px;font-weight:900}.done .tick{background:var(--mint);border-color:var(--mint)}.taskBody{flex:1;min-width:0}.taskName{font-size:15px;font-weight:780;overflow-wrap:anywhere;line-height:1.35}.done .taskName{text-decoration:line-through;color:#9facbd}.meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}.tag{font-size:10px;color:#d6e5fa;background:#253752;border-radius:7px;font-weight:700;padding:4px 7px}.tag.warn{color:#ffe2a6;background:#51392e}.note{font-size:12px;color:var(--mute);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;margin:8px 0 0}.edit{border:0;background:none;color:#b9cee6;font-size:19px;padding:0 3px}
+.empty{text-align:center;background:#121f32;border:1px dashed #3a4b67;border-radius:19px;margin:14px 0;padding:36px 24px}.empty b{font-size:17px}.empty p{color:var(--mute);font-size:13px;line-height:1.55}
+.bottom{position:fixed;bottom:0;left:0;right:0;background:#0b1220f8;border-top:1px solid #293b55;padding:12px 17px calc(12px + env(safe-area-inset-bottom));z-index:20}.bottom .inner{display:flex;gap:9px;max-width:686px;margin:auto}.bottom .btn.primary{flex:1}
+dialog{color:var(--text);width:100%;max-width:720px;max-height:92dvh;inset:auto 0 0;margin:0 auto;position:fixed;overflow-y:auto;padding:0;border:1px solid #384963;background:#162137;border-radius:24px 24px 0 0;box-shadow:0 -20px 90px #0008}dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}.sheet{padding:20px 18px calc(22px + env(safe-area-inset-bottom))}.sheetHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:19px}.sheetHead h2{margin:0;font-size:20px}.sheetHead button{border:0;background:#2c3c55;border-radius:10px;width:36px;height:36px;color:#fff;font-size:22px}.actions{display:flex;gap:9px;margin-top:18px}.actions button{flex:1}.danger{color:#ffbabb;background:#462a39;border-color:#6e4355}
+.codebox{overflow-wrap:anywhere;padding:12px;background:#0d1626;border:1px dashed #55739d;border-radius:12px;font:14px ui-monospace,SFMono-Regular,Menlo,monospace;color:#dce9ff;user-select:all;text-align:center}
+footer{font-size:11px;color:#7b8da7;text-align:center;margin:34px 0 0;line-height:1.55}
+.toast{position:fixed;bottom:calc(93px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#e9f1ff;color:#0c1b35;padding:11px 16px;border-radius:13px;max-width:90%;z-index:200;font-size:12px;font-weight:750;opacity:0;transition:.2s;pointer-events:none}.toast.on{opacity:1}
+@media(min-width:800px){dialog{inset:0;border-radius:24px;max-height:90dvh}.wrap{padding-top:40px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top"><div><div class="eyebrow">La agenda de los dos</div><h1>Mi Día<em>.</em></h1><p class="sub">Organizamos lo que tenemos que hacer, enviar y resolver.</p></div><button id="settingsOpen" class="icon" aria-label="Opciones" hidden>⚙</button></header>
+
+  <section id="authArea">
+    <div class="auth-tabs"><button type="button" class="active" id="tabLogin">Entrar</button><button type="button" id="tabSignup">Crear cuenta</button></div>
+    <div class="panel"><h2 id="authTitle">Entra en tu agenda</h2><p>Cada uno entra con su correo y contraseña. Solo quienes se unan con el código privado verán las tareas compartidas.</p>
+      <form id="authForm">
+        <div class="field" id="nameField" hidden><label for="authName">Tu nombre</label><input id="authName" maxlength="40" autocomplete="name" placeholder="Víctor o Graci"></div>
+        <div class="field"><label for="authEmail">Correo electrónico</label><input id="authEmail" type="email" autocomplete="email" required placeholder="tu@email.com"></div>
+        <div class="field"><label for="authPassword">Contraseña</label><input id="authPassword" type="password" required minlength="8" autocomplete="current-password" placeholder="Mínimo 8 caracteres"></div>
+        <button id="authSubmit" class="btn primary full" type="submit">Entrar</button>
+      </form><div class="status" id="authStatus" hidden></div>
+    </div>
+  </section>
+
+  <section id="setupArea" hidden>
+    <div class="panel"><h2>Crear vuestra agenda</h2><p>Uno de vosotros crea la agenda y comparte el código. El otro entra desde su iPhone y elige «Unirme».</p>
+      <form id="createForm"><div class="field"><label for="creatorName">Cómo te llamas</label><input id="creatorName" required maxlength="40" placeholder="Víctor"></div><button class="btn primary full" type="submit">Crear agenda compartida</button></form>
+    </div>
+    <div class="panel"><h2>Unirme a una agenda</h2><p>Si el otro ya la creó, introduce el código que te envió.</p>
+      <form id="joinForm"><div class="field"><label for="joinName">Cómo te llamas</label><input id="joinName" required maxlength="40" placeholder="Graci"></div><div class="field"><label for="joinCode">Código privado</label><input id="joinCode" required autocomplete="off" autocapitalize="off" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div><button class="btn full" type="submit">Unirme</button></form>
+    </div>
+    <button class="btn" id="setupLogout">Cerrar sesión</button>
+  </section>
+
+  <section id="appArea" hidden>
+    <div class="team"><span class="pill" id="spaceName">Nuestra agenda</span><span class="pill" id="teamNames">Sincronizada</span></div>
+    <div class="stats"><div class="stat"><b id="countToday">0</b><small>Para hoy</small></div><div class="stat"><b id="countDone">0</b><small>Hechas hoy</small></div><div class="stat"><b id="countLate">0</b><small>Atrasadas</small></div></div>
+    <nav class="tabs" aria-label="Vista"><button class="active" data-view="day">Día</button><button data-view="week">Semana</button><button data-view="pending">Pendientes</button></nav>
+    <div class="datebar" id="datebar"><button class="icon" id="prevDate" aria-label="Anterior">‹</button><div style="flex:1;text-align:center"><strong id="dateLabel">Hoy</strong><button class="link" id="goToday">Volver a hoy</button></div><button class="icon" id="nextDate" aria-label="Siguiente">›</button></div>
+    <div class="filters" id="filters"></div>
+    <div id="list" aria-live="polite"></div>
+    <footer>Los cambios se guardan en la agenda compartida. Necesitas conexión a Internet para añadir o completar tareas.</footer>
+  </section>
+</main>
+
+<div id="bottom" class="bottom" hidden><div class="inner"><button id="newTask" class="btn primary">＋ Nueva tarea</button><button id="reload" class="btn" aria-label="Actualizar">↻</button></div></div>
+<dialog id="taskModal"><div class="sheet"><div class="sheetHead"><h2 id="formTitle">Nueva tarea</h2><button data-close="taskModal">×</button></div>
+  <form id="taskForm"><input type="hidden" id="editId"><div class="field"><label for="taskTitle">¿Qué hay que hacer?</label><input id="taskTitle" required maxlength="240" placeholder="Ej.: Enviar camisetas del pedido"></div>
+    <div class="two"><div class="field"><label for="taskDate">Fecha</label><input id="taskDate" type="date" required></div><div class="field"><label for="taskTime">Hora (opcional)</label><input id="taskTime" type="time"></div></div>
+    <div class="two"><div class="field"><label for="taskCategory">Tipo</label><select id="taskCategory"><option>AIHXO</option><option>Envíos</option><option>Trabajo</option><option>Personal</option><option>Compras</option><option>Llamadas</option></select></div><div class="field"><label for="taskAssignee">Para quién</label><select id="taskAssignee"><option value="">Los dos</option></select></div></div>
+    <div class="two"><div class="field"><label for="taskPriority">Prioridad</label><select id="taskPriority"><option value="normal">Normal</option><option value="high">Urgente</option></select></div><div class="field"><label for="taskRepeat">Repetición</label><select id="taskRepeat"><option value="none">No repetir</option><option value="daily">Todos los días</option><option value="weekly">Cada semana</option><option value="monthly">Cada mes</option></select></div></div>
+    <div class="field"><label for="taskNotes">Notas / información del envío</label><textarea id="taskNotes" maxlength="4000" placeholder="Detalles, contacto, seguimiento..."></textarea></div>
+    <div class="actions"><button type="button" class="btn danger" id="removeTask" hidden>Eliminar</button><button type="submit" class="btn primary" id="saveTask">Guardar tarea</button></div>
+  </form>
+</div></dialog>
+<dialog id="settingsModal"><div class="sheet"><div class="sheetHead"><h2>Agenda compartida</h2><button data-close="settingsModal">×</button></div>
+  <p class="mini">Tú y Graci podéis abrir esta página desde vuestros iPhone y ver los mismos cambios.</p>
+  <div class="panel"><h2>Invitar a Graci</h2><p>Comparte este código solo con quien quieras que tenga acceso a vuestra agenda.</p><div class="codebox" id="inviteCode"></div><div class="actions"><button class="btn primary" id="copyInvite">Compartir invitación</button><button class="btn" id="copyCode">Copiar código</button></div></div>
+  <div class="panel"><h2>En tu iPhone</h2><p>Abre esta dirección en Safari, pulsa Compartir y después «Añadir a pantalla de inicio». Aparecerá como una app llamada «Mi Día».</p></div>
+  <div class="actions"><button id="exportCalendar" class="btn">Calendario de hoy (.ics)</button><button class="btn" id="logout">Cerrar sesión</button></div>
+</div></dialog>
+<div id="toast" class="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.81.1/dist/umd/supabase.js"></script>
+<script>
+(function(){
+'use strict';
+const URL='https://zoiesxtchnesrilpuqek.supabase.co';
+const KEY='sb_publishable_-DyRFQxtVvvwiPlvkZyUtA_upKb2W7T';
+const sb=window.supabase&&window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const $=id=>document.getElementById(id);
+let authMode='login',user=null,space=null,members=[],tasks=[],view='day',selected=iso(new Date()),category='Todos',channel=null,saving=false;
+const cats=['Todos','AIHXO','Envíos','Trabajo','Personal','Compras','Llamadas'];
+const fmt=new Intl.DateTimeFormat('es-ES',{weekday:'long',day:'numeric',month:'long'});
+const fmtShort=new Intl.DateTimeFormat('es-ES',{weekday:'short',day:'numeric',month:'short'});
+function iso(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
+function dObj(s){const p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2],12)}
+function plus(s,n){const d=dObj(s);d.setDate(d.getDate()+n);return iso(d)}
+function mon(s){const d=dObj(s);d.setDate(d.getDate()-(d.getDay()+6)%7);return iso(d)}
+function daydiff(a,b){return Math.round((dObj(a)-dObj(b))/86400000)}
+function pretty(s){return fmt.format(dObj(s))}
+function safe(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function show(id){['authArea','setupArea','appArea'].forEach(x=>$(x).hidden=x!==id);$('settingsOpen').hidden=id!=='appArea';$('bottom').hidden=id!=='appArea'}
+function notify(message,error){const e=$('toast');e.textContent=message;e.style.background=error?'#ffc7c7':'#e9f1ff';e.classList.add('on');setTimeout(()=>e.classList.remove('on'),3800)}
+function status(message,error){const e=$('authStatus');e.hidden=!message;e.textContent=message||'';e.classList.toggle('error',!!error)}
+function errorText(err){return err&&err.message?err.message:'Error de conexión. Prueba de nuevo.'}
+function cleanName(s){return String(s||'').trim().slice(0,40)}
+function setBusy(b){saving=b;document.querySelectorAll('button[type=submit]').forEach(x=>x.disabled=b)}
+function setAuthMode(mode){authMode=mode;const up=mode==='signup';$('nameField').hidden=!up;$('authTitle').textContent=up?'Crear acceso privado':'Entra en tu agenda';$('authSubmit').textContent=up?'Crear cuenta':'Entrar';$('tabLogin').classList.toggle('active',!up);$('tabSignup').classList.toggle('active',up);$('authPassword').autocomplete=up?'new-password':'current-password';status('')}
+async function refreshUser(){
+ if(!sb){show('authArea');status('No se ha podido cargar la conexión de la agenda. Comprueba Internet.',true);return}
+ const r=await sb.auth.getUser(); user=r.data&&r.data.user?r.data.user:null;
+ if(!user){space=null;show('authArea');return}
+ await loadSpaces();
+}
+async function loadSpaces(){
+ const r=await sb.from('agenda_spaces').select('id,label,invite_code,created_by').order('created_at',{ascending:true}).limit(20);
+ if(r.error){show('authArea');status('No se puede abrir la agenda: '+errorText(r.error),true);return}
+ const rows=r.data||[];if(!rows.length){space=null;show('setupArea');$('creatorName').value=(user.user_metadata&&user.user_metadata.name)||'';$('joinName').value=(user.user_metadata&&user.user_metadata.name)||'';return}
+ const preferred=localStorage.getItem('midia_space');space=rows.find(x=>x.id===preferred)||rows[0];localStorage.setItem('midia_space',space.id);
+ await initApp();
+}
+async function initApp(){
+ show('appArea');$('spaceName').textContent=space.label;$('inviteCode').textContent=space.invite_code;
+ const mr=await sb.from('agenda_members').select('user_id,display_name').eq('space_id',space.id);
+ if(mr.error)notify('No se pudieron cargar los miembros',true);
+ members=mr.data||[];$('teamNames').textContent=members.map(x=>x.display_name).join(' + ')||'Agenda compartida';
+ const sel=$('taskAssignee');sel.replaceChildren(new Option('Los dos',''));members.forEach(m=>sel.add(new Option(m.display_name,m.user_id)));
+ await loadTasks();subscribe();
+}
+async function loadTasks(){
+ if(!space)return;
+ const r=await sb.from('agenda_tasks').select('*').eq('space_id',space.id).order('due_date',{ascending:true}).limit(5000);
+ if(r.error){notify('No se sincronizaron las tareas: '+errorText(r.error),true);return}
+ tasks=r.data||[];render();
+}
+function subscribe(){
+ if(channel){sb.removeChannel(channel);channel=null}
+ channel=sb.channel('midia-'+space.id).on('postgres_changes',{event:'*',schema:'public',table:'agenda_tasks',filter:'space_id=eq.'+space.id},()=>{loadTasks()}).subscribe();
+}
+function occurrences(t,date){
+ if(date<t.due_date)return false;
+ switch(t.repeat){
+ case 'daily':return true;
+ case 'weekly':return daydiff(date,t.due_date)%7===0;
+ case 'monthly':return dObj(date).getDate()===dObj(t.due_date).getDate();
+ default:return date===t.due_date;
+ }
+}
+function forDate(s){return tasks.filter(t=>occurrences(t,s)).map(t=>({task:t,date:s,done:t.repeat==='none'?!!t.done:(t.completed_dates||[]).includes(s)})).sort((a,b)=>(a.task.due_time||'99:99').localeCompare(b.task.due_time||'99:99')||(a.task.priority==='high'?-1:1))}
+function overdue(){const t=iso(new Date());return tasks.filter(x=>x.repeat==='none'&&x.due_date<t&&!x.done).map(x=>({task:x,date:x.due_date,done:false})).sort((a,b)=>a.date.localeCompare(b.date))}
+function pending(){const current=iso(new Date());return overdue().concat(forDate(current).filter(x=>!x.done)).concat(tasks.filter(x=>x.repeat==='none'&&x.due_date>current&&!x.done).map(x=>({task:x,date:x.due_date,done:false}))).sort((a,b)=>a.date.localeCompare(b.date)||(a.task.due_time||'').localeCompare(b.task.due_time||''))}
+function filt(items){return category==='Todos'?items:items.filter(x=>x.task.category===category)}
+function heading(root,title,n){const e=document.createElement('div');e.className='heading';e.innerHTML='<span>'+safe(title)+'</span><small>'+n+' '+(n===1?'tarea':'tareas')+'</small>';root.append(e)}
+function empty(root,message){const e=document.createElement('div');e.className='empty';e.innerHTML='<b>☀️ '+safe(message)+'</b><p>Las tareas que añadáis aparecerán aquí para los dos.</p>';root.append(e)}
+function person(id){const m=members.find(x=>x.user_id===id);return m?m.display_name:'Los dos'}
+function card(x){
+ const t=x.task,el=document.createElement('article'),late=!x.done&&x.date<iso(new Date());
+ el.className='task'+(x.done?' done':'')+(late?' overdue':'');
+ const tags=[];
+ if(t.due_time)tags.push('<span class="tag">⏰ '+safe(t.due_time.slice(0,5))+'</span>');
+ if(view!=='day')tags.push('<span class="tag">'+safe(fmtShort.format(dObj(x.date)))+'</span>');
+ tags.push('<span class="tag">'+safe(t.category)+'</span>');
+ tags.push('<span class="tag">👤 '+safe(person(t.assigned_to))+'</span>');
+ if(t.priority==='high')tags.push('<span class="tag warn">Urgente</span>');
+ if(t.repeat!=='none')tags.push('<span class="tag">↻ Repite</span>');
+ if(late)tags.push('<span class="tag warn">Atrasada</span>');
+ el.innerHTML='<button class="tick" aria-label="'+(x.done?'Marcar pendiente':'Completar tarea')+'">'+(x.done?'✓':'')+'</button><div class="taskBody"><div class="taskName">'+safe(t.title)+'</div><div class="meta">'+tags.join('')+'</div>'+(t.notes?'<p class="note">'+safe(t.notes)+'</p>':'')+'</div><button class="edit" aria-label="Editar tarea">•••</button>';
+ el.querySelector('.tick').addEventListener('click',()=>toggle(x));
+ el.querySelector('.edit').addEventListener('click',()=>openTask(t));
+ return el;
+}
+function render(){
+ if(!space)return;
+ document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+ $('datebar').hidden=view==='pending';
+ $('dateLabel').textContent=view==='day'?pretty(selected):'Semana del '+fmtShort.format(dObj(mon(selected)));
+ $('goToday').hidden=selected===iso(new Date());
+ $('filters').replaceChildren();
+ cats.forEach(c=>{const b=document.createElement('button');b.textContent=c;b.className=category===c?'active':'';b.addEventListener('click',()=>{category=c;render()});$('filters').append(b)});
+ const today=iso(new Date()),tdy=forDate(today),late=overdue();
+ $('countToday').textContent=tdy.filter(x=>!x.done).length;
+ $('countDone').textContent=tdy.filter(x=>x.done).length;
+ $('countLate').textContent=late.length;
+ const root=$('list');root.replaceChildren();
+ if(view==='day'){
+  const items=filt(forDate(selected)),active=items.filter(x=>!x.done),done=items.filter(x=>x.done);
+  if(active.length){heading(root,'Por hacer',active.length);active.forEach(x=>root.append(card(x)))}
+  if(done.length){heading(root,'Completadas',done.length);done.forEach(x=>root.append(card(x)))}
+  if(selected===today){const old=filt(late);if(old.length){heading(root,'⚠ Atrasadas',old.length);old.forEach(x=>root.append(card(x)))}}
+  if(!items.length&&!(selected===today&&filt(late).length))empty(root,'Día despejado');
+ } else if(view==='week'){
+  const m=mon(selected);let n=0;for(let i=0;i<7;i++){const d=plus(m,i),items=filt(forDate(d));if(!items.length)continue;n+=items.length;heading(root,pretty(d),items.length);items.forEach(x=>root.append(card(x)))}
+  if(!n)empty(root,'Semana despejada');
+ } else {
+  const items=filt(pending());if(!items.length)empty(root,'Todo al día');else{let label='';items.forEach(x=>{if(x.date!==label){label=x.date;heading(root,(label<today?'⚠ ':'')+pretty(label),items.filter(a=>a.date===label).length)}root.append(card(x))})}
+ }
+}
+async function toggle(x){
+ if(saving)return;
+ const t=x.task,values={};
+ if(t.repeat==='none'){values.done=!t.done}
+ else {const old=new Set(t.completed_dates||[]);if(old.has(x.date))old.delete(x.date);else old.add(x.date);values.completed_dates=[...old].sort()}
+ setBusy(true);const r=await sb.from('agenda_tasks').update(values).eq('id',t.id).eq('space_id',space.id);
+ setBusy(false);if(r.error){notify('No se guardó: '+errorText(r.error),true);return}
+ await loadTasks();
+}
+function openTask(t){
+ $('taskForm').reset();$('editId').value=t?t.id:'';$('formTitle').textContent=t?'Editar tarea':'Nueva tarea';$('removeTask').hidden=!t;
+ $('taskTitle').value=t?t.title:'';$('taskDate').value=t?t.due_date:(selected<iso(new Date())?iso(new Date()):selected);$('taskTime').value=t&&t.due_time?t.due_time.slice(0,5):'';
+ $('taskCategory').value=t?t.category:'AIHXO';$('taskAssignee').value=t?t.assigned_to||'':'';$('taskPriority').value=t?t.priority:'normal';$('taskRepeat').value=t?t.repeat:'none';$('taskNotes').value=t?t.notes:'';
+ $('taskModal').showModal();$('taskTitle').focus();
+}
+$('authForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!sb){status('Conexión no disponible',true);return}
+ const email=$('authEmail').value.trim(),password=$('authPassword').value;
+ setBusy(true);status('');
+ if(authMode==='signup'){
+  const name=cleanName($('authName').value);
+  if(!name){status('Escribe tu nombre',true);setBusy(false);return}
+  const r=await sb.auth.signUp({email,password,options:{data:{name}}});
+  if(r.error)status('No se pudo crear la cuenta: '+errorText(r.error),true);
+  else if(r.data.session){await refreshUser()}
+  else status('Comprueba el correo para confirmar la cuenta. Después vuelve a esta agenda y entra con tu contraseña.');
+ }else{
+  const r=await sb.auth.signInWithPassword({email,password});
+  if(r.error)status('No se pudo entrar: '+errorText(r.error),true);else await refreshUser();
+ }
+ setBusy(false);
+});
+$('createForm').addEventListener('submit',async e=>{
+ e.preventDefault();const name=cleanName($('creatorName').value);if(!name)return;
+ setBusy(true);const r=await sb.from('agenda_spaces').insert({label:'Agenda de Víctor y Graci',creator_name:name,created_by:user.id}).select('id').single();
+ setBusy(false);if(r.error){notify('No se pudo crear: '+errorText(r.error),true);return}
+ notify('Agenda creada');await loadSpaces();
+});
+$('joinForm').addEventListener('submit',async e=>{
+ e.preventDefault();const name=cleanName($('joinName').value),code=$('joinCode').value.trim();
+ setBusy(true);const r=await sb.rpc('agenda_join_space',{p_code:code,p_name:name});setBusy(false);
+ if(r.error){notify('No se pudo unir: revisa el código',true);return}
+ localStorage.setItem('midia_space',r.data);notify('Ya compartís la misma agenda');await loadSpaces();
+});
+$('taskForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(saving)return;
+ const id=$('editId').value,old=tasks.find(x=>x.id===id);
+ const entry={title:$('taskTitle').value.trim(),due_date:$('taskDate').value,due_time:$('taskTime').value||null,category:$('taskCategory').value,priority:$('taskPriority').value,repeat:$('taskRepeat').value,assigned_to:$('taskAssignee').value||null,notes:$('taskNotes').value.trim()};
+ if(!entry.title||!entry.due_date){notify('Falta el nombre o la fecha',true);return}
+ if(old&&(old.due_date!==entry.due_date||old.repeat!==entry.repeat)){entry.done=false;entry.completed_dates=[]}
+ setBusy(true);
+ const r=old?await sb.from('agenda_tasks').update(entry).eq('id',old.id).eq('space_id',space.id):await sb.from('agenda_tasks').insert({...entry,space_id:space.id,created_by:user.id});
+ setBusy(false);if(r.error){notify('No se guardó: '+errorText(r.error),true);return}
+ $('taskModal').close();notify(old?'Cambios guardados':'Tarea añadida');await loadTasks();
+});
+$('removeTask').addEventListener('click',async()=>{
+ const id=$('editId').value;if(!id||!confirm('¿Eliminar esta tarea? Si se repite, se eliminarán todas las repeticiones.'))return;
+ setBusy(true);const r=await sb.from('agenda_tasks').delete().eq('id',id).eq('space_id',space.id);setBusy(false);
+ if(r.error){notify('No se eliminó: '+errorText(r.error),true);return}
+ $('taskModal').close();await loadTasks();notify('Tarea eliminada');
+});
+$('newTask').onclick=()=>openTask(null);
+$('reload').onclick=()=>loadTasks();
+$('settingsOpen').onclick=()=>$('settingsModal').showModal();
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).close());
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
+$('prevDate').onclick=()=>{selected=plus(selected,view==='week'?-7:-1);render()};
+$('nextDate').onclick=()=>{selected=plus(selected,view==='week'?7:1);render()};
+$('goToday').onclick=()=>{selected=iso(new Date());render()};
+$('tabLogin').onclick=()=>setAuthMode('login');$('tabSignup').onclick=()=>setAuthMode('signup');
+async function logout(){if(!sb)return;if(channel){await sb.removeChannel(channel);channel=null}await sb.auth.signOut();user=null;space=null;tasks=[];members=[];$('settingsModal').close();show('authArea');}
+$('logout').onclick=logout;$('setupLogout').onclick=logout;
+function shareText(){return 'Únete a nuestra agenda Mi Día:\nhttps://aihxo.es/agenda/\n\nCódigo privado:\n'+space.invite_code+'\n\nCrea tu cuenta, elige «Unirme» e introduce el código.'}
+async function copy(text,success){try{await navigator.clipboard.writeText(text);notify(success)}catch(e){window.prompt('Copia este texto:',text)}}
+$('copyCode').onclick=()=>copy(space.invite_code,'Código copiado');
+$('copyInvite').onclick=async()=>{const s=shareText();if(navigator.share){try{await navigator.share({title:'Mi Día · Agenda compartida',text:s});return}catch(e){if(e.name==='AbortError')return}}await copy(s,'Invitación copiada')};
+function escIcs(s){return String(s||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;')}
+$('exportCalendar').onclick=()=>{
+ const date=iso(new Date()),items=forDate(date).filter(x=>!x.done),lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Mi Dia Agenda//ES','CALSCALE:GREGORIAN'];
+ if(!items.length){notify('No hay tareas pendientes hoy');return}
+ items.forEach(x=>{const t=x.task,stamp=date.replace(/-/g,'');lines.push('BEGIN:VEVENT','UID:'+t.id+'-'+stamp+'@midia','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z','SUMMARY:'+escIcs(t.title),'DESCRIPTION:'+escIcs(t.notes||''));if(t.due_time){let hh=Number(t.due_time.slice(0,2)),mm=Number(t.due_time.slice(3,5)),endH=(hh+Math.floor((mm+30)/60))%24,endM=(mm+30)%60;lines.push('DTSTART:'+stamp+'T'+String(hh).padStart(2,'0')+String(mm).padStart(2,'0')+'00','DTEND:'+stamp+'T'+String(endH).padStart(2,'0')+String(endM).padStart(2,'0')+'00','BEGIN:VALARM','TRIGGER:-PT10M','ACTION:DISPLAY','DESCRIPTION:'+escIcs(t.title),'END:VALARM')}else{lines.push('DTSTART;VALUE=DATE:'+stamp,'DTEND;VALUE=DATE:'+plus(date,1).replace(/-/g,''))}lines.push('END:VEVENT')});lines.push('END:VCALENDAR');
+ const a=document.createElement('a'),u=URL.createObjectURL(new Blob([lines.join('\r\n')+'\r\n'],{type:'text/calendar'}));a.href=u;a.download='mi-dia-hoy.ics';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),6000);notify('Calendario preparado');
+};
+window.addEventListener('focus',()=>{if(user&&space)loadTasks()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&user&&space)loadTasks()});
+setInterval(()=>{if(!document.hidden&&user&&space)loadTasks()},60000);
+if(sb){sb.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){user=null;space=null;show('authArea')}else if(session&&session.user&&(!user||session.user.id!==user.id)){setTimeout(refreshUser,0)}})}
+refreshUser();
+})();
+</script>
+</body>
+</html>
