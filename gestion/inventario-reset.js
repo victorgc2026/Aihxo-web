@@ -1,5 +1,7 @@
 /* AIHXO · Reinicio y recuento de inventario */
 (function(){
+ let resetInFlight=false;
+ const finishInFlight=new Set();
  async function getActiveCycle(){
    const {data,error}=await supabaseClient.from('inventory_cycles').select('*').eq('status','active').order('started_at',{ascending:false}).limit(1);
    if(error){console.error(error);return null}
@@ -35,6 +37,9 @@
    document.getElementById('aihxoFinishInventory')?.addEventListener('click',()=>window.finalizarInventario(cycle.id));
  }
  window.abrirReinicioInventario=async function(){
+   if(resetInFlight)return;
+   resetInFlight=true;
+   try{
    const active=await getActiveCycle();
    if(active){alert('Ya hay un inventario en curso. Continúa el recuento o finalízalo antes de iniciar otro.');return}
    const ok=confirm('Esto pondrá TODAS las cantidades de prendas base a 0, conservará modelos, tallas, colores, costes, códigos de barras e historial, y abrirá un nuevo recuento. ¿Continuar?');
@@ -47,8 +52,12 @@
    await window.cargarStockCamisetas?.();
    await refreshStatus();
    if(confirm('Inventario iniciado. ¿Quieres empezar ahora a escanear prendas?')) window.abrirRecepcionEtiquetas?.(null);
+   }finally{resetInFlight=false}
  };
  window.finalizarInventario=async function(id){
+   if(!id||finishInFlight.has(id))return;
+   finishInFlight.add(id);
+   try{
    const p=await getProgress(id);
    const msg=p.counted<p.total?`Has contado ${p.counted} de ${p.total} variantes. Las no contadas permanecerán a 0. ¿Finalizar igualmente?`:'¿Finalizar el inventario?';
    if(!confirm(msg))return;
@@ -56,6 +65,7 @@
    if(error){console.error(error);alert('No se pudo finalizar');return}
    toast?.('Inventario finalizado');
    await refreshStatus();
+   }finally{finishInFlight.delete(id)}
  };
  const old=window.renderStockCamisetas;
  if(typeof old==='function') window.renderStockCamisetas=async function(){await old.apply(this,arguments);setTimeout(injectControls,0)};
