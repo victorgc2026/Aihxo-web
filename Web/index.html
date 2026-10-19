@@ -1028,6 +1028,7 @@ async function loadCatalog(){
   let {data, error} = await catalogSB
     .from('products')
     .select('id,sku,category,model,size,color,sale_price,price_one_print,price_two_print,material,grammage,fabric,fit,care,features,measurements,image_url')
+    .eq('web_published', true)
     .order('model');
   if (error) {
   console.error('Error cargando catálogo:', error);
