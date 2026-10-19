@@ -98,9 +98,9 @@ footer{font-size:11px;color:#7b8da7;text-align:center;margin:34px 0 0;line-heigh
 <script>
 (function(){
 'use strict';
-const URL='https://zoiesxtchnesrilpuqek.supabase.co';
+const SUPABASE_URL='https://zoiesxtchnesrilpuqek.supabase.co';
 const KEY='sb_publishable_-DyRFQxtVvvwiPlvkZyUtA_upKb2W7T';
-const sb=window.supabase&&window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+const sb=window.supabase&&window.supabase.createClient(SUPABASE_URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=id=>document.getElementById(id);
 let authMode='login',user=null,space=null,members=[],tasks=[],view='day',selected=iso(new Date()),category='Todos',channel=null,saving=false;
 const cats=['Todos','AIHXO','Envíos','Trabajo','Personal','Compras','Llamadas'];
