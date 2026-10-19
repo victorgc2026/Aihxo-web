@@ -98,7 +98,10 @@ const archivosAIHXO = [
   'tpv-production.js'
 ];
 archivosAIHXO.forEach(archivo => {
-  document.write('<script src="' + archivo + '?v=' + '20261017-mockup-pair-v11' + '"><\/script>');
+  const version = archivo === 'pedidos-personalizados.js'
+    ? '20261019-catalogo-prendas-base-v1'
+    : '20261017-mockup-pair-v11';
+  document.write('<script src="' + archivo + '?v=' + version + '"><\/script>');
 });
 </script>
 <script>
