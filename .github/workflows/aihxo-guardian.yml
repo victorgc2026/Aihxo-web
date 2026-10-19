@@ -28,3 +28,5 @@ jobs:
         run: node tests/guardian-sku-grants.cjs
       - name: Guard storefront product projections
         run: node tests/guardian-storefront-products.cjs
+      - name: Guard inventory actions against duplicate requests
+        run: node tests/guardian-inventory-idempotence.cjs
