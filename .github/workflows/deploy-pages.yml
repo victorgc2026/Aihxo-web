@@ -7,6 +7,7 @@ on:
     paths:
       - "Web/**"
       - "gestion/**"
+      - "agenda/**"
       - "demo-dtf-tallas/**"
       - "halloween/**"
       - "recuerdos/**"
@@ -48,6 +49,8 @@ jobs:
           cp -a halloween/. _site/halloween/
           mkdir -p _site/gestion
           cp -a gestion/. _site/gestion/
+          mkdir -p _site/agenda
+          cp -a agenda/. _site/agenda/
           mkdir -p _site/demo-dtf-tallas
           cp -a demo-dtf-tallas/. _site/demo-dtf-tallas/
           mkdir -p _site/recuerdos
