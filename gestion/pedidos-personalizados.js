@@ -19,21 +19,73 @@
     .replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-');
 
   let modelCache = [];
+  let baseGarmentCache = [];
   let customOrderCache = [];
   let lineSeq = 0;
 
   async function loadModels(activeOnly = true) {
-    let q = supabaseClient.from('custom_garment_models').select('*').order('garment_type').order('brand').order('name');
-    if (activeOnly) q = q.eq('active', true);
-    const { data, error } = await q;
-    if (error) throw error;
-    modelCache = data || [];
+    let customQuery = supabaseClient.from('custom_garment_models')
+      .select('*').order('garment_type').order('brand').order('name');
+    if (activeOnly) customQuery = customQuery.eq('active', true);
+
+    // El editor conserva su catálogo propio; el alta de pedidos combina ambos.
+    const baseQuery = activeOnly
+      ? supabaseClient.from('garments')
+          .select('id,manufacturer,model,garment_type,audience,sizes,colors,active')
+          .eq('active', true).order('manufacturer').order('model')
+      : null;
+    const [customResult, baseResult] = await Promise.all([
+      customQuery,
+      baseQuery || Promise.resolve(null)
+    ]);
+    if (customResult.error) throw customResult.error;
+    if (baseResult?.error) throw baseResult.error;
+    modelCache = customResult.data || [];
+    if (activeOnly) {
+      baseGarmentCache = (baseResult?.data || []).map(g => ({
+        id: 'base:' + g.id,
+        source: 'base',
+        sourceId: g.id,
+        garment_type: g.garment_type || 'Prenda',
+        brand: g.manufacturer,
+        name: g.model,
+        audience: g.audience,
+        sizes: g.sizes,
+        colors: g.colors,
+        variants: []
+      }));
+    }
     window._aihxoCustomGarmentModels = modelCache;
     return modelCache;
   }
 
   function modelLabel(m) {
     return [m.garment_type, m.brand, m.name, m.reference].filter(Boolean).join(' · ');
+  }
+
+  function selectedOrderModel(value) {
+    const id = String(value || '');
+    if (id.startsWith('base:')) return baseGarmentCache.find(m => m.id === id) || null;
+    // Los IDs sin prefijo se admiten para compatibilidad con llamadas anteriores.
+    const customId = id.startsWith('custom:') ? id.slice(7) : id;
+    const m = modelCache.find(x => String(x.id) === customId);
+    return m ? { ...m, source: 'custom', sourceId: m.id } : null;
+  }
+
+  function orderModelOptions(selected = '') {
+    const raw = String(selected || '');
+    const wanted = raw && !raw.startsWith('base:') && !raw.startsWith('custom:')
+      ? 'custom:' + raw : raw;
+    const baseOptions = baseGarmentCache.map(m =>
+      `<option value="${E(m.id)}" ${wanted===m.id?'selected':''}>${E([m.garment_type,m.brand,m.name,m.audience].filter(Boolean).join(' · '))}</option>`
+    ).join('');
+    const customOptions = modelCache.filter(m => m.active !== false).map(m => {
+      const value = 'custom:' + m.id;
+      return `<option value="${E(value)}" ${wanted===value?'selected':''}>${E(modelLabel(m))}</option>`;
+    }).join('');
+    return '<option value="">— Selecciona modelo —</option>' +
+      (baseOptions ? '<optgroup label="Prendas base">' + baseOptions + '</optgroup>' : '') +
+      (customOptions ? '<optgroup label="Modelos de personalización">' + customOptions + '</optgroup>' : '');
   }
 
   function variantList(m) {
@@ -267,8 +319,7 @@
       <div class="field">
         <label>Modelo de prenda *</label>
         <select class="co-model" required onchange="actualizarModeloLineaPersonalizada(this)">
-          <option value="">— Selecciona modelo —</option>
-          ${modelCache.map(m => `<option value="${m.id}" ${prefill.custom_model_id===m.id?'selected':''}>${E(modelLabel(m))}</option>`).join('')}
+          ${orderModelOptions(prefill.garment_id ? 'base:' + prefill.garment_id : prefill.custom_model_id)}
         </select>
       </div>
 
@@ -339,7 +390,7 @@
       }
     });
 
-    if (prefill.custom_model_id) {
+    if (prefill.custom_model_id || prefill.garment_id) {
       actualizarModeloLineaPersonalizada(wrap.querySelector('.co-model'), prefill.garment_variant || '');
     }
     renumerarLineasPersonalizadas();
@@ -366,7 +417,7 @@
 
   window.actualizarModeloLineaPersonalizada = function(sel, wantedVariant = '') {
     const line = sel.closest('.custom-order-line');
-    const m = modelCache.find(x => x.id === sel.value);
+    const m = selectedOrderModel(sel.value);
     if (!line) return;
     const variant = line.querySelector('.co-variant');
     const variants = variantList(m);
@@ -387,7 +438,7 @@
 
   window.actualizarVarianteLineaPersonalizada = function(sel) {
     const line = sel.closest('.custom-order-line');
-    const m = modelCache.find(x => x.id === line?.querySelector('.co-model')?.value);
+    const m = selectedOrderModel(line?.querySelector('.co-model')?.value);
     if (!line) return;
     fillLineLists(line, m, sel.value);
     actualizarResumenPedidoPersonalizado();
@@ -447,7 +498,7 @@
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
         <div>
           <h3 style="margin:0;">${m ? 'Editar' : 'Nuevo'} modelo de personalización</h3>
-          <div class="muted">Este catálogo es independiente de Prendas base.</div>
+          <div class="muted">Las prendas base aparecen automáticamente en los pedidos. Aquí puedes añadir modelos especiales.</div>
         </div>
         ${quick ? '<button type="button" class="secondary small" onclick="cerrarAltaModeloRapida()">Cerrar</button>' : ''}
       </div>
@@ -542,11 +593,10 @@
     await loadModels(true);
 
     if (quick) {
-      const selectedId = result.data.id;
+      const selectedId = 'custom:' + result.data.id;
       document.querySelectorAll('.co-model').forEach(sel => {
         const current = sel.value;
-        sel.innerHTML = '<option value="">— Selecciona modelo —</option>' +
-          modelCache.map(m => `<option value="${m.id}" ${current===m.id?'selected':''}>${E(modelLabel(m))}</option>`).join('');
+        sel.innerHTML = orderModelOptions(current);
       });
       cerrarAltaModeloRapida();
       const last = [...document.querySelectorAll('.custom-order-line')].at(-1);
@@ -571,7 +621,7 @@
     $('#drawer').classList.remove('hidden');
     $('#drawerBody').innerHTML = `
       <div class="section">
-        <div><h2>👕 Modelos de personalización</h2><div class="muted">Catálogo independiente para encargos a medida.</div></div>
+        <div><h2>👕 Modelos de personalización</h2><div class="muted">Modelos especiales. Las prendas base se incluyen automáticamente en los pedidos.</div></div>
         <button class="primary" onclick="gestionarModelosPersonalizados('__new__')">＋ Nuevo</button>
       </div>
       <div id="cmEditor" class="card" style="display:${m || editId==='__new__' ? 'block' : 'none'};padding:16px;margin-bottom:14px;box-shadow:none;">
@@ -597,13 +647,13 @@
 
   function collectCustomOrderLines() {
     return [...document.querySelectorAll('.custom-order-line')].map((line, index) => {
-      const modelId = line.querySelector('.co-model').value;
-      const model = modelCache.find(m => m.id === modelId);
+      const model = selectedOrderModel(line.querySelector('.co-model').value);
       return {
         _line: line,
         line_no: index + 1,
         personalization_name: line.querySelector('.co-personalization').value.trim() || 'Personalización',
-        custom_model_id: modelId || null,
+        custom_model_id: model?.source === 'custom' ? model.sourceId : null,
+        garment_id: model?.source === 'base' ? model.sourceId : null,
         garment_type: model?.garment_type || 'Prenda',
         garment_model: model?.name || '',
         brand: model?.brand || null,
@@ -672,7 +722,7 @@
 
     if (!customerName) { toast('Indica el cliente'); return; }
     if (!lines.length) { toast('Añade al menos un artículo'); return; }
-    if (lines.some(x => !x.custom_model_id || !x.garment_model)) {
+    if (lines.some(x => !(x.custom_model_id || x.garment_id) || !x.garment_model)) {
       toast('Selecciona un modelo en todos los artículos');
       return;
     }
