@@ -24,7 +24,7 @@
  window.aihxoNuevoProveedor=async function(existing=null){
    const m=modalShell(existing?'✏️ Editar proveedor':'🏭 Nuevo proveedor',existing?'Actualiza sus datos':'Guárdalo para usarlo en Compras');
    m.querySelector('#spBody').innerHTML=supplierForm(existing||{});
-   m.querySelector('#spForm').onsubmit=async e=>{e.preventDefault();const btn=e.submitter;btn.disabled=true;btn.textContent='Guardando…';const fd=new FormData(e.target),payload=Object.fromEntries(fd.entries());Object.keys(payload).forEach(k=>{if(payload[k]==='')payload[k]=null});let q;if(existing?.id)q=supabaseClient.from('suppliers').update(payload).eq('id',existing.id);else q=supabaseClient.from('suppliers').insert(payload);const {error}=await q;if(error){console.error(error);toast('No se pudo guardar el proveedor');btn.disabled=false;btn.textContent='Guardar proveedor';return}toast(existing?'Proveedor actualizado':'Proveedor añadido');m.remove();if(document.querySelector('#newPurchaseBtn'))comprasView($('#view'));};
+   m.querySelector('#spForm').onsubmit=async e=>{e.preventDefault();const btn=e.submitter;btn.disabled=true;btn.textContent='Guardando…';const fd=new FormData(e.target),payload=Object.fromEntries(fd.entries());Object.keys(payload).forEach(k=>{if(payload[k]==='')payload[k]=null});let q;if(existing?.id)q=supabaseClient.from('suppliers').update(payload).eq('id',existing.id);else q=supabaseClient.from('suppliers').insert(payload);const {error}=await q;if(error){console.error(error);toast('No se pudo guardar el proveedor');btn.disabled=false;btn.textContent='Guardar proveedor';return}toast(existing?'Proveedor actualizado':'Proveedor añadido');m.remove();if(typeof window.comprasView==='function' && document.querySelector('#view') && (document.querySelector('#newPurchaseBtn')||document.querySelector('#p2New')))window.comprasView(document.querySelector('#view'));else if(document.querySelector('#supplierModal')===null)window.aihxoGestionProveedores();};
  };
 
  window.aihxoGestionProveedores=async function(){
@@ -34,7 +34,20 @@
    b.querySelector('#spNew').onclick=()=>{m.remove();window.aihxoNuevoProveedor()};b.querySelectorAll('.spEdit').forEach(btn=>btn.onclick=()=>{const s=list.find(x=>x.id===btn.dataset.id);m.remove();window.aihxoNuevoProveedor(s)});
  };
 
- function install(){
+ function installNavigation(){
+   const nav=document.querySelector('#nav');
+   if(!nav||nav.querySelector('#aihxoSuppliersNav'))return;
+   const purchases=nav.querySelector('button[data-view="purchases"]');
+   const reports=nav.querySelector('button[data-view="reports"]');
+   const target=purchases||reports;
+   if(!target)return;
+   const b=document.createElement('button');
+   b.id='aihxoSuppliersNav';b.type='button';
+   b.innerHTML='🏭 <span>Proveedores</span>';
+   b.onclick=()=>{if(typeof window.closeMobileMenu==='function')window.closeMobileMenu();window.aihxoGestionProveedores()};
+   target.insertAdjacentElement(purchases?'afterend':'beforebegin',b);
+ }
+ function install(){installNavigation();
    const newBtn=document.querySelector('#newPurchaseBtn');if(!newBtn||document.querySelector('#supplierManageBtn'))return;
    const b=document.createElement('button');b.id='supplierManageBtn';b.type='button';b.className='secondary';b.textContent='🏭 Proveedores';b.onclick=()=>window.aihxoGestionProveedores();newBtn.insertAdjacentElement('beforebegin',b);
  }
