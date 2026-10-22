@@ -1145,7 +1145,7 @@ const promoMin = promoPrices.length ? Math.min(...promoPrices) : 0;
 const normalMin = normalPrices.length ? Math.min(...normalPrices) : 0;
 
 const price = promoMin
-  ? `OFERTA APERTURA · Desde ${promoMin.toLocaleString('es-ES', {
+  ? `Desde ${promoMin.toLocaleString('es-ES', {
       style:'currency',
       currency:'EUR'
     })}`
@@ -1736,7 +1736,7 @@ if (color) {
 mensaje +=
   `\n🖨️ Personalización: ${impresiones}` +
   `\n📐 Tamaño máximo: ${tamanoMaximo}` +
-  `\n💙 OFERTA APERTURA: ${precioOferta}` +
+  `\n💶 Precio de personalización: ${precioOferta}` +
   `\n\nQuiero continuar con el pedido.`;
 
   cerrarModalPersonalizacion();
