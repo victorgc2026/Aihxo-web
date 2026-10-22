@@ -100,14 +100,14 @@
   <div class="hero-inner editorial-hero-inner">
     <div class="hero-copy">
       <div class="mini">DISEÑOS PROPIOS · PERSONALIZACIÓN · GALICIA</div>
-      <h1>NO LLEVES<br><span>LO DE SIEMPRE.</span></h1>
-      <p>Diseños AIHXO y prendas personalizadas para gente con ideas propias.</p>
+      <h1>TU IDEA.<br><span>TU CAMISETA.</span></h1>
+      <p>Camisetas personalizadas con tu nombre, foto o diseño. Desde una unidad, con atención cercana desde Oleiros, A Coruña.</p>
       <div class="buttons">
-        <a class="btn primary" href="#coleccion">VER COLECCIONES →</a>
-        <a class="btn light" href="#personaliza">CREAR MI CAMISETA</a>
+        <a class="btn primary" href="#personaliza">PERSONALIZAR MI CAMISETA →</a>
+        <a class="btn light" href="#coleccion">VER COLECCIONES</a>
       </div>
       <div class="hero-meta">
-        <span>DISEÑADO EN GALICIA</span><span>PERSONALIZACIÓN REAL</span><span>PEQUEÑAS TIRADAS</span>
+        <span>DESDE UNA UNIDAD</span><span>RECOGIDA EN OLEIROS</span><span>ENVÍOS A PENÍNSULA</span>
       </div>
     </div>
     <div class="hero-visual" aria-hidden="true">
@@ -1145,7 +1145,7 @@ const promoMin = promoPrices.length ? Math.min(...promoPrices) : 0;
 const normalMin = normalPrices.length ? Math.min(...normalPrices) : 0;
 
 const price = promoMin
-  ? `OFERTA APERTURA · Desde ${promoMin.toLocaleString('es-ES', {
+  ? `Desde ${promoMin.toLocaleString('es-ES', {
       style:'currency',
       currency:'EUR'
     })}`
@@ -1632,6 +1632,11 @@ card.dataset.selectedQuantity = cantidad;
   const precioUno = Number(card.dataset.priceOne || 0);
 const precioDos = Number(card.dataset.priceTwo || 0);
 
+if (!Number.isFinite(precioUno) || !Number.isFinite(precioDos) || precioUno <= 0 || precioDos <= 0) {
+  alert('No podemos confirmar el precio de esta prenda ahora mismo. Escríbenos para solicitar presupuesto.');
+  return false;
+}
+
 const modal = document.getElementById('modal-personalizacion');
 
 if (modal) {
@@ -1736,7 +1741,7 @@ if (color) {
 mensaje +=
   `\n🖨️ Personalización: ${impresiones}` +
   `\n📐 Tamaño máximo: ${tamanoMaximo}` +
-  `\n💙 OFERTA APERTURA: ${precioOferta}` +
+  `\n💶 Precio de personalización: ${precioOferta}` +
   `\n\nQuiero continuar con el pedido.`;
 
   cerrarModalPersonalizacion();
@@ -2268,7 +2273,7 @@ function confirmarPedidoConCupon() {
   mensaje += `\n💰 Total final: ${dineroAIHXO(totalFinal)}`;
 
   window.open(
-    'https://wa.me/+34634344174?text=' +
+    'https://wa.me/34634344174?text=' +
     encodeURIComponent(mensaje),
     '_blank'
   );
@@ -2331,7 +2336,7 @@ window.confirmarPedidoConCupon = confirmarPedidoConCupon;
         cursor:pointer;
       "
     >
-      <b style="font-size:18px;color:#07152f;">1 impresión · 9,95 €</b><br>
+      <b style="font-size:18px;color:#07152f;">1 impresión · precio según modelo</b><br>
       <span style="color:#6d7890;">Hasta 25 × 30 cm</span>
     </button>
 
@@ -2350,7 +2355,7 @@ window.confirmarPedidoConCupon = confirmarPedidoConCupon;
         cursor:pointer;
       "
     >
-      <b style="font-size:18px;color:#07152f;">2 impresiones · 12,95 €</b><br>
+      <b style="font-size:18px;color:#07152f;">2 impresiones · precio según modelo</b><br>
       <span style="color:#6d7890;">Hasta 30 × 35 cm</span>
     </button>
 
