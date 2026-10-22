@@ -1632,6 +1632,11 @@ card.dataset.selectedQuantity = cantidad;
   const precioUno = Number(card.dataset.priceOne || 0);
 const precioDos = Number(card.dataset.priceTwo || 0);
 
+if (!Number.isFinite(precioUno) || !Number.isFinite(precioDos) || precioUno <= 0 || precioDos <= 0) {
+  alert('No podemos confirmar el precio de esta prenda ahora mismo. Escríbenos para solicitar presupuesto.');
+  return false;
+}
+
 const modal = document.getElementById('modal-personalizacion');
 
 if (modal) {
@@ -2268,7 +2273,7 @@ function confirmarPedidoConCupon() {
   mensaje += `\n💰 Total final: ${dineroAIHXO(totalFinal)}`;
 
   window.open(
-    'https://wa.me/+34634344174?text=' +
+    'https://wa.me/34634344174?text=' +
     encodeURIComponent(mensaje),
     '_blank'
   );
