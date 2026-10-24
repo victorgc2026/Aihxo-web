@@ -42,6 +42,19 @@
     document.head.appendChild(s);
   }
 
+  // Vista esquemática interactiva: no sustituye la fotografía real del proveedor.
+  function shirtPreview(color, name){
+    return `<div class="aihxo-shirt-preview" style="margin:12px 0 18px;padding:16px;background:#f2f4f8;border-radius:15px;text-align:center">
+      <svg viewBox="0 0 320 310" role="img" aria-label="Vista delantera de la camiseta" style="width:min(100%,320px);height:auto;display:block;margin:auto">
+        <path class="aihxo-shirt-fill" d="M99 45 L121 31 Q160 57 199 31 L221 45 L294 92 L261 155 L224 135 L224 277 Q160 286 96 277 L96 135 L59 155 L26 92 Z" fill="${esc(color)}" stroke="#757d89" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M121 31 Q160 90 199 31" fill="none" stroke="#7c8492" stroke-width="2"/>
+        <path d="M96 273 Q160 283 224 273" fill="none" stroke="#9ba0aa" stroke-width="1" opacity=".6"/>
+      </svg>
+      <b class="aihxo-shirt-color-label">${esc(name)}</b>
+      <p style="font-size:12px;color:#667085;margin:6px 0 0">Vista orientativa del color; el tono real puede variar.</p>
+    </div>`;
+  }
+
   function card(model,title,subtitle){
     return `
     <article class="product aihxo-premium-card" data-cat="adulto" data-premium-model="${esc(model)}" data-selected-size="" data-selected-color="">
@@ -74,6 +87,7 @@
       const sizes=Array.isArray(g.sizes)?g.sizes:[];
       const colors=Array.isArray(g.colors)?g.colors:[];
       box.innerHTML=`
+        ${shirtPreview('#ffffff','Blanco')}
         <div style="margin:14px 0"><b>Selecciona talla:</b><div class="aihxo-premium-options">${sizes.map(x=>`<button type="button" class="aihxo-premium-option" data-size="${esc(x)}">${esc(x)}</button>`).join('')}</div></div>
         <div style="margin:14px 0"><b>Color:</b><div class="aihxo-premium-options">${colors.map(c=>`<button type="button" class="aihxo-premium-color" data-color="${esc(c)}"><i style="background:${SWATCH[c]||'#d1d5db'}"></i>${esc(COLOR_NAMES[c]||c)}</button>`).join('')}</div><p class="aihxo-premium-note"><b>Más colores bajo pedido según catálogo del proveedor · sujeto a disponibilidad.</b></p></div>
         <div style="margin:14px 0"><b>Cantidad</b><div class="aihxo-premium-options"><button type="button" class="aihxo-premium-option" data-qty-minus>−</button><span data-qty style="min-width:24px;text-align:center;font-weight:900;padding:8px 0">1</span><button type="button" class="aihxo-premium-option" data-qty-plus>+</button></div></div>
@@ -81,7 +95,13 @@
         <p class="aihxo-premium-note">El precio final depende de la personalización elegida.</p>`;
 
       box.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{box.querySelectorAll('[data-size]').forEach(x=>x.classList.remove('active'));b.classList.add('active');card.dataset.selectedSize=b.dataset.size||'';});
-      box.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{box.querySelectorAll('[data-color]').forEach(x=>x.classList.remove('active'));b.classList.add('active');card.dataset.selectedColor=b.dataset.color||'';});
+      box.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{box.querySelectorAll('[data-color]').forEach(x=>x.classList.remove('active'));b.classList.add('active');card.dataset.selectedColor=b.dataset.color||'';
+        const c=SWATCH[card.dataset.selectedColor]||'#d1d5db';
+        const fill=box.querySelector('.aihxo-shirt-fill');
+        if(fill) fill.setAttribute('fill',c);
+        const label=box.querySelector('.aihxo-shirt-color-label');
+        if(label) label.textContent=COLOR_NAMES[card.dataset.selectedColor]||card.dataset.selectedColor;
+      });
       const qty=box.querySelector('[data-qty]');
       box.querySelector('[data-qty-minus]').onclick=()=>qty.textContent=String(Math.max(1,Number(qty.textContent||1)-1));
       box.querySelector('[data-qty-plus]').onclick=()=>qty.textContent=String(Math.min(99,Number(qty.textContent||1)+1));
