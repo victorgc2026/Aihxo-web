@@ -5,7 +5,7 @@
  const files={
    Palm:'palm_unisex','Palm Woman':'palm_woman'
  };
- const aliases={'Blanco':'WHITE-100','Negro':'BLACK-200','Gris jaspeado':'HEATHER GREY-202','Gris oscuro':'DARK GREY-201','Azul Marino':'NAVY-500','Lila':'LILAC-530','Arena':'SAND-103','Verde Sage':'SAGE-613','Sky Blue 501':'SKY BLUE-501'};
+ const aliases={'Blanco':'WHITE-100','Negro':'BLACK-200','Gris jaspeado':'HEATHER GREY-202','Gris oscuro':'DARK GREY-201','Azul Marino':'NAVY-500','Lila':'LILAC-530','Arena':'SAND-103','Verde Sage':'SAGE-613','Sky Blue 501':'SKY BLUE-501','ATTOL-505':'ATOLL-505'};
  const childColors=new Set(['Blanco','Negro','Lila','Arena','Azul Marino','Sky Blue 501','Verde Sage']);
  function model(card){
    const premium=card.dataset.premiumModel;
@@ -30,12 +30,13 @@
    vector.innerHTML='<svg viewBox="0 0 300 305" role="img" aria-label="Vista de la camiseta" style="width:100%;max-width:300px"><defs><linearGradient id="aihxo-shirt-light"><stop offset="0" stop-color="#fff" stop-opacity=".2"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient></defs><path class="aihxo-live-shirt-fill" d="M93 40 L115 27 Q150 51 185 27 L207 40 L279 90 L250 147 L215 130 L215 277 Q150 289 85 277 L85 130 L50 147 L21 90 Z" fill="#fff" stroke="#999" stroke-width="1.8"/><path d="M93 40 L115 27 Q150 51 185 27 L207 40 L279 90 L250 147 L215 130 L215 277 Q150 289 85 277 L85 130 L50 147 L21 90 Z" fill="url(#aihxo-shirt-light)"/><path d="M115 27 Q150 77 185 27" fill="none" stroke="#777" stroke-width="2"/></svg>';
    const label=document.createElement('b');label.className='aihxo-live-shirt-color';label.textContent='Blanco';
    wrapper.append(img,vector,label,note);area.prepend(wrapper);
-   img.onerror=()=>{img.hidden=true;const vector=wrapper.querySelector('.aihxo-mockup-fallback');if(vector)vector.hidden=false;};
-   img.onload=()=>{wrapper.hidden=false;// Solo ocultar la vista anterior después de cargar la foto correctamente.};
+   img.onerror=()=>{img.hidden=true;img.style.display='none';const vector=wrapper.querySelector('.aihxo-mockup-fallback');if(vector)vector.hidden=false;};
+   img.onload=()=>{wrapper.hidden=false;img.hidden=false;img.style.display='block';vector.hidden=true;};
    function update(){
      let color=card.dataset.selectedColor||'Blanco';
      
-     const code=(aliases[color]||color).trim().replace(/ /g,'_');
+     const childName=childColors.has(color)?color:Object.keys(aliases).find(name=>childColors.has(name)&&aliases[name]===color);
+     const code=(m==='melbourne_kids' ? (childName||color) : (aliases[color]||color)).trim().replace(/ /g,'_');
      img.hidden=false;
      const baseColors={'WHITE-100':'#ffffff','BLACK-200':'#161616','HEATHER GREY-202':'#b8b8b8','DARK GREY-201':'#555555','NAVY-500':'#172554','ROYAL BLUE-502':'#2858d9','BLUE FOG-509':'#90a9b8','RED-400':'#cf2f35','SAGE-613':'#9caf88','SAND-103':'#d8c39a','LILAC-530':'#c1a5d8','FUCHSIA-406':'#d13d88','WINE-403':'#77283e','ORANGE-301':'#ed7a22','YELLOW-300':'#f4d435','BOTTLE GREEN-602':'#174f35'};
      const paletteEl=area.querySelector('[data-color="'+CSS.escape(color)+'"] i, [data-color="'+CSS.escape(color)+'"] span');
