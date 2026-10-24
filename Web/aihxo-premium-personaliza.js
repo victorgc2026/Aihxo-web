@@ -48,7 +48,7 @@
       <div class="ph dark"><b>AIHXO PREMIUM</b><small>${esc(title)}</small></div>
       <div class="info">
         <span class="aihxo-premium-badge">PREMIUM · 190 g/m²</span>
-        <h3>${esc(title)}</h3>
+        <h3>${esc(title)}</h3><p><strong>1 impresión: 16,95 € · 2 impresiones: 17,95 €</strong></p>
         <p>${esc(subtitle)}</p>
         <p class="aihxo-premium-note">Algodón Ringspun · Regular Fit · Bajo pedido</p>
         <details class="aihxo-personaliza-details aihxo-premium-details">
