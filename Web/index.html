@@ -1145,7 +1145,7 @@ const key =
   } else {
     (melbourneGarments || []).forEach(g => {
       const isKids = g.model === 'Melbourne Kids';
-      const name = isKids ? 'Melbourne Kids · Infantil'
+      const name = isKids ? 'Camiseta Básica Niño · Melbourne Kids'
         : g.model === 'Melbourne Woman' ? 'Melbourne Woman · Mujer'
         : 'Melbourne · Unisex';
       groups['catalogo-melbourne|' + g.id] = {
@@ -1219,10 +1219,11 @@ const normalPrices = p.variants
 const promoMin = promoPrices.length ? Math.min(...promoPrices) : 0;
 const normalMin = normalPrices.length ? Math.min(...normalPrices) : 0;
 
-const effectiveOne = p.isBasic ? 16.95 : promoMin;
-const effectiveTwo = p.isBasic ? 16.95 : (Number(p.variants.find(v => Number(v.price_two_print || 0) > 0)?.price_two_print) || 0);
+const isKidsCustom = (p.isBasic && p.basicAudience === 'kids') || String(p.model || '').includes('Camiseta Básica Niño · Melbourne Kids');
+const effectiveOne = isKidsCustom ? 15.95 : (p.isBasic ? 16.95 : promoMin);
+const effectiveTwo = isKidsCustom ? 16.95 : (p.isBasic ? 16.95 : (Number(p.variants.find(v => Number(v.price_two_print || 0) > 0)?.price_two_print) || 0));
 const price = effectiveOne
-  ? `${p.isBasic ? 'PRECIO PERSONALIZADA · ' : 'OFERTA APERTURA · Desde '}${effectiveOne.toLocaleString('es-ES', {
+  ? `${p.isBasic || isKidsCustom ? 'PRECIO PERSONALIZADA · ' : 'OFERTA APERTURA · Desde '}${effectiveOne.toLocaleString('es-ES', {
       style:'currency',
       currency:'EUR'
     })}`
