@@ -1078,14 +1078,14 @@ data = data.filter(p => {
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '');
 
-/* Agrupar camisetas básicas infantiles */
-if (
-  modeloAgrupado.includes('nino') ||
-  modeloAgrupado.includes('kids') ||
-  modeloAgrupado.includes('gn649')
-) {
-  modeloAgrupado = 'basica-nino';
-}
+/* Agrupar todas las variantes básicas por público, sin mezclar oversize ni diseños propios */
+const categoriaBase = String(p.category || '').toLowerCase();
+const basica = categoriaBase === 'camiseta' && (
+  modeloAgrupado.includes('basica') ||
+  modeloAgrupado.includes('camiseta blanca basica')
+);
+const infantil = modeloAgrupado.includes('nino') || modeloAgrupado.includes('kids') || modeloAgrupado.includes('gildan');
+if (basica) modeloAgrupado = infantil ? 'basica-nino' : 'basica-adulto';
 
 /* Agrupar variantes Gildan infantiles */
 if (
@@ -1099,9 +1099,10 @@ const key =
   `${String(p.category || '').trim().toLowerCase()}|${modeloAgrupado}`;
     if(!groups[key]) groups[key] = {...p, variants:[], sizes:new Set(), colors:new Set(), measures:{}};
     const g = groups[key];
-    if (modeloAgrupado === 'basica-nino') {
-  g.model = 'Camiseta Básica Niño';
-}
+    if (modeloAgrupado === 'basica-nino') g.model = 'Camiseta Básica Niño';
+    if (modeloAgrupado === 'basica-adulto') g.model = 'Camiseta Básica Adulto';
+    g.isBasic = modeloAgrupado === 'basica-nino' || modeloAgrupado === 'basica-adulto';
+    g.basicAudience = modeloAgrupado === 'basica-nino' ? 'kids' : 'adult';
 
 
     g.variants.push(p);
@@ -1112,6 +1113,24 @@ const key =
     });
     if(p.measurements && typeof p.measurements === 'object') Object.assign(g.measures, p.measurements);
     ['material','grammage','fabric','fit','features','care','image_url'].forEach(k => { if(!g[k] && p[k]) g[k] = p[k]; });
+  });
+
+  // Las básicas ofrecen la paleta de referencia Mukua, aun sin stock local.
+  const mukuaModel = { kids:'Melbourne Kids', adult:'Melbourne' };
+  const { data: mukuaPalettes, error: mukuaError } = await catalogSB
+    .from('garments')
+    .select('model,colors')
+    .in('model', Object.values(mukuaModel))
+    .eq('active', true);
+  if (mukuaError) console.warn('No se pudo cargar la paleta Mukua:', mukuaError);
+  else Object.values(groups).forEach(g => {
+    if (!g.isBasic) return;
+    const garment = (mukuaPalettes || []).find(item => item.model === mukuaModel[g.basicAudience]);
+    if (garment && Array.isArray(garment.colors)) {
+      garment.colors.forEach(color => {
+        if (typeof color === 'string' && color.trim()) g.colors.add(color.trim());
+      });
+    }
   });
 
   // Opciones bajo pedido de Melbourne directamente desde el catálogo de prendas.
@@ -1199,8 +1218,10 @@ const normalPrices = p.variants
 const promoMin = promoPrices.length ? Math.min(...promoPrices) : 0;
 const normalMin = normalPrices.length ? Math.min(...normalPrices) : 0;
 
-const price = promoMin
-  ? `OFERTA APERTURA · Desde ${promoMin.toLocaleString('es-ES', {
+const effectiveOne = p.isBasic ? 16.95 : promoMin;
+const effectiveTwo = p.isBasic ? 16.95 : (Number(p.variants.find(v => Number(v.price_two_print || 0) > 0)?.price_two_print) || 0);
+const price = effectiveOne
+  ? `${p.isBasic ? 'PRECIO PERSONALIZADA · ' : 'OFERTA APERTURA · Desde '}${effectiveOne.toLocaleString('es-ES', {
       style:'currency',
       currency:'EUR'
     })}`
@@ -1385,8 +1406,8 @@ const price = promoMin
       class="product"
       data-cat="${category}"
       data-product-name="${nombreProducto}"
-      data-price-one="${promoMin || ''}"
-data-price-two="${p.variants.find(v => Number(v.price_two_print || 0) > 0)?.price_two_print || ''}"
+      data-price-one="${effectiveOne || ''}"
+data-price-two="${effectiveTwo || ''}"
       data-selected-size=""
       data-selected-color=""
     >
