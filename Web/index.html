@@ -1114,6 +1114,39 @@ const key =
     ['material','grammage','fabric','fit','features','care','image_url'].forEach(k => { if(!g[k] && p[k]) g[k] = p[k]; });
   });
 
+  // Opciones bajo pedido de Melbourne directamente desde el catálogo de prendas.
+  // No dependen del stock de productos básicos creados manualmente.
+  const { data: melbourneGarments, error: melbourneError } = await catalogSB
+    .from('garments')
+    .select('id,model,sizes,colors,grammage')
+    .in('model', ['Melbourne', 'Melbourne Woman', 'Melbourne Kids'])
+    .eq('active', true);
+  if (melbourneError) {
+    console.warn('No se pudieron cargar las prendas Melbourne:', melbourneError);
+  } else {
+    (melbourneGarments || []).forEach(g => {
+      const isKids = g.model === 'Melbourne Kids';
+      const name = isKids ? 'Melbourne Kids · Infantil'
+        : g.model === 'Melbourne Woman' ? 'Melbourne Woman · Mujer'
+        : 'Melbourne · Unisex';
+      groups['catalogo-melbourne|' + g.id] = {
+        model: name,
+        category: 'Camiseta',
+        sizes: new Set(Array.isArray(g.sizes) ? g.sizes : []),
+        colors: new Set(Array.isArray(g.colors) ? g.colors : []),
+        variants: [{
+          sale_price: 16.95,
+          price_one_print: 16.95,
+          price_two_print: 16.95
+        }],
+        measures: {},
+        grammage: g.grammage,
+        material: 'Algodón · consultar composición por color',
+        image_url: null
+      };
+    });
+  }
+
   const sizeOrder = ['2-3','3-4','4-5','5-6','6-7','7-8','8-9','9-10','9-11','10-11','11-12','12-13','13-14','XXS','XS','S','M','L','XL','XXL','3XL','4XL'];
 
 const productosPersonalizables = Object.values(groups).filter(p => {
@@ -1262,7 +1295,27 @@ const price = promoMin
   const coloresHTML = colors.map(color => {
     const nombre = String(color).trim();
     const clave = nombre.toLowerCase();
-    const colorVisual = mapaColores[clave] || '#d1d5db';
+    const coloresProveedor = {
+      'WHITE-100':['Blanco','#ffffff'],'HEATHER GREY-202':['Gris jaspeado','#b8b8b8'],
+      'DARK GREY-201':['Gris oscuro','#555555'],'BLACK-200':['Negro','#111111'],
+      'BLUE FOG-509':['Azul niebla','#90a9b8'],'DENIM BLUE-510':['Azul denim','#4f6f8f'],
+      'NAVY-500':['Azul marino','#172554'],'DEEP NAVY-512':['Marino oscuro','#0f2341'],
+      'ROYAL BLUE-502':['Azul royal','#2858d9'],'ATOLL-505':['Azul atoll','#1aa7b8'],
+      'SKY BLUE-501':['Azul cielo','#8ecdf2'],'SAGE-613':['Verde sage','#9caf88'],
+      'RICH TURQUOISE-515':['Turquesa','#21aeb8'],'BOTTLE GREEN-602':['Verde botella','#174f35'],
+      'LIME-604':['Lima','#b7d62f'],'REAL GREEN-605':['Verde intenso','#26834d'],
+      'KELLY GREEN-600':['Verde kelly','#27894b'],'KHAKI GREEN-601':['Verde caqui','#6f7651'],
+      'MISTY GREEN-621':['Verde mist','#adc5b3'],'SAND-103':['Arena','#d8c39a'],
+      'BROWN-104':['Marrón','#6d4a3a'],'YELLOW-300':['Amarillo','#f4d435'],
+      'GOLD-305':['Dorado','#d9aa24'],'PEACH-313':['Melocotón','#f4b18d'],
+      'ORANGE-301':['Naranja','#ed7a22'],'FRESH CORAL-414':['Coral','#ef806f'],
+      'RED-400':['Rojo','#cf2f35'],'FUCHSIA-406':['Fucsia','#d13d88'],
+      'CANDY PINK-422':['Rosa candy','#e8a3bb'],'PALE ROSE-410':['Rosa claro','#e8b8c4'],
+      'WINE-403':['Burdeos','#77283e'],'PURPLE-511':['Morado','#70458d'],
+      'LILAC-530':['Lila','#c1a5d8']
+    };
+    const colorVisual = coloresProveedor[nombre.toUpperCase()]?.[1] || mapaColores[clave] || '#d1d5db';
+    const etiquetaColor = coloresProveedor[nombre.toUpperCase()]?.[0] || nombre;
 
     return `
       <button
@@ -1294,7 +1347,7 @@ const price = promoMin
           "
         ></span>
 
-        ${escCatalog(nombre)}
+        ${escCatalog(etiquetaColor)}
       </button>
     `;
   }).join('');
