@@ -48,7 +48,7 @@
       <div class="ph dark"><b>AIHXO PREMIUM</b><small>${esc(title)}</small></div>
       <div class="info">
         <span class="aihxo-premium-badge">PREMIUM · 190 g/m²</span>
-        <h3>${esc(title)}</h3>
+        <h3>${esc(title)}</h3><p><strong>1 impresión: 16,95 € · 2 impresiones: 17,95 €</strong></p>
         <p>${esc(subtitle)}</p>
         <p class="aihxo-premium-note">Algodón Ringspun · Regular Fit · Bajo pedido</p>
         <details class="aihxo-personaliza-details aihxo-premium-details">
@@ -76,12 +76,18 @@
       box.innerHTML=`
         <div style="margin:14px 0"><b>Selecciona talla:</b><div class="aihxo-premium-options">${sizes.map(x=>`<button type="button" class="aihxo-premium-option" data-size="${esc(x)}">${esc(x)}</button>`).join('')}</div></div>
         <div style="margin:14px 0"><b>Color:</b><div class="aihxo-premium-options">${colors.map(c=>`<button type="button" class="aihxo-premium-color" data-color="${esc(c)}"><i style="background:${SWATCH[c]||'#d1d5db'}"></i>${esc(COLOR_NAMES[c]||c)}</button>`).join('')}</div><p class="aihxo-premium-note"><b>Más colores bajo pedido según catálogo del proveedor · sujeto a disponibilidad.</b></p></div>
-        <div style="margin:14px 0"><b>Cantidad</b><div class="aihxo-premium-options"><button type="button" class="aihxo-premium-option" data-qty-minus>−</button><span data-qty style="min-width:24px;text-align:center;font-weight:900;padding:8px 0">1</span><button type="button" class="aihxo-premium-option" data-qty-plus>+</button></div></div>
+        <div style="margin:14px 0"><b>Impresiones</b><div class="aihxo-premium-options"><button type="button" class="aihxo-premium-option active" data-prints="1">1 · 16,95 €</button><button type="button" class="aihxo-premium-option" data-prints="2">2 · 17,95 €</button></div></div><div style="margin:14px 0"><b>Cantidad</b><div class="aihxo-premium-options"><button type="button" class="aihxo-premium-option" data-qty-minus>−</button><span data-qty style="min-width:24px;text-align:center;font-weight:900;padding:8px 0">1</span><button type="button" class="aihxo-premium-option" data-qty-plus>+</button></div></div>
         <button type="button" class="aihxo-premium-whatsapp">Consultar personalización →</button>
         <p class="aihxo-premium-note">El precio final depende de la personalización elegida.</p>`;
 
       box.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{box.querySelectorAll('[data-size]').forEach(x=>x.classList.remove('active'));b.classList.add('active');card.dataset.selectedSize=b.dataset.size||'';});
       box.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{box.querySelectorAll('[data-color]').forEach(x=>x.classList.remove('active'));b.classList.add('active');card.dataset.selectedColor=b.dataset.color||'';});
+      card.dataset.selectedPrints='1';
+      box.querySelectorAll('[data-prints]').forEach(b=>b.onclick=()=>{
+        box.querySelectorAll('[data-prints]').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        card.dataset.selectedPrints=b.dataset.prints;
+      });
       const qty=box.querySelector('[data-qty]');
       box.querySelector('[data-qty-minus]').onclick=()=>qty.textContent=String(Math.max(1,Number(qty.textContent||1)-1));
       box.querySelector('[data-qty-plus]').onclick=()=>qty.textContent=String(Math.min(99,Number(qty.textContent||1)+1));
@@ -89,7 +95,7 @@
         if(!card.dataset.selectedSize){alert('Selecciona una talla antes de continuar.');return;}
         if(!card.dataset.selectedColor){alert('Selecciona un color antes de continuar.');return;}
         const label=COLOR_NAMES[card.dataset.selectedColor]||card.dataset.selectedColor;
-        const text=`Hola AIHXO 👋 Quiero personalizar una camiseta Premium.\n\n👕 Modelo: MUKUA ${model}\n📏 Talla: ${card.dataset.selectedSize}\n🎨 Color: ${label}\n📦 Cantidad: ${qty.textContent||'1'}\n\nQuiero consultar opciones de personalización y precio.`;
+        const text=`Hola AIHXO 👋 Quiero personalizar una camiseta Premium.\n\n👕 Modelo: MUKUA ${model}\n📏 Talla: ${card.dataset.selectedSize}\n🎨 Color: ${label}\n📦 Cantidad: ${qty.textContent||'1'}\n🖨️ Impresiones: ${card.dataset.selectedPrints||'1'}\n💶 Precio por unidad: ${card.dataset.selectedPrints==='2'?'17,95 €':'16,95 €'}\n\nQuiero confirmar la personalización.`;
         window.open('https://wa.me/34634344174?text='+encodeURIComponent(text),'_blank','noopener');
       };
     }catch(e){

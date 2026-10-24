@@ -1156,7 +1156,7 @@ const key =
         variants: [{
           sale_price: 16.95,
           price_one_print: 16.95,
-          price_two_print: 16.95
+          price_two_print: 17.95
         }],
         measures: {},
         grammage: g.grammage,
@@ -1220,7 +1220,7 @@ const promoMin = promoPrices.length ? Math.min(...promoPrices) : 0;
 const normalMin = normalPrices.length ? Math.min(...normalPrices) : 0;
 
 const effectiveOne = p.isBasic ? 16.95 : promoMin;
-const effectiveTwo = p.isBasic ? 16.95 : (Number(p.variants.find(v => Number(v.price_two_print || 0) > 0)?.price_two_print) || 0);
+const effectiveTwo = p.isBasic ? (p.basicAudience === 'adult' ? 17.95 : 16.95) : (Number(p.variants.find(v => Number(v.price_two_print || 0) > 0)?.price_two_print) || 0);
 const price = effectiveOne
   ? `${p.isBasic ? 'PRECIO PERSONALIZADA · ' : 'OFERTA APERTURA · Desde '}${effectiveOne.toLocaleString('es-ES', {
       style:'currency',
