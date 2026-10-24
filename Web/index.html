@@ -1099,7 +1099,7 @@ const key =
   `${String(p.category || '').trim().toLowerCase()}|${modeloAgrupado}`;
     if(!groups[key]) groups[key] = {...p, variants:[], sizes:new Set(), colors:new Set(), measures:{}};
     const g = groups[key];
-    if (modeloAgrupado === 'basica-nino') g.model = 'Camiseta Básica Niño';
+    if (modeloAgrupado === 'basica-nino') g.model = 'Camiseta Oversize Niño';
     if (modeloAgrupado === 'basica-adulto') g.model = 'Camiseta Básica Adulto';
     g.isBasic = modeloAgrupado === 'basica-nino' || modeloAgrupado === 'basica-adulto';
     g.basicAudience = modeloAgrupado === 'basica-nino' ? 'kids' : 'adult';
@@ -1205,7 +1205,8 @@ const productosPersonalizables = Object.values(groups).filter(p => {
     return ia - ib;
   });
 
-  const colors = [...p.colors];
+  // Oversize infantil: únicamente blanco y negro, independientemente del stock.
+  const colors = p.isBasic && p.basicAudience === 'kids' ? ['Blanco', 'Negro'] : [...p.colors];
 
 const promoPrices = p.variants
   .map(v => Number(v.price_one_print || 0))
@@ -1450,6 +1451,11 @@ data-price-two="${effectiveTwo || ''}"
         </em>
 
         <h3>${nombreProducto}</h3>
+        ${p.isBasic && p.basicAudience === 'kids' ? `
+          <p style="margin:10px 0;padding:11px 13px;background:#fff6e5;border:1px solid #efcf96;border-radius:10px;color:#49320b;font-weight:700;line-height:1.45;">
+            ⚠️ Corte oversize: esta camiseta talla grande. Recomendamos elegir una talla menos que la habitual.
+          </p>
+        ` : ''}
 
         ${price ? `
           <p>
