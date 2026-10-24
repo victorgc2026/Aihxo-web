@@ -619,7 +619,8 @@ async function cargarDisenosPropiosAutomaticos() {
   try {
     const { data, error } = await catalogSB
       .from('products')
-      .select('*')
+      .select('id,sku,category,model,size,color,sale_price,price_one_print,garment_id,commercial_visibility,web_audience,web_novelty,web_sort_order,image_url,gallery,homepage_image_url,features,created_at')
+      .eq('web_published', true)
       .ilike('category', '%Diseno propio%')
       .ilike('category', '%publicado%')
       .order('created_at', { ascending: false });
@@ -1027,6 +1028,7 @@ async function loadCatalog(){
   let {data, error} = await catalogSB
     .from('products')
     .select('id,sku,category,model,size,color,sale_price,price_one_print,price_two_print,material,grammage,fabric,fit,care,features,measurements,image_url')
+    .eq('web_published', true)
     .order('model');
   if (error) {
   console.error('Error cargando catálogo:', error);

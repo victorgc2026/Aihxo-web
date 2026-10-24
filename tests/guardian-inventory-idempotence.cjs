@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const src=fs.readFileSync('gestion/inventario-reset.js','utf8');
+assert.match(src,/let resetInFlight=false/);
+assert.match(src,/if\(resetInFlight\)return;/);
+assert.match(src,/resetInFlight=true;/);
+assert.match(src,/finally\{resetInFlight=false\}/);
+assert.match(src,/const finishInFlight=new Set\(\)/);
+assert.match(src,/finishInFlight\.has\(id\)/);
+assert.match(src,/finishInFlight\.add\(id\)/);
+assert.match(src,/finally\{finishInFlight\.delete\(id\)\}/);
+assert.match(src,/rpc\('begin_inventory_reset'/);
+assert.match(src,/rpc\('finish_inventory_cycle'/);
+console.log('PASS: inventory destructive actions guarded against duplicate in-flight requests (static)');
