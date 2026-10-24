@@ -27,6 +27,8 @@
    const note=document.createElement('p');note.textContent='Mockup orientativo. El tono real puede variar.';
    note.style.cssText='font-size:12px;color:#667085;margin:8px 0 0';
    wrapper.append(img,note);area.prepend(wrapper);
+   img.onerror=()=>{wrapper.hidden=true;const old=area.querySelector('.aihxo-shirt-preview');if(old)old.hidden=false;};
+   img.onload=()=>{wrapper.hidden=false;// Solo ocultar la vista anterior después de cargar la foto correctamente.};
    function update(){
      let color=card.dataset.selectedColor||'Blanco';
      if(m==='melbourne_kids'&&!childColors.has(color))color='Blanco';
