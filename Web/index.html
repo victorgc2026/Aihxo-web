@@ -1026,7 +1026,7 @@ async function loadCatalog(){
 
   let {data, error} = await catalogSB
     .from('products')
-    .select('id,sku,category,model,size,color,sale_price,price_one_print,price_two_print,material,grammage,fabric,fit,care,features,measurements,image_url')
+    .select('id,sku,category,model,size,color,garment_id,sale_price,price_one_print,price_two_print,material,grammage,fabric,fit,care,features,measurements,image_url')
     .order('model');
   if (error) {
   console.error('Error cargando catálogo:', error);
@@ -1050,6 +1050,25 @@ data = data.filter(p => {
     !categoria.includes('diseno propio')
   );
 });
+
+  // Catálogo de colores real por prenda base: no se limita a variantes
+  // que tengamos actualmente registradas en stock.
+  const garmentColorsById = {};
+  const garmentIds = [...new Set(data.map(p => p.garment_id).filter(Boolean))];
+  if (garmentIds.length) {
+    const { data: garmentRows, error: garmentError } = await catalogSB
+      .from('garments')
+      .select('id,colors')
+      .in('id', garmentIds)
+      .eq('active', true);
+    if (garmentError) {
+      console.warn('Colores de proveedor no disponibles; se mantienen los colores existentes.', garmentError);
+    } else {
+      (garmentRows || []).forEach(g => {
+        garmentColorsById[g.id] = Array.isArray(g.colors) ? g.colors : [];
+      });
+    }
+  }
 
   const groups = {};
   data.forEach(p => {
@@ -1088,6 +1107,9 @@ const key =
     g.variants.push(p);
     if(p.size) g.sizes.add(p.size);
     if(p.color) g.colors.add(p.color);
+    (garmentColorsById[p.garment_id] || []).forEach(color => {
+      if (typeof color === 'string' && color.trim()) g.colors.add(color.trim());
+    });
     if(p.measurements && typeof p.measurements === 'object') Object.assign(g.measures, p.measurements);
     ['material','grammage','fabric','fit','features','care','image_url'].forEach(k => { if(!g[k] && p[k]) g[k] = p[k]; });
   });
@@ -1402,6 +1424,7 @@ data-price-two="${p.variants.find(v => Number(v.price_two_print || 0) > 0)?.pric
             >
               ${coloresHTML}
             </div>
+            <p style="font-size:12px;color:#667085;margin:8px 0 0;">Colores bajo pedido sujetos a disponibilidad del proveedor en la talla elegida. Confirmaremos antes de fabricar.</p>
           </div>
         ` : ''}
 
