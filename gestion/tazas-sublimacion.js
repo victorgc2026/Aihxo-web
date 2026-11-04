@@ -5,6 +5,7 @@ const DB=()=>window.supabaseClient;
 const bucket='aihxo-mug-designs';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=v=>Number(v)||0;
+const decimal=v=>{const normalized=String(v??'').trim().replace(/\s/g,'').replace(',','.');return normalized===''?null:Number(normalized);};
 const euro=v=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(num(v));
 const state={models:[],designs:[],suppliers:[],selected:null};
 const panel=()=>document.getElementById('aihxo-mugs-panel');
@@ -40,7 +41,7 @@ function modelsView(el){
  input('sku','SKU (único)','AIHXO-TAZ-')+input('name','Modelo')+input('color','Color','Blanco')+input('size_label','Tamaño (p. ej. 11 oz)')+input('capacity_ml','Capacidad (ml)','','number')+
  '<label>Proveedor<select name="supplier_id" style="display:block;width:100%;padding:11px;background:#101f3c;color:white">'+suppliers+'</select></label>'+
  input('supplier_reference','Ref. proveedor')+input('print_width_mm','Ancho imprimible (mm)','','number')+input('print_height_mm','Alto imprimible (mm)','','number')+
- input('unit_cost','Coste unidad (€)','0','number')+input('sale_price','Precio venta (€)','0','number')+input('stock','Unidades iniciales','0','number')+input('min_stock','Stock mínimo','2','number')+
+ '<label style="display:grid;gap:5px;font-size:13px">Coste unidad (€)<input name="unit_cost" type="text" inputmode="decimal" value="0" placeholder="Ej.: 1,85" required style="padding:10px;border-radius:9px;border:1px solid #64748b;background:#101f3c;color:white;min-width:0;width:100%" /></label>'+ '<label style="display:grid;gap:5px;font-size:13px">Precio venta (€)<input name="sale_price" type="text" inputmode="decimal" value="12,95" placeholder="Ej.: 12,95" required style="padding:10px;border-radius:9px;border:1px solid #64748b;background:#101f3c;color:white;min-width:0;width:100%" /></label>'+input('stock','Unidades iniciales','0','number')+input('min_stock','Stock mínimo','2','number')+
  '<button style="padding:12px;background:#2563eb;color:white;border:0;border-radius:10px;align-self:end">Guardar modelo</button></form>'+
  '<h2 style="margin-top:28px">Inventario</h2><div id="mug-model-list"></div>';
  el.querySelector('#mug-model-form').onsubmit=saveModel;const list=el.querySelector('#mug-model-list');
@@ -49,7 +50,12 @@ function modelsView(el){
 }
 async function saveModel(e){
  e.preventDefault();const f=new FormData(e.target),o=Object.fromEntries(f.entries());
- for(const k of ['capacity_ml','print_width_mm','print_height_mm','unit_cost','sale_price','stock','min_stock'])o[k]=o[k]===''?null:num(o[k]);
+ for(const k of ['capacity_ml','print_width_mm','print_height_mm','stock','min_stock'])o[k]=o[k]===''?null:num(o[k]);
+ for(const k of ['unit_cost','sale_price']){
+  const value=decimal(o[k]);
+  if(value===null||!Number.isFinite(value)||value<0||!/^[0-9]+(?:[.,][0-9]{1,2})?$/.test(String(o[k]).trim()))return note('Introduce un importe válido en '+(k==='unit_cost'?'Coste unidad':'Precio venta')+' (ej.: 1,85)',true);
+  o[k]=value;
+ }
  if(!o.supplier_id) o.supplier_id=null;
  if(!o.name.trim()||!o.sku.trim())return note('SKU y modelo son obligatorios',true);
  const r=await DB().from('mug_models').insert(o);if(r.error)return note(r.error.message,true);
