@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tazas personalizadas | AIHXO Galicia</title>
+<meta name="description" content="Crea tu taza personalizada con foto, nombre o frase. Diseño y sublimación en Oleiros, A Coruña.">
+<link rel="canonical" href="https://aihxo.es/tazas/">
+<style>
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#14213b;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}header{background:#07152f;color:white;padding:18px max(20px,calc((100vw - 1050px)/2));display:flex;justify-content:space-between;align-items:center;gap:16px}header a{color:inherit;text-decoration:none}header strong{letter-spacing:.17em;font-size:23px}header a:last-child{font-size:13px}main{max-width:1050px;margin:auto;padding:42px 18px 70px}.eyebrow{font-size:12px;letter-spacing:.16em;color:#087cf4;font-weight:800}h1{font-size:clamp(32px,6vw,52px);line-height:1.07;margin:12px 0}p{line-height:1.55;color:#526079}.intro{max-width:680px;margin-bottom:28px}.layout{display:grid;grid-template-columns:1fr 1fr;gap:25px}.panel{background:#fff;border:1px solid #e3e8f1;border-radius:22px;padding:24px;box-shadow:0 8px 34px #12253b0a}.panel h2{margin:0 0 18px;font-size:23px}label{display:block;font-size:14px;font-weight:700;margin:15px 0 6px}input,select,textarea{font:inherit;width:100%;padding:12px;border:1px solid #cad4e2;border-radius:12px;background:white;color:#14213b}input[type=file]{font-size:13px}small,.muted{font-size:13px;color:#63718a}button{width:100%;background:#087cf4;color:#fff;border:0;padding:16px 20px;border-radius:12px;font:inherit;font-weight:800;cursor:pointer;margin-top:22px}button:hover{background:#0569d0}.preview-zone{padding:30px 15px 12px;background:linear-gradient(150deg,#f2f6fc,#dbe7f5);border-radius:20px;min-height:325px;display:flex;align-items:center;justify-content:center;position:relative}.mug{position:relative;width:225px;height:215px;background:linear-gradient(90deg,#d6dae1,#fff 22%,#fff 75%,#dae0e7);border-radius:14px 14px 45px 45px;box-shadow:inset -10px 0 16px #a1afbe40,0 16px 22px #344b6830;z-index:1}.mug:after{content:"";position:absolute;width:80px;height:118px;border:23px solid #f9fafb;box-shadow:9px 8px 14px #344b6820;border-radius:48%;top:38px;right:-68px;z-index:-1}.print{position:absolute;inset:28px 14px 25px;overflow:hidden;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:6px;overflow-wrap:anywhere}.print img{max-width:100%;max-height:105px;object-fit:contain}.print span{font-weight:800;font-size:20px;line-height:1.15}.help{padding:14px;border-radius:12px;background:#edf5ff;margin-top:18px}.help p{margin:0}.note{border-top:1px solid #e5eaf2;margin-top:22px;padding-top:16px}.checkboxline{display:flex;align-items:flex-start;gap:10px;margin-top:16px}.checkboxline input{width:auto;margin-top:4px}.checkboxline label{margin:0;font-weight:400}.feedback{font-size:14px;margin-top:12px;min-height:1em}footer{text-align:center;color:#64718a;font-size:13px;padding:0 20px 30px}@media(max-width:730px){main{padding-top:30px}.layout{grid-template-columns:1fr}.panel{padding:19px}.preview-zone{min-height:290px}}
+</style>
+</head>
+<body>
+<header><a href="/" aria-label="Volver al inicio de AIHXO"><strong>AIHXO</strong></a><a href="/">← VOLVER A LA TIENDA</a></header>
+<main>
+<div class="intro"><div class="eyebrow">AIHXO / PERSONALIZA</div><h1>Tu historia también cabe en una taza.</h1><p>Crea una taza de cerámica con tu fotografía, nombre, ilustración o frase. Prepara tu idea y envíanos la solicitud desde el móvil o el ordenador.</p></div>
+<div class="layout">
+<section class="panel" aria-labelledby="formTitle">
+<h2 id="formTitle">Personaliza tu taza</h2><p><strong style="font-size:24px;color:#07152f">12,95 € / unidad</strong> <span class="muted">· Gastos de envío aparte, si corresponde</span></p>
+<form id="form">
+<label for="tipo">Tipo de personalización</label><select id="tipo"><option value="Foto">Foto o ilustración</option><option value="Texto">Nombre o frase</option><option value="Mixta">Foto y texto</option><option value="Diseño a medida">Quiero que AIHXO diseñe mi taza</option></select>
+<label for="archivo">Tu fotografía o diseño (opcional)</label><input type="file" id="archivo" accept="image/png,image/jpeg,image/webp,image/heic,image/heif"><small>La imagen solo se muestra en tu dispositivo. Tendrás que adjuntarla en el chat de WhatsApp.</small>
+<label for="frase">Nombre, frase o descripción</label><textarea id="frase" rows="3" maxlength="300" placeholder="Escribe tu texto o cuéntanos qué quieres..."></textarea>
+<label for="cantidad">Cantidad</label><input id="cantidad" type="number" min="1" max="100" value="1" required><p id="subtotal" aria-live="polite"><strong>Subtotal: 12,95 €</strong> (sin envío)</p>
+<label for="nombre">Tu nombre</label><input id="nombre" autocomplete="name" maxlength="100" placeholder="¿Cómo te llamas?" required>
+<label for="notas">Observaciones (opcional)</label><textarea id="notas" rows="2" maxlength="500" placeholder="Colores, fecha deseada, idea para regalo..."></textarea>
+<div class="checkboxline"><input id="acepto" type="checkbox" required><label for="acepto">Acepto enviar estos datos a AIHXO por WhatsApp para consultar mi pedido. <a href="/privacidad.html" target="_blank" rel="noopener">Privacidad</a>.</label></div>
+<button type="submit">PEDIR MI TAZA POR WHATSAPP →</button><div class="feedback" role="status" id="feedback"></div>
+</form></section>
+<section class="panel" aria-labelledby="previewTitle">
+<h2 id="previewTitle">Vista previa orientativa</h2><div class="preview-zone"><div class="mug" role="img" aria-label="Previsualización simulada de taza blanca"><div class="print"><img id="fotoPreview" alt="Diseño cargado" hidden><span id="textoPreview">TU IDEA<br>EN UNA TAZA</span></div></div></div>
+<div class="help"><p><strong>Producción por sublimación.</strong> Trabajamos sobre tazas cilíndricas sublimables. La composición final se ajustará al área útil de impresión.</p></div>
+<div class="note"><p><strong>Formato de diseño:</strong> referencia de papel 24 × 10 cm; la zona imprimible depende del modelo de taza.</p><p><strong>Precio:</strong> 12,95 € por taza personalizada, más envío si corresponde. Confirmaremos diseño final, disponibilidad y plazo antes de producir.</p><p class="muted">Esta vista es aproximada: no representa el resultado impreso exacto ni garantiza la colocación final.</p></div>
+</section>
+</div>
+</main><footer>AIHXO · Oleiros, A Coruña · <a href="mailto:hola@aihxo.es">hola@aihxo.es</a></footer>
+<script>
+(()=>{
+const el=id=>document.getElementById(id);
+const file=el('archivo'),photo=el('fotoPreview'),phrase=el('frase'),preview=el('textoPreview');
+let objectUrl=null;
+file.addEventListener('change',()=>{
+ if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null;}
+ const f=file.files&&file.files[0];photo.hidden=true;photo.removeAttribute('src');
+ if(!f)return;
+ if(f.type.startsWith('image/')&&!/heic|heif/i.test(f.type)){objectUrl=URL.createObjectURL(f);photo.src=objectUrl;photo.hidden=false;}
+});
+phrase.addEventListener('input',()=>{preview.textContent=phrase.value.trim()||'TU IDEA EN UNA TAZA';});
+const cantidad=el('cantidad');
+const formatEUR=n=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(n);
+cantidad.addEventListener('input',()=>{const n=Number(cantidad.value);el('subtotal').textContent=Number.isInteger(n)&&n>=1&&n<=100?'Subtotal: '+formatEUR(n*12.95)+' (sin envío)':'Introduce una cantidad entre 1 y 100';});
+el('form').addEventListener('submit',e=>{
+ e.preventDefault();
+ if(!e.target.reportValidity())return;
+ const hasFile=!!(file.files&&file.files.length);
+ const lines=['Hola AIHXO, quiero solicitar una taza personalizada ☕','', 'Tipo: '+el('tipo').value,'Cantidad: '+el('cantidad').value,'Precio unitario: 12,95 €','Subtotal sin envío: '+formatEUR(Number(el('cantidad').value)*12.95),'Nombre: '+el('nombre').value.trim(),'Texto / idea: '+(phrase.value.trim()||'Sin texto'),'Observaciones: '+(el('notas').value.trim()||'Ninguna'),hasFile?'Tengo una imagen para adjuntar en este chat.':'No tengo imagen adjunta.','', '¿Me confirmáis precio y plazo antes de producir?'];
+ const url='https://wa.me/34634344174?text='+encodeURIComponent(lines.join('\n'));
+ const w=window.open(url,'_blank','noopener,noreferrer');
+ if(!w){el('feedback').textContent='Si WhatsApp no se ha abierto, permite las ventanas emergentes e inténtalo de nuevo.';}
+ else{el('feedback').textContent=hasFile?'Recuerda adjuntar tu imagen manualmente en WhatsApp antes de enviar el pedido.':'Revisa el mensaje preparado en WhatsApp y envíalo.';}
+});
+})();
+</script>
+</body></html>
