@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Packs personalizados de regalo | AIHXO</title>
+<meta name="description" content="Packs de regalo AIHXO: dos tazas personalizadas por 22,95 € o taza más camiseta personalizada por 26,95 €.">
+<link rel="canonical" href="https://aihxo.es/packs/">
+<style>
+:root{font:16px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#14213b;background:#f4f7fb}*{box-sizing:border-box}body{margin:0}header{background:#07152f;color:white;padding:18px max(18px,calc((100vw - 1060px)/2));display:flex;gap:18px;align-items:center;justify-content:space-between}header a{color:inherit;text-decoration:none}header strong{letter-spacing:.17em;font-size:22px}main{max-width:1060px;padding:35px 18px 70px;margin:auto}.eyebrow{color:#087cf4;font-size:12px;font-weight:800;letter-spacing:.14em}h1{font-size:clamp(30px,5vw,50px);line-height:1.08;margin:10px 0}h2{font-size:22px;margin:0 0 10px}p{line-height:1.55;color:#53617c}.intro{max-width:760px;margin-bottom:22px}.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:20px 0 28px}.pack{background:white;border:2px solid #e0e7f2;border-radius:20px;padding:21px;text-align:left;color:inherit;cursor:pointer}.pack[aria-checked="true"]{border-color:#087cf4;box-shadow:0 0 0 3px #087cf41b}.pack .kicker{font-size:12px;color:#087cf4;font-weight:800;letter-spacing:.1em}.price{display:block;font-size:32px;font-weight:850;margin:8px 0;color:#07152f}.save{color:#137b5c;font-weight:750}.pack p{margin:8px 0 0}.layout{display:grid;grid-template-columns:1.1fr .9fr;gap:20px}.panel{padding:24px;background:white;border-radius:20px;border:1px solid #dfe7ef}.field{margin:15px 0}.field label{display:block;font-weight:700;font-size:14px;margin:0 0 6px}input,select,textarea{width:100%;padding:12px;font:inherit;border:1px solid #bac7d8;border-radius:11px;background:white}input[type=checkbox]{width:auto}input[type=file]{font-size:13px}.hint{color:#65728a;font-size:13px}.notice{padding:14px;background:#ecf5ff;border-radius:12px;font-size:14px;line-height:1.5}.total{margin:15px 0;background:#f4f7fb;border-radius:12px;padding:14px;line-height:1.8}.total strong{font-size:20px}.submit{background:#087cf4;color:white;border:0;font-weight:800;padding:16px;border-radius:12px;width:100%;font:inherit;cursor:pointer}.consent{display:flex;gap:8px;align-items:flex-start;margin:16px 0}.consent label{font-size:13px}.visual{min-height:175px;background:linear-gradient(125deg,#e8f1fb,#f9fbfd);display:flex;align-items:center;justify-content:center;gap:32px;border-radius:16px;margin:15px 0 20px;overflow:hidden}.mug{width:75px;height:92px;border-radius:8px 8px 18px 18px;background:linear-gradient(90deg,#d7dfe9,#fff 30%,#f7fbff 80%,#cbd6e2);box-shadow:4px 10px 13px #0d244423;position:relative;display:flex;align-items:center;justify-content:center;font-weight:800;color:#154780;font-size:10px}.mug:after{content:"";position:absolute;right:-26px;top:17px;width:32px;height:42px;border:10px solid white;border-radius:50%;z-index:-1}.shirt{width:112px;height:112px;background:#fff;clip-path:polygon(24% 0,39% 5%,61% 5%,76% 0,100% 17%,85% 42%,75% 35%,75% 100%,25% 100%,25% 35%,15% 42%,0 17%);display:flex;align-items:center;justify-content:center;padding:35px 5px 5px;font-weight:750;font-size:10px;color:#154780;filter:drop-shadow(2px 6px 5px #0d244420)}[hidden]{display:none!important}footer{text-align:center;padding:0 18px 24px;color:#64718a;font-size:13px}@media(max-width:750px){.cards,.layout{grid-template-columns:1fr}main{padding-top:28px}.panel{padding:18px}}
+</style>
+</head>
+<body>
+<header><a href="/"><strong>AIHXO</strong></a><a href="/">← VOLVER A LA TIENDA</a></header>
+<main>
+<div class="intro"><div class="eyebrow">AIHXO / PACKS PERSONALIZADOS</div><h1>Dos formas de regalar algo único.</h1><p>Elige tu pack, cuéntanos cómo quieres personalizarlo y envíanos la solicitud por WhatsApp. Trabajamos con archivos o fotografías aportados por el cliente, listos para imprimir.</p></div>
+<div class="cards" role="radiogroup" aria-label="Selecciona un pack">
+<button class="pack" type="button" data-pack="dos" role="radio" aria-checked="true"><span class="kicker">PACK 01 · DOS TAZAS</span><strong class="price">22,95 €</strong><span class="save">Ahorras 2,95 €</span><p>Dos tazas blancas de cerámica con la misma imagen o dos diseños diferentes.</p></button>
+<button class="pack" type="button" data-pack="mixto" role="radio" aria-checked="false"><span class="kicker">PACK 02 · TAZA + CAMISETA</span><strong class="price">26,95 €</strong><span class="save">Ahorras 2,95 €</span><p>Una taza personalizada y una camiseta básica de adulto con una impresión.</p></button>
+</div>
+<div class="layout">
+<section class="panel">
+<h2>Prepara tu pack</h2>
+<form id="packForm">
+<div class="field"><label for="pack">Pack seleccionado</label><select id="pack"><option value="dos">2 tazas · 22,95 €</option><option value="mixto">1 taza + 1 camiseta · 26,95 €</option></select></div>
+<div id="mixtoFields" hidden>
+<div class="field"><label for="talla">Talla de camiseta adulto</label><select id="talla"><option value="">Selecciona talla</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>2XL (consultar disponibilidad)</option></select></div>
+<div class="field"><label for="color">Color de camiseta</label><select id="color"><option value="Blanco">Blanco</option><option value="Negro">Negro</option><option value="Otro (consultar)">Otro (consultar disponibilidad)</option></select></div>
+<div class="field"><label for="zona">Zona de impresión camiseta</label><select id="zona"><option value="Delantera">Delantera</option><option value="Trasera">Trasera</option></select></div>
+</div>
+<div class="field"><label for="cantidad">Número de packs</label><input type="number" id="cantidad" min="1" max="50" value="1" required></div>
+<div class="field"><label for="detalle">Texto o instrucciones de personalización</label><textarea id="detalle" rows="4" maxlength="650" placeholder="Ejemplo: nombres, mensaje, qué imagen va en cada taza o en la camiseta…"></textarea></div>
+<div class="field"><label for="foto">Fotografía o diseño de referencia (opcional)</label><input type="file" id="foto" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" multiple><div class="hint">Por privacidad, las imágenes no se suben a la web. Adjunta los archivos manualmente en WhatsApp cuando se abra el chat.</div></div>
+<div class="field"><label for="nombre">Tu nombre</label><input id="nombre" autocomplete="name" maxlength="100" required></div>
+<div class="field"><label for="notas">Observaciones (opcional)</label><textarea id="notas" rows="2" maxlength="400" placeholder="Fecha deseada, dudas, etc."></textarea></div>
+<div class="total" id="total" aria-live="polite"></div>
+<div class="consent"><input id="consent" type="checkbox" required><label for="consent">Acepto enviar estos datos por WhatsApp a AIHXO para solicitar mi pedido. <a href="/privacidad.html" target="_blank" rel="noopener">Privacidad</a>.</label></div>
+<button class="submit" type="submit">PEDIR MI PACK POR WHATSAPP →</button><p id="feedback" role="status" class="hint"></p>
+</form>
+</section>
+<aside class="panel">
+<h2 id="visualTitle">Pack de dos tazas</h2>
+<div class="visual" aria-label="Ilustración orientativa del pack"><div class="mug">AIHXO</div><div class="mug" id="secondMug">AIHXO</div><div id="shirtVisual" class="shirt" hidden>AIHXO</div></div>
+<div class="notice"><strong>Qué incluye el precio</strong><p>Personalización con fotografía o archivo del cliente preparado para imprimir y ajuste básico al soporte. El diseño desde cero, los retoques y las composiciones complejas se presupuestan aparte.</p></div>
+<p><strong>Envío estándar:</strong> 4,95 € por pedido.</p>
+<p id="scope">Dos tazas cilíndricas blancas aptas para sublimación, con diseños iguales o diferentes.</p>
+<p class="hint">La imagen del producto es una representación orientativa. El diseño final, la disponibilidad y el plazo se confirmarán antes de producir. El pedido no se cobra automáticamente.</p>
+<a href="/tazas/">¿Prefieres una sola taza? Ver tazas individuales.</a>
+</aside>
+</div>
+</main><footer>AIHXO · Oleiros, A Coruña · <a href="mailto:hola@aihxo.es">hola@aihxo.es</a></footer>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const euro=n=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(n);
+const unit=()=> $('pack').value==='dos'?22.95:26.95;
+const names={dos:'Pack 2 tazas personalizadas',mixto:'Pack taza + camiseta básica adulto'};
+const render=()=>{
+const v=$('pack').value;const mixed=v==='mixto';
+$('mixtoFields').hidden=!mixed;$('talla').required=mixed;
+$('visualTitle').textContent=mixed?'Pack taza + camiseta':'Pack de dos tazas';
+$('secondMug').hidden=mixed;$('shirtVisual').hidden=!mixed;
+$('scope').textContent=mixed?'Incluye una taza blanca y una camiseta básica de adulto, con una impresión en una cara. Tallas y colores sujetos a disponibilidad.':'Dos tazas cilíndricas blancas aptas para sublimación, con diseños iguales o diferentes.';
+document.querySelectorAll('[data-pack]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.pack===v)));
+const n=Number($('cantidad').value);
+$('total').textContent=Number.isInteger(n)&&n>0&&n<=50?'Subtotal: '+euro(n*unit())+' · Envío: '+euro(4.95)+' · Total estimado: '+euro(n*unit()+4.95):'Indica entre 1 y 50 packs';
+};
+document.querySelectorAll('[data-pack]').forEach(b=>b.addEventListener('click',()=>{$('pack').value=b.dataset.pack;render();$('packForm').scrollIntoView({behavior:'smooth',block:'start'});}));
+$('pack').addEventListener('change',render);
+$('cantidad').addEventListener('input',render);
+$('packForm').addEventListener('submit',e=>{
+e.preventDefault();render();if(!e.target.reportValidity())return;
+const v=$('pack').value,n=Number($('cantidad').value);
+if(!Number.isInteger(n)||n<1||n>50){$('feedback').textContent='Revisa la cantidad seleccionada.';return;}
+const mixed=v==='mixto';
+const lines=['Hola AIHXO, quiero solicitar un pack personalizado 🎁','Pack: '+names[v],'Unidades de pack: '+n,'Precio por pack: '+euro(unit()),'Subtotal: '+euro(n*unit()),'Envío estándar: 4,95 €','Total estimado: '+euro(n*unit()+4.95),mixed?'Talla camiseta: '+$('talla').value:'Dos tazas (mismo diseño o diferentes)',...(mixed?['Color camiseta: '+$('color').value,'Impresión camiseta: '+$('zona').value]:[]),'Nombre: '+$('nombre').value.trim(),'Diseño / instrucciones: '+($('detalle').value.trim()||'A concretar'),'Observaciones: '+($('notas').value.trim()||'Ninguna'),$('foto').files.length?'Tengo '+$('foto').files.length+' imagen(es) para adjuntar en WhatsApp.':'No adjunto imagen todavía.','Los archivos deben estar listos para imprimir. Diseño o retoque adicional a presupuestar.','Confirmadme disponibilidad, diseño y plazo antes de producir, por favor.'];
+const a=document.createElement('a');a.href='https://wa.me/34634344174?text='+encodeURIComponent(lines.join('\n'));a.target='_blank';a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove();
+$('feedback').textContent='Se ha preparado tu mensaje. Si has seleccionado imágenes, adjúntalas en WhatsApp antes de enviarlo.';
+});
+const params=new URLSearchParams(location.search);if(params.get('pack')==='mixto')$('pack').value='mixto';render();
+})();
+</script>
+</body>
+</html>
