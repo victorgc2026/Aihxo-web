@@ -426,16 +426,8 @@ function aplicarConfiguracionWebAIHXO(config){
     if(hero.secondary_href) heroBtns[1].setAttribute('href',hero.secondary_href);
   }
 
-  const paths=Array.isArray(cfg.paths)?cfg.paths:[];
-  const pathEls=document.querySelectorAll('.brand-paths .brand-path');
-  pathEls.forEach((el,i)=>{
-    const p=paths[i];
-    if(!p)return;
-    el.style.display=p.enabled===false?'none':'';
-    if(p.href)el.setAttribute('href',p.href);
-    const strong=el.querySelector('strong'); if(strong&&p.title!==undefined)strong.textContent=p.title;
-    const span=el.querySelector('span'); if(span&&p.text!==undefined)span.textContent=p.text;
-  });
+  // Los accesos comerciales son fijos: la configuración antigua no debe
+  // convertir la tarjeta de tazas o packs en un enlace a Memories.
 
   const col=cfg.collection||{};
   setWebVisible('#coleccion',col.enabled!==false);
@@ -451,16 +443,7 @@ function aplicarConfiguracionWebAIHXO(config){
   setWebText('#personaliza p',per.description);
   setWebText('#openPersonalCatalog',per.button_label);
 
-  const mem=cfg.memories||{};
-  setWebVisible('#x-memories',false);
-  setWebText('#x-memories .memories-kicker',mem.kicker);
-  setWebText('#x-memories h2',mem.title);
-  setWebText('#x-memories p',mem.description);
-  const memLink=document.querySelector('#x-memories .memories-coming');
-  if(memLink){
-    if(mem.button_label!==undefined)memLink.textContent=mem.button_label;
-    if(mem.href)memLink.setAttribute('href',mem.href);
-  }
+  // La sección Memories ya no forma parte de la portada.
 
   const contact=cfg.contact||{};
   setWebVisible('#contacto',contact.enabled!==false);
@@ -505,14 +488,11 @@ function aplicarConfiguracionWebAIHXO(config){
   setMeta('meta[name="twitter:description"]',seo.description);
   setMeta('meta[name="twitter:image"]',seo.image);
 
-  const order=Array.isArray(cfg.layout_order)?cfg.layout_order:[];
+  // La colección propia queda después de las opciones de personalización.
   const main=document.querySelector('main');
-  if(main && order.length){
-    order.forEach(id=>{
-      const el=document.getElementById(id);
-      if(el && el.parentElement===main)main.appendChild(el);
-    });
-  }
+  const coleccion=document.getElementById('coleccion');
+  const contacto=document.getElementById('contacto');
+  if(main && coleccion && contacto) main.insertBefore(coleccion,contacto);
 }
 
 async function cargarConfiguracionWebAIHXO(){
