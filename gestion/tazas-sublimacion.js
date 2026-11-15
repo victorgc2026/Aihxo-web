@@ -76,7 +76,7 @@ function designsView(el){
  const opts=state.models.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+' · '+esc(m.color)+' · '+esc(m.size_label)+'</option>').join('');
  el.innerHTML='<h2>Nueva ficha de diseño</h2><form id="mug-design-form" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:11px">'+
  '<label>Modelo de taza<select name="model_id" required style="display:block;width:100%;padding:11px;background:#101f3c;color:white"><option value="">Seleccionar</option>'+opts+'</select></label>'+
- input('order_reference','Referencia pedido')+input('customer_reference','Cliente / referencia')+input('name','Nombre del diseño')+
+ '<label style="display:grid;gap:5px;font-size:13px">Referencia automática<input type="text" value="Se asigna al guardar" readonly aria-label="Referencia automática" style="padding:10px;border-radius:9px;border:1px solid #64748b;background:#172744;color:#cbd5e1;min-width:0;width:100%;cursor:default" /></label>'+input('customer_reference','Cliente / referencia')+input('name','Nombre del diseño')+
  '<label>Posición<select name="placement" style="display:block;width:100%;padding:11px;background:#101f3c;color:white"><option value="envolvente">Envolvente</option><option value="frontal">Frontal</option><option value="trasera">Trasera</option><option value="doble cara">Doble cara</option></select></label>'+
  input('print_width_mm','Ancho diseño (mm)','','number')+input('print_height_mm','Alto diseño (mm)','','number')+
  input('quantity','Unidades','1','number')+
@@ -117,10 +117,10 @@ async function saveDesign(e){
  try{
   note('Subiendo diseño…');original=await upload(art,id,'original');
   print=await upload(final,id,'impresion');
-  const payload={id,model_id:f.get('model_id'),name:f.get('name'),order_reference:f.get('order_reference')||null,customer_reference:f.get('customer_reference')||null,placement:f.get('placement'),print_width_mm:num(f.get('print_width_mm'))||null,print_height_mm:num(f.get('print_height_mm'))||null,quantity:num(f.get('quantity'))||1,notes:f.get('notes'),original_path:original,print_path:print,handle_enabled:handleEnabled,handle_text:handleEnabled?handleText:null,handle_orientation:handleEnabled?f.get('handle_orientation'):'vertical'};
-  const r=await DB().from('mug_designs').insert(payload);
+  const payload={id,model_id:f.get('model_id'),name:f.get('name'),customer_reference:f.get('customer_reference')||null,placement:f.get('placement'),print_width_mm:num(f.get('print_width_mm'))||null,print_height_mm:num(f.get('print_height_mm'))||null,quantity:num(f.get('quantity'))||1,notes:f.get('notes'),original_path:original,print_path:print,handle_enabled:handleEnabled,handle_text:handleEnabled?handleText:null,handle_orientation:handleEnabled?f.get('handle_orientation'):'vertical'};
+  const r=await DB().from('mug_designs').insert(payload).select('order_reference').single();
   if(r.error)throw new Error(r.error.message);
-  await reload('designs');note('Ficha y archivos guardados');
+  await reload('designs');note('Ficha y archivos guardados · Referencia '+r.data.order_reference);
  }catch(err){note('No se guardó la ficha: '+err.message,true);
   for(const p of [original,print].filter(Boolean))await DB().storage.from(bucket).remove([p]);}
 }
