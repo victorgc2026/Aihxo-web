@@ -80,15 +80,23 @@ function designsView(el){
  '<label>Posición<select name="placement" style="display:block;width:100%;padding:11px;background:#101f3c;color:white"><option value="envolvente">Envolvente</option><option value="frontal">Frontal</option><option value="trasera">Trasera</option><option value="doble cara">Doble cara</option></select></label>'+
  input('print_width_mm','Ancho diseño (mm)','','number')+input('print_height_mm','Alto diseño (mm)','','number')+
  input('quantity','Unidades','1','number')+
+ '<label style="display:flex;align-items:center;gap:8px"><input name="handle_enabled" type="checkbox" style="width:auto" /> Personalizar el asa de la taza</label>'+
+ '<label>Nombre o frase del asa<input name="handle_text" maxlength="40" placeholder="Ej.: Carla" style="display:block;width:100%;padding:10px;background:#101f3c;color:white;border:1px solid #64748b;border-radius:9px"></label>'+
+ '<label>Orientación del asa<select name="handle_orientation" style="display:block;width:100%;padding:10px;background:#101f3c;color:white"><option value="vertical">A lo largo del asa</option><option value="horizontal">Horizontal</option></select></label>'+
+ '<small style="color:#cbd5e1;grid-column:1/-1">Medida de referencia para el asa: 45 × 10 mm. Comprobar antes de imprimir la superficie útil y si el asa admite sublimación.</small>'+
  '<label>Imagen original / dibujo / PDF<input name="art" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" required style="display:block;width:100%;margin-top:6px"></label>'+
  '<label>Archivo final (opcional)<input name="printArt" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" style="display:block;width:100%;margin-top:6px"></label>'+
  '<label>Observaciones<textarea name="notes" rows="2" style="display:block;width:100%;background:#101f3c;color:white"></textarea></label>'+
  '<button style="background:#2563eb;color:white;border:0;padding:12px;border-radius:9px;align-self:end">Guardar ficha y archivos</button></form>'+
  '<h2 style="margin-top:26px">Diseños registrados</h2><div id="mug-design-list"></div>';
+ const handleCheck=el.querySelector('[name="handle_enabled"]'),handleText=el.querySelector('[name="handle_text"]');
+ handleText.addEventListener('input',()=>{if(handleText.value.trim())handleCheck.checked=true});
  el.querySelector('#mug-design-form').onsubmit=saveDesign;
- el.querySelector('#mug-design-list').innerHTML=state.designs.length?state.designs.map(d=>'<article style="padding:12px;margin-bottom:8px;border:1px solid #334155;border-radius:9px"><strong>'+esc(d.name)+'</strong> · '+esc(d.order_reference||'Sin pedido')+'<div>'+esc(d.placement)+' · '+esc(d.print_width_mm)+' × '+esc(d.print_height_mm)+' mm · '+esc(d.quantity)+' uds.</div><small>'+esc(d.approval_status)+' / '+esc(d.production_status)+'</small><div><button data-mug-file="'+esc(d.id)+'" style="padding:8px;margin-top:7px">Ver original</button> <button data-mug-print="'+esc(d.id)+'" style="padding:8px">Preparar impresión</button> <button data-mug-status="'+esc(d.id)+'" style="padding:8px">Actualizar estado</button></div></article>').join(''):'Aún no hay diseños.';
+ el.querySelector('#mug-design-list').innerHTML=state.designs.length?state.designs.map(d=>'<article style="padding:12px;margin-bottom:8px;border:1px solid #334155;border-radius:9px"><strong>'+esc(d.name)+'</strong> · '+esc(d.order_reference||'Sin pedido')+'<div>'+esc(d.placement)+' · '+esc(d.print_width_mm)+' × '+esc(d.print_height_mm)+' mm · '+esc(d.quantity)+' uds.</div>'+
+ (d.handle_enabled?'<div>Asa: <strong>'+esc(d.handle_text||'Pendiente')+'</strong> · '+esc(d.handle_orientation==='horizontal'?'Horizontal':'A lo largo del asa')+' · 45 × 10 mm</div>':'')+'<small>'+esc(d.approval_status)+' / '+esc(d.production_status)+'</small><div><button data-mug-file="'+esc(d.id)+'" style="padding:8px;margin-top:7px">Ver original</button> <button data-mug-print="'+esc(d.id)+'" style="padding:8px">Preparar impresión</button> '+(d.handle_enabled&&d.handle_text?'<button data-mug-handle="'+esc(d.id)+'" style="padding:8px">Imprimir texto del asa</button> ':'')+'<button data-mug-status="'+esc(d.id)+'" style="padding:8px">Actualizar estado</button></div></article>').join(''):'Aún no hay diseños.';
  el.querySelectorAll('[data-mug-file]').forEach(b=>b.onclick=()=>openFile(b.dataset.mugFile));
  el.querySelectorAll('[data-mug-print]').forEach(b=>b.onclick=()=>preparePrint(b.dataset.mugPrint));
+ el.querySelectorAll('[data-mug-handle]').forEach(b=>b.onclick=()=>printHandle(b.dataset.mugHandle));
  el.querySelectorAll('[data-mug-status]').forEach(b=>b.onclick=()=>setStatus(b.dataset.mugStatus));
 }
 async function upload(file,uuid,label){
@@ -102,11 +110,14 @@ async function upload(file,uuid,label){
 async function saveDesign(e){
  e.preventDefault();const form=e.target,f=new FormData(form),art=f.get('art'),final=f.get('printArt');
  if(!f.get('model_id')||!String(f.get('name')).trim()||!art?.size)return note('Selecciona taza, nombre e imagen original.',true);
+ const handleEnabled=f.get('handle_enabled')==='on',handleText=String(f.get('handle_text')||'').trim();
+ if(handleEnabled&&!handleText)return note('Introduce un nombre o frase para el asa.',true);
+ if(handleText.length>40)return note('Texto del asa: máximo 40 caracteres.',true);
  const id=crypto.randomUUID();let original=null,print=null;
  try{
   note('Subiendo diseño…');original=await upload(art,id,'original');
   print=await upload(final,id,'impresion');
-  const payload={id,model_id:f.get('model_id'),name:f.get('name'),order_reference:f.get('order_reference')||null,customer_reference:f.get('customer_reference')||null,placement:f.get('placement'),print_width_mm:num(f.get('print_width_mm'))||null,print_height_mm:num(f.get('print_height_mm'))||null,quantity:num(f.get('quantity'))||1,notes:f.get('notes'),original_path:original,print_path:print};
+  const payload={id,model_id:f.get('model_id'),name:f.get('name'),order_reference:f.get('order_reference')||null,customer_reference:f.get('customer_reference')||null,placement:f.get('placement'),print_width_mm:num(f.get('print_width_mm'))||null,print_height_mm:num(f.get('print_height_mm'))||null,quantity:num(f.get('quantity'))||1,notes:f.get('notes'),original_path:original,print_path:print,handle_enabled:handleEnabled,handle_text:handleEnabled?handleText:null,handle_orientation:handleEnabled?f.get('handle_orientation'):'vertical'};
   const r=await DB().from('mug_designs').insert(payload);
   if(r.error)throw new Error(r.error.message);
   await reload('designs');note('Ficha y archivos guardados');
@@ -139,6 +150,18 @@ async function preparePrint(id){
   win.document.write('<!doctype html><html><head><title>AIHXO impresión taza</title><style>@page{size:A4;margin:8mm}body{font:12px sans-serif;margin:0}img{width:'+w+'mm;height:'+h+'mm;object-fit:fill;transform:scaleX(-1);display:block}small{display:block;margin-top:12mm}@media print{button,small{display:none}}</style></head><body><img src="'+esc(url)+'"><small>AIHXO · '+esc(d.name)+' · '+w+' × '+h+' mm · ESPEJO ACTIVADO. Imprimir al 100%, desactivar ajustar a página, comprobar dimensiones y gestionar perfil ICC en el controlador del Mac.</small><button onclick="window.print()">Imprimir</button></body></html>');
   win.document.close();
  }catch(err){note(err.message,true)}
+}
+function printHandle(id){
+ const d=state.designs.find(x=>x.id===id);
+ if(!d?.handle_enabled||!d.handle_text)return note('Esta ficha no tiene texto para el asa.',true);
+ if(d.approval_status!=='aprobado')return note('Aprueba el diseño antes de imprimir el asa.',true);
+ const win=window.open('','_blank');
+ if(!win)return note('Permite ventanas emergentes para imprimir.',true);
+ const safeText=esc(d.handle_text);
+ const orientation=d.handle_orientation==='horizontal'?'horizontal':'a lo largo del asa';
+ win.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>AIHXO · Texto asa</title><style>@page{size:A4;margin:10mm}body{margin:0;font:12px sans-serif;color:#111}.area{width:45mm;height:10mm;display:flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box;border:.2mm dashed #999}.txt{font:bold 10pt Arial,sans-serif;white-space:nowrap;transform:scaleX(-1)}.instructions{margin-top:15mm;max-width:155mm;line-height:1.55}@media print{button,.instructions{display:none}.area{border:0}}</style></head><body><div class="area"><span class="txt" id="handleText"></span></div><p class="instructions">Texto: '+safeText+' · orientación: '+orientation+' · medida de referencia 45 × 10 mm. Espejo activado. Imprimir al 100 % sin ajustar a página. Confirmar compatibilidad de sublimación y dimensiones reales del asa antes de aplicar calor.</p><button onclick="window.print()">Imprimir</button></body></html>');
+ win.document.getElementById('handleText').textContent=d.handle_text;
+ win.document.close();
 }
 function productionView(el){
  const pending=state.designs.filter(d=>d.production_status!=='entregado');
