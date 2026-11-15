@@ -20,6 +20,7 @@
 
   let modelCache = [];
   let baseGarmentCache = [];
+  let mugModelCache = [];
   let customOrderCache = [];
   let lineSeq = 0;
 
@@ -34,12 +35,15 @@
           .select('id,manufacturer,model,garment_type,audience,sizes,colors,active')
           .eq('active', true).order('manufacturer').order('model')
       : null;
-    const [customResult, baseResult] = await Promise.all([
+    const [customResult, baseResult, mugsResult] = await Promise.all([
       customQuery,
-      baseQuery || Promise.resolve(null)
+      baseQuery || Promise.resolve(null),
+      activeOnly ? supabaseClient.from('mug_models').select('id,name,color,size_label,sale_price,unit_cost').order('name') : Promise.resolve(null)
     ]);
     if (customResult.error) throw customResult.error;
     if (baseResult?.error) throw baseResult.error;
+    if (mugsResult?.error) throw mugsResult.error;
+    if (activeOnly) mugModelCache = mugsResult?.data || [];
     modelCache = customResult.data || [];
     if (activeOnly) {
       baseGarmentCache = (baseResult?.data || []).map(g => ({
@@ -66,6 +70,10 @@
   function selectedOrderModel(value) {
     const id = String(value || '');
     if (id.startsWith('base:')) return baseGarmentCache.find(m => m.id === id) || null;
+    if (id.startsWith('mug:')) {
+      const mug = mugModelCache.find(m => m.id === id.slice(4));
+      return mug ? { ...mug, source:'mug', sourceId:mug.id, garment_type:'Taza', brand:'AIHXO', name:mug.name, sizes:[], colors:[mug.color].filter(Boolean), variants:[] } : null;
+    }
     // Los IDs sin prefijo se admiten para compatibilidad con llamadas anteriores.
     const customId = id.startsWith('custom:') ? id.slice(7) : id;
     const m = modelCache.find(x => String(x.id) === customId);
@@ -79,13 +87,15 @@
     const baseOptions = baseGarmentCache.map(m =>
       `<option value="${E(m.id)}" ${wanted===m.id?'selected':''}>${E([m.garment_type,m.brand,m.name,m.audience].filter(Boolean).join(' · '))}</option>`
     ).join('');
+    const mugOptions = mugModelCache.map(m => `<option value="mug:${E(m.id)}" ${wanted==='mug:'+m.id?'selected':''}>${E([m.name,m.color,m.size_label].filter(Boolean).join(' · '))}</option>`).join('');
     const customOptions = modelCache.filter(m => m.active !== false).map(m => {
       const value = 'custom:' + m.id;
       return `<option value="${E(value)}" ${wanted===value?'selected':''}>${E(modelLabel(m))}</option>`;
     }).join('');
     return '<option value="">— Selecciona modelo —</option>' +
       (baseOptions ? '<optgroup label="Prendas base">' + baseOptions + '</optgroup>' : '') +
-      (customOptions ? '<optgroup label="Modelos de personalización">' + customOptions + '</optgroup>' : '');
+      (customOptions ? '<optgroup label="Modelos de personalización">' + customOptions + '</optgroup>' : '') +
+      (mugOptions ? '<optgroup label="Tazas para sublimación">' + mugOptions + '</optgroup>' : '');
   }
 
   function variantList(m) {
@@ -317,9 +327,9 @@
       </div>
 
       <div class="field">
-        <label>Modelo de prenda *</label>
+        <label>Modelo de artículo *</label>
         <select class="co-model" required onchange="actualizarModeloLineaPersonalizada(this)">
-          ${orderModelOptions(prefill.garment_id ? 'base:' + prefill.garment_id : prefill.custom_model_id)}
+          ${orderModelOptions(prefill.mug_model_id ? 'mug:' + prefill.mug_model_id : prefill.garment_id ? 'base:' + prefill.garment_id : prefill.custom_model_id)}
         </select>
       </div>
 
@@ -390,7 +400,7 @@
       }
     });
 
-    if (prefill.custom_model_id || prefill.garment_id) {
+    if (prefill.custom_model_id || prefill.garment_id || prefill.mug_model_id) {
       actualizarModeloLineaPersonalizada(wrap.querySelector('.co-model'), prefill.garment_variant || '');
     }
     renumerarLineasPersonalizadas();
@@ -433,6 +443,13 @@
     }
 
     fillLineLists(line, m, wantedVariant || variant.value);
+    if (m?.source === 'mug') {
+      line.querySelector('.co-size').value = m.size_label || '';
+      line.querySelector('.co-color').value = m.color || '';
+      line.querySelector('.co-price').value = N(m.sale_price).toFixed(2);
+      line.querySelector('.co-cost').value = N(m.unit_cost).toFixed(2);
+      if (!line.querySelector('.co-area').value) line.querySelector('.co-area').value = 'Sublimación';
+    }
     actualizarResumenPedidoPersonalizado();
   };
 
@@ -653,6 +670,7 @@
         line_no: index + 1,
         personalization_name: line.querySelector('.co-personalization').value.trim() || 'Personalización',
         custom_model_id: model?.source === 'custom' ? model.sourceId : null,
+        mug_model_id: model?.source === 'mug' ? model.sourceId : null,
         garment_id: model?.source === 'base' ? model.sourceId : null,
         garment_type: model?.garment_type || 'Prenda',
         garment_model: model?.name || '',
@@ -722,7 +740,7 @@
 
     if (!customerName) { toast('Indica el cliente'); return; }
     if (!lines.length) { toast('Añade al menos un artículo'); return; }
-    if (lines.some(x => !(x.custom_model_id || x.garment_id) || !x.garment_model)) {
+    if (lines.some(x => !(x.custom_model_id || x.garment_id || x.mug_model_id) || !x.garment_model)) {
       toast('Selecciona un modelo en todos los artículos');
       return;
     }
@@ -926,7 +944,7 @@
           <div class="card" style="padding:16px;box-shadow:none;border:1px solid #e5e9f0;">
             <div style="display:flex;justify-content:space-between;gap:10px;">
               <div>
-                <div class="muted" style="font-size:11px;font-weight:900;">ARTÍCULO ${i.line_no}</div>
+                <div class="muted" style="font-size:11px;font-weight:900;">ARTÍCULO ${i.line_no}${i.mug_model_id ? " · ☕ TAZA" : ""}</div>
                 <h3 style="margin:4px 0 2px;">${E([i.brand,i.garment_model].filter(Boolean).join(' · '))}</h3>
                 ${i.garment_variant ? `<div class="muted">Variante: ${E(i.garment_variant)}</div>` : ''}
               </div>
@@ -939,7 +957,8 @@
               <div><span class="muted">Zona</span><br><b>${E(i.personalization_area || '—')}</b></div>
             </div>
             <div style="margin-top:10px;"><span class="muted">Personalización</span><br><b>${E(i.personalization_name || '—')}</b></div>
-            ${i.notes ? `<div class="muted" style="margin-top:8px;">${E(i.notes)}</div>` : ''}
+            ${i.mug_model_id ? `<div class="muted" style="margin-top:8px;">Ficha de sublimación vinculada</div>` : ''}
+             ${i.notes ? `<div class="muted" style="margin-top:8px;">${E(i.notes)}</div>` : ''}
             ${byItem[i.id]?.length ? `<div style="display:grid;gap:6px;margin-top:10px;">${byItem[i.id].map(f=>`<a class="secondary" href="${E(f.signed_url)}" target="_blank" rel="noopener">📎 ${E(f.file_name)}</a>`).join('')}</div>` : ''}
             <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:10px;">
               <div class="field" style="flex:1;min-width:200px;margin:0;">
