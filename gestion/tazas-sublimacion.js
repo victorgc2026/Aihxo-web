@@ -93,11 +93,14 @@ function designsView(el){
  handleText.addEventListener('input',()=>{if(handleText.value.trim())handleCheck.checked=true});
  el.querySelector('#mug-design-form').onsubmit=saveDesign;
  el.querySelector('#mug-design-list').innerHTML=state.designs.length?state.designs.map(d=>'<article style="padding:12px;margin-bottom:8px;border:1px solid #334155;border-radius:9px"><strong>'+esc(d.name)+'</strong> · '+esc(d.order_reference||'Sin pedido')+'<div>'+esc(d.placement)+' · '+esc(d.print_width_mm)+' × '+esc(d.print_height_mm)+' mm · '+esc(d.quantity)+' uds.</div>'+
- (d.handle_enabled?'<div>Asa: <strong>'+esc(d.handle_text||'Pendiente')+'</strong> · '+esc(d.handle_orientation==='horizontal'?'Horizontal':'A lo largo del asa')+' · 45 × 10 mm</div>':'')+'<small>'+esc(d.approval_status)+' / '+esc(d.production_status)+'</small><div><button data-mug-file="'+esc(d.id)+'" style="padding:8px;margin-top:7px">Ver original</button> <button data-mug-print="'+esc(d.id)+'" style="padding:8px">Preparar impresión</button> '+(d.handle_enabled&&d.handle_text?'<button data-mug-handle="'+esc(d.id)+'" style="padding:8px">Imprimir texto del asa</button> ':'')+'<button data-mug-status="'+esc(d.id)+'" style="padding:8px">Actualizar estado</button></div></article>').join(''):'Aún no hay diseños.';
+ (d.handle_enabled?'<div>Asa: <strong>'+esc(d.handle_text||'Pendiente')+'</strong> · '+esc(d.handle_orientation==='horizontal'?'Horizontal':'A lo largo del asa')+' · 45 × 10 mm</div>':'')+'<small>'+esc(d.approval_status)+' / '+esc(d.production_status)+'</small><div><button data-mug-file="'+esc(d.id)+'" style="padding:8px;margin-top:7px">Ver original</button> <button data-mug-print="'+esc(d.id)+'" style="padding:8px">Preparar impresión</button> '+(d.handle_enabled&&d.handle_text?'<button data-mug-handle="'+esc(d.id)+'" style="padding:8px">Imprimir texto del asa</button> ':'')+'<button data-mug-status="'+esc(d.id)+'" style="padding:8px">Actualizar estado</button></div>'+
+ '<label style="display:block;margin-top:9px;font-size:12px">Adjuntar o actualizar imagen<input type="file" data-mug-attach="'+esc(d.id)+'" accept="image/png,image/jpeg,image/webp,application/pdf" style="display:block;max-width:100%;margin-top:5px" /></label>'+
+ (d.custom_order_item_id?'<small style="color:#93c5fd">Ficha vinculada a pedido personalizado</small>':'')+'</article>').join(''):'Aún no hay diseños.';
  el.querySelectorAll('[data-mug-file]').forEach(b=>b.onclick=()=>openFile(b.dataset.mugFile));
  el.querySelectorAll('[data-mug-print]').forEach(b=>b.onclick=()=>preparePrint(b.dataset.mugPrint));
  el.querySelectorAll('[data-mug-handle]').forEach(b=>b.onclick=()=>printHandle(b.dataset.mugHandle));
  el.querySelectorAll('[data-mug-status]').forEach(b=>b.onclick=()=>setStatus(b.dataset.mugStatus));
+ el.querySelectorAll('[data-mug-attach]').forEach(b=>b.onchange=()=>attachDesignFile(b.dataset.mugAttach,b));
 }
 async function upload(file,uuid,label){
  if(!file||!file.size)return null;if(file.size>15*1024*1024)throw new Error('El archivo supera 15 MB');
@@ -123,6 +126,21 @@ async function saveDesign(e){
   await reload('designs');note('Ficha y archivos guardados · Referencia '+r.data.order_reference);
  }catch(err){note('No se guardó la ficha: '+err.message,true);
   for(const p of [original,print].filter(Boolean))await DB().storage.from(bucket).remove([p]);}
+}
+async function attachDesignFile(id,input){
+ const file=input.files?.[0];if(!file)return;
+ const design=state.designs.find(x=>x.id===id);if(!design)return note('Ficha no encontrada',true);
+ let uploaded=null;
+ try{
+  note('Subiendo archivo del diseño…');
+  uploaded=await upload(file,id,'original-'+Date.now());
+  const r=await DB().from('mug_designs').update({original_path:uploaded}).eq('id',id).select('id');
+  if(r.error||!r.data?.length)throw new Error(r.error?.message||'No se pudo vincular el archivo');
+  await reload('designs');note('Imagen añadida a '+design.order_reference);
+ }catch(e){
+  if(uploaded)await DB().storage.from(bucket).remove([uploaded]);
+  note('No se pudo adjuntar: '+e.message,true);
+ }
 }
 async function signed(path){const r=await DB().storage.from(bucket).createSignedUrl(path,180);if(r.error)throw new Error(r.error.message);return r.data.signedUrl}
 async function openFile(id){
