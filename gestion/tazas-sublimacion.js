@@ -182,9 +182,51 @@ function printHandle(id){
  win.document.close();
 }
 function productionView(el){
- const pending=state.designs.filter(d=>d.production_status!=='entregado');
- el.innerHTML='<h2>Cola de producción</h2><p>La reserva y el consumo de stock se registran desde Inventario. Solo imprimir diseños aprobados.</p>'+
- (pending.length?pending.map(d=>'<div style="border:1px solid #334155;border-radius:8px;padding:12px;margin:8px 0">'+esc(d.order_reference||'Sin referencia')+' · '+esc(d.name)+' · '+esc(d.quantity)+' uds. · '+esc(d.approval_status)+' / '+esc(d.production_status)+'</div>').join(''):'No hay diseños pendientes.');
+ const designs=state.designs;
+ const select=(field,items,value)=>'<select name="'+field+'" style="padding:10px;border-radius:8px;border:1px solid #64748b;background:#101f3c;color:#fff;width:100%">'+items.map(([v,label])=>'<option value="'+v+'"'+(v===value?' selected':'')+'>'+label+'</option>').join('')+'</select>';
+ const prodOptions=[['pendiente','Pendiente'],['preparando','En preparación'],['terminado','Terminada']];
+ const deliveryOptions=[['pendiente','Pendiente de entrega'],['entregada','Entregada']];
+ const paymentOptions=[['pendiente','Pendiente de cobro'],['parcial','Pago parcial'],['cobrado','Cobrada']];
+ el.innerHTML='<h2>Producción y seguimiento de tazas</h2><p style="color:#cbd5e1">Actualiza producción, entrega y cobro por separado. La entrega no implica que esté cobrado. El stock se gestiona desde Inventario.</p>'+
+ '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><b>Total: '+designs.length+'</b><span> · Pendientes de entrega: '+designs.filter(d=>d.delivery_status!=='entregada'&&d.production_status!=='entregado').length+'</span><span> · Pendientes de cobro: '+designs.filter(d=>d.payment_status!=='cobrado').length+'</span></div>'+
+ (designs.length?designs.map(d=>{
+ const model=state.models.find(m=>m.id===d.model_id);
+ const legacy=d.production_status==='entregado';
+ const prod=legacy?'terminado':d.production_status;
+ const delivery=d.delivery_status==='entregada'||legacy?'entregada':'pendiente';
+ return '<form data-mug-production-form="'+esc(d.id)+'" style="padding:15px;margin:12px 0;border:1px solid #475569;border-radius:12px;background:#0b1d3d">'+
+ '<div style="margin-bottom:12px"><strong>'+esc(d.order_reference||'Sin referencia')+' · '+esc(d.name)+'</strong><div style="font-size:13px;color:#cbd5e1">'+esc(model?.name||'Modelo sin identificar')+' · '+esc(d.quantity)+' uds. · Diseño: '+esc(d.approval_status)+(d.customer_reference?' · Cliente: '+esc(d.customer_reference):'')+'</div></div>'+
+ '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:11px">'+
+ '<label style="font-size:13px">Producción'+select('production_status',prodOptions,prod)+'</label>'+
+ '<label style="font-size:13px">Entrega'+select('delivery_status',deliveryOptions,delivery)+'</label>'+
+ '<label style="font-size:13px">Cobro'+select('payment_status',paymentOptions,d.payment_status||'pendiente')+'</label>'+
+ '<label style="font-size:13px">Importe cobrado (€)<input name="amount_paid" inputmode="decimal" value="'+esc(String(d.amount_paid??0).replace('.',','))+'" style="padding:10px;border-radius:8px;background:#101f3c;color:white;border:1px solid #64748b;width:100%" /></label>'+
+ '<label style="font-size:13px">Método de pago'+select('payment_method',[['','Sin especificar'],['Efectivo','Efectivo'],['Bizum','Bizum'],['Transferencia','Transferencia'],['Tarjeta','Tarjeta'],['Otro','Otro']],d.payment_method||'')+'</label></div>'+
+ '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:12px"><button type="submit" style="background:#2563eb;color:white;border:0;padding:11px 16px;border-radius:9px;cursor:pointer">Guardar estados</button>'+
+ '<small style="color:#cbd5e1">Entrega: '+esc(d.delivered_at?new Date(d.delivered_at).toLocaleDateString('es-ES'):'—')+' · Cobro: '+esc(d.paid_at?new Date(d.paid_at).toLocaleDateString('es-ES'):'—')+'</small></div></form>';
+ }).join(''):'No hay diseños de tazas registrados.');
+ el.querySelectorAll('[data-mug-production-form]').forEach(f=>f.onsubmit=e=>saveProductionState(e,f.dataset.mugProductionForm));
+}
+async function saveProductionState(e,id){
+ e.preventDefault();
+ const form=e.currentTarget,d=state.designs.find(x=>x.id===id);
+ if(!d)return note('No se encontró la ficha de la taza.',true);
+ const f=new FormData(form),amount=decimal(f.get('amount_paid'));
+ if(amount===null||!Number.isFinite(amount)||amount<0||Math.round(amount*100)!==amount*100)return note('Introduce un importe cobrado válido (ej.: 12,95).',true);
+ const production_status=String(f.get('production_status')),delivery_status=String(f.get('delivery_status')),payment_status=String(f.get('payment_status'));
+ if(!['pendiente','preparando','terminado'].includes(production_status)||!['pendiente','entregada'].includes(delivery_status)||!['pendiente','parcial','cobrado'].includes(payment_status))return note('Estado no válido.',true);
+ if(payment_status==='pendiente'&&amount>0)return note('Con un importe cobrado debes indicar pago parcial o cobrado.',true);
+ if(payment_status==='parcial'&&amount<=0)return note('Indica el importe recibido del pago parcial.',true);
+ const now=new Date().toISOString(),patch={production_status,delivery_status,payment_status,amount_paid:amount,payment_method:f.get('payment_method')||null};
+ if(d.production_status!==production_status)patch.production_updated_at=now;
+ if(delivery_status!==d.delivery_status)patch.delivered_at=delivery_status==='entregada'?now:null;
+ if(payment_status!==d.payment_status)patch.paid_at=payment_status==='cobrado'?now:null;
+ const button=form.querySelector('button[type="submit"]');button.disabled=true;
+ try{
+  const r=await DB().from('mug_designs').update(patch).eq('id',id).select('id');
+  if(r.error||!r.data?.length)throw new Error(r.error?.message||'No se actualizó la ficha. Comprueba permisos de acceso.');
+  await reload('production');note('Estados de la taza guardados correctamente.');
+ }catch(err){note('Error al guardar: '+err.message,true);button.disabled=false;}
 }
 async function reload(view){await fetchAll();render(view)}
 async function open(){main();try{await reload('models')}catch(e){note('Error al cargar. Comprueba las tablas y los permisos: '+e.message,true)}}
