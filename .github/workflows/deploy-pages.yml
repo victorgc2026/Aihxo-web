@@ -55,10 +55,14 @@ jobs:
           cp -a demo-dtf-tallas/. _site/demo-dtf-tallas/
           mkdir -p _site/recuerdos
           
-          cp -a recuerdos/. _site/recuerdos/
+          if [ -d recuerdos ]; then cp -a recuerdos/. _site/recuerdos/; fi
           cp privacidad.html _site/privacidad.html
           cp condiciones.html _site/condiciones.html
           cp eliminacion-datos.html _site/eliminacion-datos.html
+          test -s _site/index.html
+          test -s _site/catalogo/index.html
+          grep -q 'catalogo/' _site/index.html
+          echo "Catalogo incluido en el artefacto de publicacion"
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
