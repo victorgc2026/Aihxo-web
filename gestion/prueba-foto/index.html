@@ -1,0 +1,60 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>AIHXO · Prueba de mejora fotográfica</title><style>*{box-sizing:border-box}body{margin:0;background:#f2f5fa;color:#07152f;font:16px system-ui,sans-serif}header{background:#07152f;color:white;padding:20px}main{max-width:1000px;margin:auto;padding:12px}.card{background:white;border:1px solid #dce3ed;border-radius:16px}label{display:block;margin:14px 0}input,select,button{font:inherit;max-width:100%}input:not([type=range]),select{display:block;padding:9px;border:1px solid #b4c0ce;border-radius:8px;background:white;width:100%}input[type=range]{display:block;width:100%}button{padding:12px;border:0;border-radius:9px;margin:4px 0;background:#07152f;color:white}button:disabled{opacity:.45}.muted{color:#536174}canvas{border-radius:8px;border:1px solid #e0e6ee}h2{font-size:21px}#peStatus{overflow-wrap:anywhere}</style></head><body><header><strong>AIHXO</strong> · Laboratorio de pruebas</header><main><p>Prueba independiente de Creative Studio. Las fotos se procesan en este dispositivo y no se envían a ningún servidor. No introduzcas datos de clientes durante la prueba.</p><div id="view"><canvas id="crCanvas" hidden></canvas></div></main><script>/* AIHXO Photo Enhance — local, non-generative */
+(function(){
+'use strict';
+if(window.__aihxoPhotoEnhance)return;
+window.__aihxoPhotoEnhance=true;
+const el=id=>document.getElementById(id);
+const canvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+const ctx=c=>c.getContext('2d',{willReadFrequently:true});
+const clamp=v=>Math.max(0,Math.min(255,v));
+function enhance(c,amount,noise){
+ const x=ctx(c),w=c.width,h=c.height,d=x.getImageData(0,0,w,h),a=d.data,b=new Uint8ClampedArray(a);
+ for(let y=1;y<h-1;y++)for(let j=1;j<w-1;j++){
+  const i=(y*w+j)*4;if(b[i+3]!==255||b[i-4+3]!==255||b[i+4+3]!==255||b[i-w*4+3]!==255||b[i+w*4+3]!==255)continue;
+  const lum=k=>.2126*b[k]+.7152*b[k+1]+.0722*b[k+2];
+  const v=lum(i),avg=(lum(i-4)+lum(i+4)+lum(i-w*4)+lum(i+w*4))/4,delta=v-avg;
+  const adj=Math.abs(delta)<5?-noise*delta:Math.max(-18,Math.min(18,amount*delta));
+  for(let k=0;k<3;k++)a[i+k]=clamp(b[i+k]+adj);
+ }
+ x.putImageData(d,0,0);
+}
+function sharpness(img){
+ const scale=Math.min(1,512/Math.max(img.naturalWidth,img.naturalHeight)),c=canvas(Math.max(1,Math.round(img.naturalWidth*scale)),Math.max(1,Math.round(img.naturalHeight*scale))),x=ctx(c);
+ x.drawImage(img,0,0,c.width,c.height);const a=x.getImageData(0,0,c.width,c.height).data,w=c.width,h=c.height;let n=0,s=0,s2=0;
+ const l=i=>.2126*a[i]+.7152*a[i+1]+.0722*a[i+2];
+ for(let y=1;y<h-1;y++)for(let j=1;j<w-1;j++){const i=(y*w+j)*4;if(a[i+3]!==255)continue;const v=4*l(i)-l(i-4)-l(i+4)-l(i-w*4)-l(i+w*4);s+=v;s2+=v*v;n++;}
+ return n?s2/n-(s/n)**2:0;
+}
+// Canvas encoders normally write 96 dpi. Replace pHYs with 11811 pixels/metre.
+function png300(bytes){
+ const dv=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),parts=[bytes.slice(0,8)];
+ const p=new Uint8Array(21),v=new DataView(p.buffer);v.setUint32(0,9);p.set([112,72,89,115],4);v.setUint32(8,11811);v.setUint32(12,11811);p[16]=1;
+ let crc=0xffffffff;for(let i=4;i<17;i++){crc^=p[i];for(let j=0;j<8;j++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);}v.setUint32(17,(crc^0xffffffff)>>>0);
+ for(let i=8;i+12<=bytes.length;){const n=dv.getUint32(i),end=i+12+n;if(end>bytes.length)throw Error('PNG inválido');const type=String.fromCharCode(...bytes.slice(i+4,i+8));if(type!=='pHYs')parts.push(bytes.slice(i,end));if(type==='IHDR')parts.push(p);i=end;}
+ return new Blob(parts,{type:'image/png'});
+}
+function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);}
+function mount(){
+ const root=el('view');if(!root||!el('crCanvas')||el('pePanel'))return;
+ const panel=document.createElement('section');panel.id='pePanel';panel.className='card';panel.style.cssText='max-width:1150px;margin:16px auto;padding:18px';
+ panel.innerHTML='<h2>Mejora fotográfica · AIHXO</h2><p class="muted">Procesamiento local. No modifica el archivo original ni reconstruye rasgos.</p><label>Fotografía original<input id="peFile" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff"></label><label>Producto<select id="pePreset"><option value="20,9">Taza 20 × 9 cm</option><option value="25,30">Camiseta 25 × 30 cm</option><option value="30,35">Camiseta 30 × 35 cm</option><option value="60,40">Cojín 60 × 40 cm</option><option value="custom">Personalizado</option></select></label><div style="display:flex;gap:10px;flex-wrap:wrap"><label>Ancho cm <input id="peW" type="number" min="1" max="60" step=".1" value="20"></label><label>Alto cm <input id="peH" type="number" min="1" max="60" step=".1" value="9"></label></div><label>Modo<select id="peMode"><option value="faithful">Fiel (recomendado)</option><option value="advanced">Avanzado</option><option disabled>Restauración IA (no disponible)</option></select></label><label>Nitidez <input id="peSharp" type="range" min="0" max="100" value="35"></label><label>Reducción de ruido suave <input id="peNoise" type="range" min="0" max="100" value="10"></label><label>Encuadre<select id="peFit"><option value="contain">Foto completa · márgenes blancos</option><option value="cover">Llenar formato · recorte centrado</option></select></label><button id="peRun" class="primary" disabled>Mejorar fotografía</button> <button id="peSave" class="secondary" disabled>PNG 300 ppp</button> <button id="peOriginal" class="secondary" disabled>Descargar original</button><p id="peStatus" role="status" aria-live="polite"></p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"><div>Antes<canvas id="peBefore" style="width:100%;height:auto"></canvas></div><div>Después<canvas id="peAfter" style="width:100%;height:auto"></canvas></div></div>';
+ root.appendChild(panel);
+ const q=id=>panel.querySelector('#'+id);let img=null,file=null,output=null,seq=0;
+ const status=t=>q('peStatus').textContent=t;
+ const reset=()=>{output=null;q('peSave').disabled=true;};
+ q('pePreset').onchange=()=>{const v=q('pePreset').value;if(v!=='custom'){const [w,h]=v.split(',');q('peW').value=w;q('peH').value=h;}reset();};
+ ['peW','peH'].forEach(id=>q(id).oninput=()=>{q('pePreset').value='custom';reset();});
+ ['peSharp','peNoise','peFit'].forEach(id=>q(id).oninput=reset);
+ q('peMode').onchange=()=>{const a=q('peMode').value==='advanced';q('peSharp').value=a?65:35;q('peNoise').value=a?30:10;reset();};
+ q('peFile').onchange=async()=>{const token=++seq;reset();img=null;file=null;q('peRun').disabled=true;q('peOriginal').disabled=true;const f=q('peFile').files[0];if(!f)return;if(f.size>30*1024*1024){status('Máximo 30 MB.');return;}const url=URL.createObjectURL(f);try{const i=new Image();i.src=url;await i.decode();if(token!==seq)return;if(i.naturalWidth*i.naturalHeight>40000000)throw Error('Imagen demasiado grande (máximo 40 MP).');img=i;file=f;q('peRun').disabled=false;q('peOriginal').disabled=false;status('Original: '+i.naturalWidth+' × '+i.naturalHeight+' px. Pulsa Mejorar.');}catch(e){if(token===seq)status('No se pudo abrir. Exporta a JPG o PNG si el formato no es compatible. '+e.message);}finally{URL.revokeObjectURL(url);}};
+ q('peOriginal').onclick=()=>{if(file)download(file,file.name);};
+ q('peRun').onclick=async()=>{if(!img)return;reset();const wc=+q('peW').value,hc=+q('peH').value;if(!(wc>=1&&wc<=60&&hc>=1&&hc<=60)){status('Medidas válidas: 1–60 cm.');return;}const w=Math.round(wc/2.54*300),h=Math.round(hc/2.54*300);if(w*h>26000000){status('Formato demasiado grande para procesamiento local (máximo 26 MP).');return;}const source=img,token=seq,fit=q('peFit').value,amount=+q('peSharp').value/100,noise=+q('peNoise').value/100;q('peRun').disabled=true;status('Procesando localmente…');
+ try{await new Promise(r=>setTimeout(r,30));if(token!==seq)return;const scale=(fit==='cover'?Math.max:Math.min)(w/source.naturalWidth,h/source.naturalHeight),dw=source.naturalWidth*scale,dh=source.naturalHeight*scale;
+ const c=canvas(w,h),x=ctx(c);x.fillStyle='#fff';x.fillRect(0,0,w,h);x.imageSmoothingQuality='high';x.drawImage(source,(w-dw)/2,(h-dh)/2,dw,dh);
+ const preview=(target)=>{const z=Math.min(1,900/Math.max(w,h));target.width=Math.max(1,Math.round(w*z));target.height=Math.max(1,Math.round(h*z));ctx(target).drawImage(c,0,0,target.width,target.height);};
+ preview(q('peBefore'));enhance(c,amount,noise);preview(q('peAfter'));output=c;q('peSave').disabled=false;const dpi=Math.round(300/scale),score=sharpness(source);status('Salida: '+w+' × '+h+' px · 300 ppp nominales. Original al tamaño colocado: '+dpi+' ppp efectivos. '+(dpi<150?'Resolución baja: solicita un original mejor. ':dpi<220?'Resolución justa: revisar prueba. ':'')+(score<35?'Posible falta de nitidez (estimación orientativa, depende de la escena). ':'')+(fit==='cover'?'Recorte centrado aplicado. ':'Foto completa, sin deformación. ' )+'La ampliación no recupera detalle inexistente.');
+ }catch(e){status('Error de procesamiento: '+e.message);}finally{if(token===seq)q('peRun').disabled=false;}};
+ q('peSave').onclick=async()=>{if(!output)return;try{const b=await new Promise(r=>output.toBlob(r,'image/png'));if(!b)throw Error('No se pudo exportar');download(png300(new Uint8Array(await b.arrayBuffer())),'AIHXO-foto-mejorada-300ppp.png');}catch(e){status(e.message);}};
+}
+new MutationObserver(mount).observe(document.documentElement,{childList:true,subtree:true});mount();
+})();</script></body></html>
